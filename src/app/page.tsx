@@ -39,9 +39,10 @@ export default function Page() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 overflow-auto">
-          <SimpleEditor />
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+        <div className="flex flex-1 flex-col gap-4 p-4 h-screen overflow-y-auto">
+          <div style={{ maxHeight: "100vh" }}>
+            <SimpleEditor />
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
