@@ -1,3 +1,4 @@
+"use client";
 import { AppSidebar } from "@/components/sidebar";
 import {
   Breadcrumb,
@@ -14,8 +15,27 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor";
+import React, { useRef } from "react";
 
 export default function Page() {
+  const editorRef = useRef<{ getJSON: () => any; getText: () => string }>(null);
+
+  const handleGetJSON = () => {
+    if (editorRef.current) {
+      const json = editorRef.current.getJSON();
+      return json;
+    }
+    return null;
+  };
+
+  const handleGetText = () => {
+    if (editorRef.current) {
+      const text = editorRef.current.getText();
+      return text;
+    }
+    return "";
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -41,7 +61,7 @@ export default function Page() {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 h-screen overflow-y-auto">
           <div style={{ maxHeight: "100vh" }}>
-            <SimpleEditor />
+            <SimpleEditor content="" editorRef={editorRef} />
           </div>
         </div>
       </SidebarInset>

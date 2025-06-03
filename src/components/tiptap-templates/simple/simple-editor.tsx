@@ -76,7 +76,7 @@ import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import "@/components/tiptap-templates/simple/simple-editor.scss";
 import "@/components/tiptap-templates/active-button.scss";
 
-import content from "@/components/tiptap-templates/simple/data/content.json";
+//import content from "@/components/tiptap-templates/simple/data/content.json";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -183,7 +183,15 @@ const MobileToolbarContent = ({
   </>
 );
 
-export function SimpleEditor() {
+interface SimpleEditorProps {
+  content: string;
+  editorRef?: React.RefObject<{
+    getJSON: () => any;
+    getText: () => string;
+  }>;
+}
+
+export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
@@ -236,7 +244,13 @@ export function SimpleEditor() {
     if (!isMobile && mobileView !== "main") {
       setMobileView("main");
     }
-  }, [isMobile, mobileView]);
+    if (editor && editorRef && "current" in editorRef) {
+      editorRef.current = {
+        getJSON: () => editor.getJSON(),
+        getText: () => editor.getText(),
+      };
+    }
+  }, [isMobile, mobileView, editor, editorRef]);
 
   return (
     <EditorContext.Provider value={{ editor }}>
