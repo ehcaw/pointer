@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/collapsible";
 import {
   Sidebar,
+  SidebarHeader,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -19,54 +20,41 @@ import {
   SidebarMenuSub,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenu,
+} from "./tiptap-ui-primitive/dropdown-menu";
+import { BookPlusIcon } from "lucide-react";
 
 // This is sample data.
-const data = {
-  changes: [
-    {
-      file: "README.md",
-      state: "M",
-    },
-    {
-      file: "api/hello/route.ts",
-      state: "U",
-    },
-    {
-      file: "app/layout.tsx",
-      state: "M",
-    },
-  ],
-  tree: [
-    [
-      "app",
-      [
-        "api",
-        ["hello", ["route.ts"]],
-        "page.tsx",
-        "layout.tsx",
-        ["blog", ["page.tsx"]],
-      ],
-    ],
-    [
-      "components",
-      ["ui", "button.tsx", "card.tsx"],
-      "header.tsx",
-      "footer.tsx",
-    ],
-    ["lib", ["util.ts"]],
-    ["public", "favicon.ico", "vercel.svg"],
-    ".eslintrc.json",
-    ".gitignore",
-    "next.config.js",
-    "tailwind.config.js",
-    "package.json",
-    "README.md",
-  ],
-};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton>
+                  Your Workspace
+                  <BookPlusIcon className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[--radix-popper-anchor-width] bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 shadow-lg rounded-md p-1">
+                <DropdownMenuItem className="flex items-center py-2 px-3 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm">
+                  <span>Acme Inc</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center py-2 px-3 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm">
+                  <span>Acme Corp.</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Changes</SidebarGroupLabel>
@@ -100,7 +88,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   );
 }
 
-function Tree({ item }: { item: string | any[] }) {
+function Tree({
+  item,
+}: {
+  item: string | (string | (string | (string | string[])[])[])[];
+}) {
   const [name, ...items] = Array.isArray(item) ? item : [item];
 
   if (!items.length) {
