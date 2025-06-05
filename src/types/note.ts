@@ -34,6 +34,8 @@ export interface BaseNode {
   /** Timestamp when this node was last updated. */
   updatedAt: Date;
 
+  content: string;
+
   /**
    * OPTIONAL FIELDS (uncomment and adjust as needed):
    *
