@@ -5,7 +5,7 @@ body {
     --tt-theme-text: var(--tt-gray-light-900);
 
     .dark & {
-        --tt-theme-text: var(--tt-gray-dark-900);
+        --tt-theme-text: #ffffff;
     }
 }
 
@@ -89,4 +89,54 @@ html.dark .tiptap.ProseMirror h3,
 html.dark .tiptap.ProseMirror h4,
 html.dark .tiptap.ProseMirror li {
     color: #fff !important;
+}
+
+/* Comprehensive fix for all toolbar elements in dark mode */
+html.dark .tiptap-toolbar,
+.dark .tiptap-toolbar {
+    /* Override button icon colors */
+    --tt-button-default-icon-color: #ffffff !important;
+    --tt-button-hover-icon-color: #ffffff !important;
+    --tt-button-active-icon-color: #60a5fa !important;
+    --tt-button-active-icon-color-emphasized: #60a5fa !important;
+    --tt-button-active-icon-color-subdued: #ffffff !important;
+    
+    /* Override button text colors */
+    --tt-button-default-text-color: #ffffff !important;
+    --tt-button-hover-text-color: #ffffff !important;
+    --tt-button-active-text-color: #ffffff !important;
+    --tt-button-active-text-color-emphasized: #ffffff !important;
+    --tt-button-active-text-color-subdued: #ffffff !important;
+}
+
+/* Force all button icons to be visible in dark mode */
+html.dark .tiptap-button-icon,
+.dark .tiptap-button-icon,
+html.dark .tiptap-toolbar .tiptap-button-icon,
+.dark .tiptap-toolbar .tiptap-button-icon {
+    color: #ffffff !important;
+}
+
+/* Force all button text to be visible in dark mode */
+html.dark .tiptap-button-text,
+.dark .tiptap-button-text,
+html.dark .tiptap-toolbar .tiptap-button-text,
+.dark .tiptap-toolbar .tiptap-button-text {
+    color: #ffffff !important;
+}
+
+/* Special handling for ImageUploadButton */
+html.dark .tiptap-toolbar ToolbarGroup .ImagePlusIcon,
+.dark .tiptap-toolbar ToolbarGroup .ImagePlusIcon,
+html.dark .tiptap-toolbar ToolbarGroup:last-of-type .tiptap-button-icon,
+.dark .tiptap-toolbar ToolbarGroup:last-of-type .tiptap-button-icon,
+html.dark .tiptap-toolbar .tiptap-button span,
+.dark .tiptap-toolbar .tiptap-button span {
+    color: #ffffff !important;
+}
+
+/* Make separator more visible in dark mode */
+html.dark .tiptap-separator,
+.dark .tiptap-separator {
+    background-color: rgba(255, 255, 255, 0.2) !important;
 }

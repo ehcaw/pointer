@@ -186,7 +186,7 @@ const MobileToolbarContent = ({
 interface SimpleEditorProps {
   content: string;
   editorRef?: React.RefObject<{
-    getJSON: () => any;
+    getJSON: () => typeof JSON;
     getText: () => string;
   }>;
 }

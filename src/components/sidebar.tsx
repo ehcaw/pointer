@@ -27,10 +27,15 @@ import {
   DropdownMenu,
 } from "./tiptap-ui-primitive/dropdown-menu";
 import { BookPlusIcon } from "lucide-react";
-
-// This is sample data.
+import { useNotesStore } from "@/lib/notes-store";
+import { useUserStore } from "@/lib/user-store";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { openUserNotes, userNotes, editedNotes, treeStructure, currentView } =
+    useNotesStore();
+
+  const { currentUser } = useUserStore();
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -39,7 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
-                  Your Workspace
+                  {currentUser?.name}&apos;s Workspace
                   <BookPlusIcon className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -56,28 +61,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Changes</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {data.changes.map((item, index) => (
-                <SidebarMenuItem key={index}>
-                  <SidebarMenuButton>
-                    <File />
-                    {item.file}
-                  </SidebarMenuButton>
-                  <SidebarMenuBadge>{item.state}</SidebarMenuBadge>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {editedNotes.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Changes</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {editedNotes.map((item, index) => (
+                  <SidebarMenuItem key={index}>
+                    <SidebarMenuButton>
+                      <File />
+                      {item.name}
+                    </SidebarMenuButton>
+                    <SidebarMenuBadge>edited</SidebarMenuBadge>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         <SidebarGroup>
           <SidebarGroupLabel>Files</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {data.tree.map((item, index) => (
-                <Tree key={index} item={item} />
+              {treeStructure.map((item, index) => (
+                <Tree key={index} item={item.name} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
