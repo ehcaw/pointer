@@ -184,20 +184,31 @@ const MobileToolbarContent = ({
 );
 
 interface SimpleEditorProps {
-  content: string;
+  content: string | Record<string, any>;
   editorRef?: React.RefObject<{
-    getJSON: () => typeof JSON;
+    getJSON: () => any;
     getText: () => string;
   }>;
+  onUpdate?: (json: any, text: string) => void;
 }
 
-export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
+export function SimpleEditor({ content, editorRef, onUpdate }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
     "main" | "highlighter" | "link"
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
+  
+  // Parse content appropriately based on input type
+  const initialContent = React.useMemo(() => {
+    // If content is an object (TipTap JSON), use it directly
+    if (content && typeof content === 'object') {
+      return content;
+    }
+    // If content is a string, use it as-is
+    return content || '';
+  }, []);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -232,7 +243,12 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       TrailingNode,
       Link.configure({ openOnClick: false }),
     ],
-    content: content,
+    content: initialContent,
+    onUpdate: ({ editor }) => {
+      if (onUpdate) {
+        onUpdate(editor.getJSON(), editor.getText());
+      }
+    }
   });
 
   const bodyRect = useCursorVisibility({
@@ -251,6 +267,21 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       };
     }
   }, [isMobile, mobileView, editor, editorRef]);
+
+  // Update editor content when the content prop changes
+  React.useEffect(() => {
+    if (editor && content) {
+      const currentJSON = JSON.stringify(editor.getJSON());
+      const newContent = typeof content === 'object' 
+        ? JSON.stringify(content) 
+        : content.toString();
+      
+      // Only update if content has changed to avoid cursor position issues
+      if (currentJSON !== newContent) {
+        editor.commands.setContent(content);
+      }
+    }
+  }, [editor, content]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

@@ -1,6 +1,19 @@
 // types/nodes.ts
 
-import { ObjectId } from "mongodb";
+// Simple ObjectId type for frontend use (matches MongoDB ObjectId interface)
+export interface ObjectId {
+  toString(): string;
+  toHexString(): string;
+}
+
+// Helper function to create ObjectId-like objects
+export function createObjectId(id?: string): ObjectId {
+  const hexString = id || Math.random().toString(16).substring(2, 26).padStart(24, '0');
+  return {
+    toString: () => hexString,
+    toHexString: () => hexString,
+  };
+}
 
 /**
  * Base fields shared by both folders and files.
@@ -16,7 +29,7 @@ export interface BaseNode {
   name: string;
 
   /**
-   * The parent folder’s ObjectId.
+   * The parent folder's ObjectId.
    * - `null` if this node is a top‐level item in the bucket.
    */
   parentId: ObjectId | null;
@@ -34,7 +47,11 @@ export interface BaseNode {
   /** Timestamp when this node was last updated. */
   updatedAt: Date;
 
-  content: string;
+  /** Last time this note was accessed by the user */
+  lastAccessed?: Date;
+
+  /** Last time this note was edited (differs from updatedAt which includes metadata changes) */
+  lastEdited?: Date;
 
   /**
    * OPTIONAL FIELDS (uncomment and adjust as needed):
@@ -69,10 +86,30 @@ export interface FileNode extends BaseNode {
   type: "file";
 
   /**
-   * Arbitrary JSON object representing the file’s contents.
-   * Adjust the generic type if you have a stricter schema.
+   * JSON object representing the file's contents.
+   * For TipTap notes, this will contain the editor's JSON structure.
    */
-  content: Record<string, any>;
+  content: {
+    /**
+     * Raw TipTap JSON content
+     */
+    tiptap?: Record<string, any>;
+    
+    /**
+     * Plain text representation of the content
+     */
+    text?: string;
+    
+    /**
+     * Any additional metadata about the note
+     */
+    meta?: Record<string, any>;
+    
+    /**
+     * Legacy/arbitrary content (for backward compatibility)
+     */
+    [key: string]: any;
+  };
 }
 
 /**

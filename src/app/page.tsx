@@ -1,5 +1,5 @@
 "use client";
-import { AppSidebar } from "@/components/sidebar";
+import { AppSidebar } from "@/components/navigation/sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,

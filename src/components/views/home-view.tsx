@@ -25,7 +25,7 @@ import { useNotesStore } from "@/lib/notes-store";
 import { Node } from "@/types/note";
 
 export function HomeView() {
-  const { editedNotes, userNotes, currentView, setCurrentView } =
+  const { unsavedNotes, userNotes, currentView, setCurrentView } =
     useNotesStore();
   const [query, setQuery] = React.useState("");
   const [isSearching, setIsSearching] = React.useState(false);
@@ -72,13 +72,13 @@ export function HomeView() {
 
   const recentNotes = React.useMemo(() => {
     // Sort by most recently updated
-    return [...editedNotes]
+    return [...unsavedNotes.values()]
       .sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       )
       .slice(0, 6);
-  }, [editedNotes]);
+  }, [unsavedNotes]);
 
   return (
     <div className="flex flex-col h-full">
