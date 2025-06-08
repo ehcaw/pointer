@@ -15,7 +15,7 @@ import {
 import { useNotesStore } from "@/lib/notes-store";
 
 export function AppSidebar() {
-  const { openUserNotes, setCurrentView } = useNotesStore();
+  const { openUserNotes, setCurrentView, unsavedNotes } = useNotesStore();
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
@@ -52,6 +52,20 @@ export function AppSidebar() {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Changes</SidebarGroupLabel>
+          {Array.from(unsavedNotes.values()).map((note) => {
+            return (
+              <SidebarMenuItem key={String(note._id)}>
+                <SidebarMenuButton onClick={() => handleNoteClick(note)}>
+                  <FileText className="h-4 w-4" />
+                  <span>{note.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarGroup>
 
         <SidebarGroup>
