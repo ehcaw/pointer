@@ -8,7 +8,8 @@ export interface ObjectId {
 
 // Helper function to create ObjectId-like objects
 export function createObjectId(id?: string): ObjectId {
-  const hexString = id || Math.random().toString(16).substring(2, 26).padStart(24, '0');
+  const hexString =
+    id || Math.random().toString(16).substring(2, 26).padStart(24, "0");
   return {
     toString: () => hexString,
     toHexString: () => hexString,
@@ -52,23 +53,6 @@ export interface BaseNode {
 
   /** Last time this note was edited (differs from updatedAt which includes metadata changes) */
   lastEdited?: Date;
-
-  /**
-   * OPTIONAL FIELDS (uncomment and adjust as needed):
-   *
-   * // If you need to support sharing/permissions in the future:
-   * // permissions?: Permission[];
-   *
-   * // If you want to track a custom state or badge (e.g. "M", "U", "A"):
-   * // state?: "M" | "U" | "A";
-   *
-   * // If you want to add tags to the node:
-   * // tags?: string[];
-   *
-   * // For a “soft delete” feature:
-   * // deleted?: boolean;
-   * // deletedAt?: Date;
-   */
 }
 
 /**
@@ -94,21 +78,11 @@ export interface FileNode extends BaseNode {
      * Raw TipTap JSON content
      */
     tiptap?: Record<string, any>;
-    
+
     /**
      * Plain text representation of the content
      */
     text?: string;
-    
-    /**
-     * Any additional metadata about the note
-     */
-    meta?: Record<string, any>;
-    
-    /**
-     * Legacy/arbitrary content (for backward compatibility)
-     */
-    [key: string]: any;
   };
 }
 
@@ -116,23 +90,3 @@ export interface FileNode extends BaseNode {
  * Discriminated union: either a folder or a file.
  */
 export type Node = FolderNode | FileNode;
-
-/**
- * OPTIONAL: If you plan to support per‐node permissions in the future,
- * you could define a Permission interface like this:
- *
- * export interface Permission {
- *   /** ID of a user who has permission *\/
- *   userId?: ObjectId;
- *
- *   /** ID of a team or group that has permission *\/
- *   teamId?: ObjectId;
- *
- *   /** Type of access granted *\/
- *   access: "read" | "write";
- * }
- *
- * Then you could add:
- *   permissions?: Permission[];
- * inside BaseNode or a specific node type.
- */

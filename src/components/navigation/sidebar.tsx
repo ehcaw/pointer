@@ -29,12 +29,12 @@ export function AppSidebar() {
   };
 
   const handleNoteClick = (note: any) => {
-    addTab({
-      id: note.id,
-      title: note.title,
-      type: "note",
-    });
-    setActiveTab(note.id);
+    // addTab({
+    //   id: note.id,
+    //   title: note.title,
+    //   type: "note",
+    // });
+    // setActiveTab(note.id);
   };
 
   return (

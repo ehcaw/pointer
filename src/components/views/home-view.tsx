@@ -188,7 +188,6 @@ export function HomeView() {
                     <Button onClick={() => setCurrentView("note")}>
                       Create New Note
                     </Button>
-                    <Button variant="outline">Browse All Notes</Button>
                   </div>
                 </div>
               </>

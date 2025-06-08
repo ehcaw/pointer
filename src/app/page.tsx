@@ -18,6 +18,7 @@ import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor
 import { HomeView } from "@/components/views/home-view";
 import React, { useRef } from "react";
 import { useNotesStore } from "@/lib/notes-store";
+import { NotebookView } from "@/components/views/notebook-view";
 
 export default function Page() {
   const { currentView } = useNotesStore();
@@ -70,11 +71,7 @@ export default function Page() {
               <HomeView />
             </div>
           )}
-          {currentView == "note" && (
-            <div style={{ maxHeight: "100vh" }}>
-              <SimpleEditor content="" editorRef={editorRef} />
-            </div>
-          )}
+          {currentView == "note" && <NotebookView />}
         </div>
       </SidebarInset>
     </SidebarProvider>
