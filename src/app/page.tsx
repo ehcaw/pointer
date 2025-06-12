@@ -14,14 +14,14 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { SimpleEditor } from "@/components/tiptap-templates/simple/simple-editor";
 import { HomeView } from "@/components/views/home-view";
 import React, { useRef } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/notebook-view";
+import { BaseNode, Node, FileNode } from "@/types/note";
 
 export default function Page() {
-  const { currentView } = useNotesStore();
+  const { currentView, currentNote } = useNotesStore();
   const editorRef = useRef<{ getJSON: () => any; getText: () => string }>(null);
 
   const handleGetJSON = () => {
@@ -51,15 +51,17 @@ export default function Page() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">components</BreadcrumbLink>
+                  <BreadcrumbLink href="#">workspace</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">ui</BreadcrumbLink>
+                  <BreadcrumbLink href="#">notes</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>button.tsx</BreadcrumbPage>
+                  <BreadcrumbPage>
+                    {(currentNote as FileNode).name}
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
