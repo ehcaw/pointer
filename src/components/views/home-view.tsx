@@ -22,11 +22,19 @@ import {
 
 // Store
 import { useNotesStore } from "@/lib/notes-store";
-import { Node } from "@/types/note";
+import { FileNode, type Node } from "@/types/note";
 
 export function HomeView() {
-  const { unsavedNotes, userNotes, currentView, setCurrentView } =
-    useNotesStore();
+  const {
+    unsavedNotes,
+    userNotes,
+    currentView,
+    setCurrentView,
+    addOpenUserNote,
+    setCurrentNote,
+    createNewNote,
+    markNoteAsUnsaved,
+  } = useNotesStore();
   const [query, setQuery] = React.useState("");
   const [isSearching, setIsSearching] = React.useState(false);
   const [searchResults, setSearchResults] = React.useState<Node[]>([]);
@@ -44,14 +52,15 @@ export function HomeView() {
 
     setIsSearching(true);
     const lowerQuery = query.toLowerCase();
-
     // Simple fuzzy search
-    const results = userNotes.filter(
-      (note) =>
-        note.name.toLowerCase().includes(lowerQuery) ||
-        (typeof note.content === "string" &&
-          note.content.toLowerCase().includes(lowerQuery)),
-    );
+    const results = userNotes.filter((note) => {
+      const fileNote = note as FileNode;
+      return (
+        fileNote?.name?.toLowerCase().includes(lowerQuery) ||
+        (typeof fileNote?.content?.text === "string" &&
+          fileNote.content.text.toLowerCase().includes(lowerQuery))
+      );
+    });
 
     setSearchResults(results);
   }, [query, userNotes]);
@@ -79,6 +88,14 @@ export function HomeView() {
       )
       .slice(0, 6);
   }, [unsavedNotes]);
+
+  const createNewNoteAction = () => {
+    const newNote = createNewNote("Untitled Note", null, []);
+    addOpenUserNote(newNote);
+    setCurrentNote(newNote);
+    markNoteAsUnsaved(newNote);
+    console.log(unsavedNotes);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -140,7 +157,7 @@ export function HomeView() {
                 ) : (
                   <div className="py-8 text-center">
                     <p className="text-muted-foreground">
-                      No notes found matching "{query}"
+                      No notes found matching {query}
                     </p>
                     <Button
                       variant="outline"
@@ -185,7 +202,7 @@ export function HomeView() {
                     notes
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button onClick={() => setCurrentView("note")}>
+                    <Button onClick={() => createNewNoteAction()}>
                       Create New Note
                     </Button>
                   </div>
@@ -202,7 +219,7 @@ export function HomeView() {
           <DialogHeader>
             <DialogTitle>AI Assistant</DialogTitle>
             <DialogDescription>
-              Results based on your notes and query: "{query}"
+              Results based on your notes and query: {query}
             </DialogDescription>
           </DialogHeader>
 
@@ -243,14 +260,14 @@ function RecentNoteCard({ note }: { note: Node }) {
   const previewText = React.useMemo(() => {
     if (isFolder) return "";
 
-    if (typeof note.content === "string") {
-      return note.content.slice(0, 120);
+    if (typeof note.content.text === "string") {
+      return note.content.text.slice(0, 120);
     }
 
     if (typeof note.content === "object") {
       try {
         return JSON.stringify(note.content).slice(0, 120);
-      } catch (e) {
+      } catch (e: any) {
         return "";
       }
     }
@@ -303,8 +320,8 @@ function SearchResultCard({ note, query }: { note: Node; query: string }) {
     const matchIndex = lowerText.indexOf(lowerQuery);
 
     // Get snippet around match
-    let start = Math.max(0, matchIndex - 50);
-    let end = Math.min(text.length, matchIndex + query.length + 50);
+    const start = Math.max(0, matchIndex - 50);
+    const end = Math.min(text.length, matchIndex + query.length + 50);
 
     // Add ellipsis for context
     const prefix = start > 0 ? "..." : "";
@@ -324,7 +341,7 @@ function SearchResultCard({ note, query }: { note: Node; query: string }) {
     if (typeof note.content === "object") {
       try {
         return highlightText(JSON.stringify(note.content), query);
-      } catch (e) {
+      } catch (e: any) {
         return "";
       }
     }

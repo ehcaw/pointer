@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { ask, confirm } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 /**
  * Hook to handle unsaved changes and exit prompts
@@ -36,7 +37,7 @@ export function useUnsavedChanges() {
       try {
         // Check if we're in a Tauri app context
         if (window.__TAURI__) {
-          const { appWindow } = await import("@tauri-apps/api/window");
+          const appWindow = getCurrentWindow();
 
           // Listen for close requested event
           appWindow.onCloseRequested(async (event) => {

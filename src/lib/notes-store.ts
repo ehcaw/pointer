@@ -3,6 +3,29 @@ import type { FileNode, Node, ObjectId } from "@/types/note";
 import { createObjectId } from "@/types/note";
 import { database } from "./services/index";
 
+const initialNote: FileNode = {
+  _id: createObjectId(),
+  tenantId: createObjectId(),
+  name: "Welcome Note",
+  type: "file",
+  parentId: null,
+  path: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  content: {
+    tiptap: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Welcome to your notes app!" }],
+        },
+      ],
+    },
+    text: "Welcome to your notes app!",
+  },
+};
+
 interface NotesStore {
   // Core note collections
   userNotes: Node[];
@@ -51,8 +74,8 @@ interface NotesStore {
 
 export const useNotesStore = create<NotesStore>((set, get) => ({
   // Core note collections
-  userNotes: [],
-  treeStructure: [],
+  userNotes: [initialNote],
+  treeStructure: [initialNote],
 
   // UI state
   openUserNotes: [],
@@ -61,7 +84,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   isLoading: false,
 
   // Unsaved changes tracking
-  unsavedNotes: new Map(),
+  unsavedNotes: new Map([[initialNote._id.toString(), initialNote]]),
   newUnsavedNotes: [],
 
   // Basic actions
