@@ -1,45 +1,25 @@
 import { SimpleEditor } from "../tiptap-templates/simple/simple-editor";
 import { useNoteEditor } from "@/hooks/useNoteEditor";
-import { useMemo, useEffect } from "react";
+import { useEffect } from "react"; // Removed useMemo as it's no longer used
 import { useNotesStore } from "@/lib/notes-store";
 import { Button } from "@/components/tiptap-ui-primitive/button";
-import { FileNode } from "@/types/note";
+// FileNode import is not directly used here anymore, removed for cleanliness if not needed elsewhere
 
 export const NotebookView = () => {
-  const { editorRef, currentNote, isSaving, saveCurrentNote, createEmptyNote } =
+  const { editorRef, currentNote, isSaving, saveCurrentNote, createEmptyNote, handleEditorUpdate } = // Imported handleEditorUpdate
     useNoteEditor();
 
-  const { currentView, markNoteAsUnsaved, unsavedNotes } = useNotesStore();
+  const { currentView } = useNotesStore(); // unsavedNotes and markNoteAsUnsaved are now handled inside useNoteEditor
 
-  // Create an empty note if there isn't one already
+  // Create an empty note if there isn\'t one already
   useEffect(() => {
     if (!currentNote && currentView === "note") {
       createEmptyNote("Untitled Note");
     }
-  }, [currentNote, currentView]);
+  }, [currentNote, currentView, createEmptyNote]); // Added createEmptyNote to deps
 
-  useEffect(() => {
-    if (!currentNote || !editorRef.current) return; // Added check for editorRef.current
-
-    // Ensure currentNote is a file before accessing content
-    if (currentNote.type === "file") {
-      const editorText = editorRef.current.getText();
-      const currentNoteText = (currentNote as FileNode).content.text; // Declare here
-
-      if (editorText !== currentNoteText) {
-        const updatedNote = {
-          ...currentNote,
-          content: {
-            ...currentNote.content, // Preserve other content properties
-            text: editorText,
-          },
-        } as FileNode; // Cast to FileNode for type safety
-
-        markNoteAsUnsaved(updatedNote);
-        console.log(unsavedNotes); // Note: unsavedNotes is a snapshot from hook closure
-      }
-    }
-  }, [markNoteAsUnsaved, currentNote, editorRef, unsavedNotes]);
+  // Removed the manual useEffect hook that checked editorRef.current.getText()
+  // Changes will now be detected by TipTap's onUpdate event passed to SimpleEditor
 
   // Get TipTap content from current note
   const content =
@@ -61,7 +41,11 @@ export const NotebookView = () => {
       </div>
 
       <div style={{ maxHeight: "calc(100vh - 80px)" }}>
-        <SimpleEditor content={content} editorRef={editorRef} />
+        <SimpleEditor
+          content={content}
+          editorRef={editorRef}
+          onUpdate={handleEditorUpdate} // Pass the handler to the SimpleEditor
+        />
       </div>
     </div>
   );
