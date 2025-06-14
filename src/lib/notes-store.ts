@@ -210,11 +210,14 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Also add to open notes and set as current
     const openUserNotes = [...state.openUserNotes, newNote];
 
+    const userNotes = [...state.userNotes, newNote];
+
     set({
       newUnsavedNotes,
       openUserNotes,
       currentNote: newNote,
       currentView: "note",
+      userNotes,
     });
 
     return newNote;

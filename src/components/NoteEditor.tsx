@@ -2,87 +2,56 @@ import React, { useState, useEffect } from "react";
 import { useNotesStore } from "../lib/notes-store";
 import { useNoteEditor } from "../hooks/useNoteEditor";
 
-import type { FileNode, Node } from "../types/note";
+import type { FileNode } from "../types/note";
 import { SimpleEditor } from "./tiptap-templates/simple/simple-editor";
 
 interface NoteEditorProps {
-  // Optional - if not provided, will use currentNote from store
   noteId?: string;
 }
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ noteId }) => {
-  const { currentNote, setCurrentNote, markNoteAsUnsaved } = useNotesStore();
-
+  const { currentNote, markNoteAsUnsaved } = useNotesStore();
   const {
     editorRef,
-    isSaving,s
+    isSaving,
     saveCurrentNote,
     createEmptyNote,
     handleNavigateAway,
-    updateNoteContent,
   } = useNoteEditor();
 
-  // Local state for editing
   const [title, setTitle] = useState("");
 
-  // Load note data when currentNote changes
   useEffect(() => {
-    if (currentNote) {
-      setTitle(currentNote.name);
-    } else {
-      setTitle("");
-    }
+    if (currentNote) setTitle(currentNote.name);
+    else setTitle("");
   }, [currentNote]);
 
-  // Handle title changes
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
-
     if (currentNote) {
-      const updatedNote = {
-        ...currentNote,
-        name: e.target.value,
-      };
-      markNoteAsUnsaved(updatedNote);
+      markNoteAsUnsaved({ ...currentNote, name: e.target.value });
     }
   };
 
-  // Handle content updates from TipTap
   const handleContentUpdate = (json: any, text: string) => {
-    if (currentNote && currentNote.type === "file") {
-      const updatedNote = {
+    if (currentNote?.type === "file") {
+      markNoteAsUnsaved({
         ...currentNote,
-        content: {
-          ...currentNote.content,
-          tiptap: json,
-          text: text,
-        },
+        content: { ...currentNote.content, tiptap: json, text },
         lastEdited: new Date(),
-      } as FileNode;
-
-      markNoteAsUnsaved(updatedNote);
+      } as FileNode);
     }
   };
 
-  // Create a new note
-  const handleCreateNew = () => {
-    createEmptyNote("New Note");
-  };
+  const handleCreateNew = () => createEmptyNote("New Note");
+  const handleSave = async () => saveCurrentNote();
+  const hna = async () =>
+    handleNavigateAway(() => console.log("Navigated away"));
 
-  // Save current note
-  const handleSave = async () => {
-    await saveCurrentNote();
-  };
+  // ——————————————————————————————
+  // RENDER
+  // ——————————————————————————————
 
-  // Example of handling navigation with unsaved changes
-  const hna = async () => {
-    await handleNavigateAway(() => {
-      // Navigation callback - what to do after successful navigation
-      console.log("Navigating away...");
-    });
-  };
-
-  // Render placeholder if no note is selected
   if (!currentNote) {
     return (
       <div className="note-editor-empty">
@@ -92,7 +61,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId }) => {
     );
   }
 
-  // Get TipTap content from current note
   const content =
     currentNote.type === "file" ? currentNote.content?.tiptap || "" : "";
 
@@ -111,7 +79,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId }) => {
           <button onClick={handleSave} disabled={isSaving}>
             {isSaving ? "Saving..." : "Save"}
           </button>
-          <button onClick={() => hna()}>Back</button>
+          <button onClick={hna}>Back</button>
         </div>
       </div>
 
@@ -123,7 +91,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId }) => {
             onUpdate={handleContentUpdate}
           />
         )}
-
         {currentNote.type === "folder" && (
           <div className="folder-view">
             <p>This is a folder. You cannot edit its content directly.</p>

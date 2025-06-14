@@ -192,23 +192,27 @@ interface SimpleEditorProps {
   onUpdate?: (json: any, text: string) => void;
 }
 
-export function SimpleEditor({ content, editorRef, onUpdate }: SimpleEditorProps) {
+export function SimpleEditor({
+  content,
+  editorRef,
+  onUpdate,
+}: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
     "main" | "highlighter" | "link"
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
-  
+
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
     // If content is an object (TipTap JSON), use it directly
-    if (content && typeof content === 'object') {
+    if (content && typeof content === "object") {
       return content;
     }
     // If content is a string, use it as-is
-    return content || '';
-  }, []);
+    return content || "";
+  }, [content]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -248,7 +252,7 @@ export function SimpleEditor({ content, editorRef, onUpdate }: SimpleEditorProps
       if (onUpdate) {
         onUpdate(editor.getJSON(), editor.getText());
       }
-    }
+    },
   });
 
   const bodyRect = useCursorVisibility({
@@ -268,20 +272,21 @@ export function SimpleEditor({ content, editorRef, onUpdate }: SimpleEditorProps
     }
   }, [isMobile, mobileView, editor, editorRef]);
 
-  // Update editor content when the content prop changes
-  React.useEffect(() => {
-    if (editor && content) {
-      const currentJSON = JSON.stringify(editor.getJSON());
-      const newContent = typeof content === 'object' 
-        ? JSON.stringify(content) 
-        : content.toString();
-      
-      // Only update if content has changed to avoid cursor position issues
-      if (currentJSON !== newContent) {
-        editor.commands.setContent(content);
-      }
-    }
-  }, [editor, content]);
+  // // Update editor content when the content prop changes
+  // React.useEffect(() => {
+  //   if (editor && content) {
+  //     const currentJSON = JSON.stringify(editor.getJSON());
+  //     const newContent =
+  //       typeof content === "object"
+  //         ? JSON.stringify(content)
+  //         : content.toString();
+
+  //     // Only update if content has changed to avoid cursor position issues
+  //     if (currentJSON !== newContent) {
+  //       editor.commands.setContent(content);
+  //     }
+  //   }
+  // }, [editor, content]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

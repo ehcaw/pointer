@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "@/lib/notes-store";
-import { FileNode, Node, ObjectId, createObjectId } from "@/types/note";
+import { FileNode } from "@/types/note";
 import { useUnsavedChanges } from "./useUnsavedChanges";
 
 /**
@@ -15,8 +15,8 @@ export function useNoteEditor() {
     currentNote,
     setCurrentNote,
     markNoteAsUnsaved,
-    unsavedNotes, // Add unsavedNotes here to pass to update logic if needed
     createNewNote,
+    saveNote,
   } = useNotesStore();
 
   // Get methods for managing unsaved changes
