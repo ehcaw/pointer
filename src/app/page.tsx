@@ -19,10 +19,29 @@ import React, { useRef } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/notebook-view";
 import { BaseNode, Node, FileNode } from "@/types/note";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useNoteEditor } from "@/hooks/useNoteEditor";
 
 export default function Page() {
   const { currentView, currentNote } = useNotesStore();
   const editorRef = useRef<{ getJSON: () => any; getText: () => string }>(null);
+  const { saveCurrentNote } = useNoteEditor();
+
+  // Multiple combos in one hook (no spaces!), inspect handler.combo
+  useHotkeys(
+    "meta+s",
+    (e) => {
+      console.log("Save hotkey triggered");
+      e.preventDefault();
+      e.stopPropagation();
+      saveCurrentNote();
+    },
+    {
+      enableOnContentEditable: true,
+      preventDefault: true,
+      scopes: ["all"],
+    },
+  );
 
   const handleGetJSON = () => {
     if (editorRef.current) {
