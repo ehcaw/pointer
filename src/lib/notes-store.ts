@@ -1,11 +1,9 @@
 import { create } from "zustand";
-import type { FileNode, Node, ObjectId } from "@/types/note";
-import { createObjectId } from "@/types/note";
-import { database } from "./services/index";
+import type { FileNode, Node } from "@/types/note";
 
 const initialNote: FileNode = {
-  _id: createObjectId(),
-  tenantId: createObjectId(),
+  quibble_id: "1234879655",
+  tenantId: process.env.TEMP_TENANT_ID || "default-tenant",
   name: "Welcome Note",
   type: "file",
   parentId: null,
@@ -41,7 +39,7 @@ interface NotesStore {
   unsavedNotes: Map<string, Node>; // Key: stringified _id, Value: modified note
   newUnsavedNotes: Node[]; // New notes that haven't been saved to DB yet
 
-  // Basic actions
+  // Basic state setters
   setUserNotes: (notes: Node[]) => void;
   setOpenUserNotes: (notes: Node[]) => void;
   setTreeStructure: (structure: Node[]) => void;
@@ -49,27 +47,24 @@ interface NotesStore {
   setCurrentNote: (note: Node | null) => void;
   setIsLoading: (isLoading: boolean) => void;
 
-  // Note manipulation
+  // Note UI management
   addOpenUserNote: (note: Node) => void;
   closeUserNote: (noteId: string) => void;
 
-  // Unsaved changes management
+  // Unsaved changes management (pure state operations)
   markNoteAsUnsaved: (note: Node) => void;
-  createNewNote: (
-    name: string,
-    parentId: ObjectId | null,
-    path: ObjectId[],
-  ) => Node;
   hasUnsavedChanges: () => boolean;
   getUnsavedChanges: () => Node[];
   discardAllChanges: () => void;
   discardChanges: (noteId: string) => void;
+  clearUnsavedNote: (noteId: string) => void;
+  addNewUnsavedNote: (note: Node) => void;
+  removeNewUnsavedNote: (noteId: string) => void;
+  saveAllUnsavedNotes: () => Promise<boolean>;
 
-  // MongoDB operations
-  fetchAllNotes: (tenantId: string) => Promise<void>;
-  saveNote: (note: Node) => Promise<Node>;
-  saveAllUnsavedNotes: () => Promise<void>;
-  deleteNote: (noteId: string) => Promise<void>;
+  // State synchronization helpers
+  updateNoteInCollections: (note: Node) => void;
+  removeNoteFromCollections: (noteId: string) => void;
 }
 
 export const useNotesStore = create<NotesStore>((set, get) => ({
@@ -84,10 +79,10 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   isLoading: false,
 
   // Unsaved changes tracking
-  unsavedNotes: new Map([[initialNote._id.toString(), initialNote]]),
+  unsavedNotes: new Map([[initialNote.quibble_id.toString(), initialNote]]),
   newUnsavedNotes: [],
 
-  // Basic actions
+  // Basic state setters
   setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
@@ -95,12 +90,13 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setCurrentNote: (note: Node | null) => set({ currentNote: note }),
   setIsLoading: (isLoading: boolean) => set({ isLoading }),
 
-  // Note manipulation
+  // Note UI management
   addOpenUserNote: (note: Node) => {
-    // Don't add duplicates
     const state = get();
     if (
-      !state.openUserNotes.some((n) => n._id.toString() === note._id.toString())
+      !state.openUserNotes.some(
+        (n) => n.quibble_id.toString() === note.quibble_id.toString(),
+      )
     ) {
       set({
         openUserNotes: [...state.openUserNotes, note],
@@ -122,17 +118,15 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Check if note has unsaved changes
     const isUnsaved =
       state.unsavedNotes.has(noteId) ||
-      state.newUnsavedNotes.some((n) => n._id.toString() === noteId);
+      state.newUnsavedNotes.some((n) => n.quibble_id.toString() === noteId);
 
     if (isUnsaved) {
-      // In a real app, you'd show a confirmation dialog here
-      // For now, we'll just log a warning
       console.warn("Closing a note with unsaved changes!");
     }
 
     // Remove from open notes
     const openUserNotes = state.openUserNotes.filter(
-      (n) => n._id.toString() !== noteId,
+      (n) => n.quibble_id.toString() !== noteId,
     );
 
     // Set new current note (if any)
@@ -149,9 +143,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const unsavedNotes = new Map(state.unsavedNotes);
 
     // If it's a temporary note (hasn't been saved to DB yet), update in newUnsavedNotes
-    if (!note._id || note._id.toString().startsWith("temp-")) {
+    if (!note.quibble_id || note.quibble_id.toString().startsWith("temp-")) {
       const newUnsavedNotes = [...state.newUnsavedNotes];
-      const index = newUnsavedNotes.findIndex((n) => n._id === note._id);
+      const index = newUnsavedNotes.findIndex(
+        (n) => n.quibble_id === note.quibble_id,
+      );
 
       if (index !== -1) {
         newUnsavedNotes[index] = note;
@@ -163,64 +159,20 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     }
     // Otherwise, it's an existing note - track changes in unsavedNotes Map
     else {
-      unsavedNotes.set(note._id.toString(), note);
+      unsavedNotes.set(note.quibble_id.toString(), note);
       set({ unsavedNotes });
     }
 
     // Also update in the open notes list
     const openUserNotes = [...state.openUserNotes];
     const index = openUserNotes.findIndex(
-      (n) => n._id.toString() === note._id.toString(),
+      (n) => n.quibble_id.toString() === note.quibble_id.toString(),
     );
 
     if (index !== -1) {
       openUserNotes[index] = note;
       set({ openUserNotes });
     }
-  },
-
-  createNewNote: (
-    name: string,
-    parentId: ObjectId | null,
-    path: ObjectId[],
-  ) => {
-    const state = get();
-
-    // Generate a temporary ID for the new note
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-
-    const newNote: FileNode = {
-      _id: createObjectId(tempId), // Will be replaced with a real ObjectId when saved
-      tenantId:
-        state.userNotes.length > 0
-          ? state.userNotes[0].tenantId
-          : createObjectId(), // Placeholder, should be set properly
-      name,
-      type: "file",
-      parentId,
-      path,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      content: {}, // Empty content for a new note
-    };
-
-    // Add to newUnsavedNotes
-    const newUnsavedNotes = [...state.newUnsavedNotes, newNote];
-
-    // Also add to open notes and set as current
-    const openUserNotes = [...state.openUserNotes, newNote];
-
-    const userNotes = [...state.userNotes, newNote];
-
-    set({
-      newUnsavedNotes,
-      openUserNotes,
-      currentNote: newNote,
-      currentView: "note",
-      userNotes,
-    });
-
-    return newNote;
   },
 
   hasUnsavedChanges: () => {
@@ -242,11 +194,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Replace open notes with their original versions
     const openUserNotes = state.openUserNotes
       .map((note) => {
-        if (state.unsavedNotes.has(note._id.toString())) {
+        if (state.unsavedNotes.has(note.quibble_id.toString())) {
           // Find original note
           return (
             state.userNotes.find(
-              (n) => n._id.toString() === note._id.toString(),
+              (n) => n.quibble_id.toString() === note.quibble_id.toString(),
             ) || note
           );
         }
@@ -254,15 +206,15 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       })
       .filter((note) => {
         // Filter out any notes that were newly created but not saved
-        return !note._id.toString().startsWith("temp-");
+        return !note.quibble_id.toString().startsWith("temp-");
       });
 
     // Update current note if needed
     let currentNote = state.currentNote;
     if (
       currentNote &&
-      (state.unsavedNotes.has(currentNote._id.toString()) ||
-        currentNote._id.toString().startsWith("temp-"))
+      (state.unsavedNotes.has(currentNote.quibble_id.toString()) ||
+        currentNote.quibble_id.toString().startsWith("temp-"))
     ) {
       // If current note was unsaved
       currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
@@ -285,7 +237,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Check if it's a new note or an existing one with unsaved changes
     const isNewNote = state.newUnsavedNotes.some(
-      (n) => n._id.toString() === noteId,
+      (n) => n.quibble_id.toString() === noteId,
     );
 
     if (isNewNote) {
@@ -296,12 +248,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
       // Remove from open notes
       const openUserNotes = state.openUserNotes.filter(
-        (n) => n._id.toString() !== noteId,
+        (n) => n.quibble_id.toString() !== noteId,
       );
 
       // Update current note if needed
       let currentNote = state.currentNote;
-      if (currentNote && currentNote._id.toString() === noteId) {
+      if (currentNote && currentNote.quibble_id.toString() === noteId) {
         currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
       }
 
@@ -319,12 +271,14 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
       // Replace with original in open notes
       const openUserNotes = [...state.openUserNotes];
-      const index = openUserNotes.findIndex((n) => n._id.toString() === noteId);
+      const index = openUserNotes.findIndex(
+        (n) => n.quibble_id.toString() === noteId,
+      );
 
       if (index !== -1) {
         // Find original note
         const originalNote = state.userNotes.find(
-          (n) => n._id.toString() === noteId,
+          (n) => n.quibble_id.toString() === noteId,
         );
 
         if (originalNote) {
@@ -334,9 +288,9 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
       // Update current note if needed
       let currentNote = state.currentNote;
-      if (currentNote && currentNote._id.toString() === noteId) {
+      if (currentNote && currentNote.quibble_id.toString() === noteId) {
         currentNote =
-          openUserNotes.find((n) => n._id.toString() === noteId) || null;
+          openUserNotes.find((n) => n.quibble_id.toString() === noteId) || null;
       }
 
       set({
@@ -347,263 +301,131 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     }
   },
 
-  // MongoDB operations
-  fetchAllNotes: async (tenantId: string) => {
-    set({ isLoading: true });
-
-    try {
-      const notes = await database.getAllNotes(tenantId);
-
-      // Build tree structure from flat notes list
-      const treeStructure = notes.filter((note) => note.parentId === null);
-
-      set({
-        userNotes: notes,
-        treeStructure,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error("Failed to fetch notes:", error);
-      set({ isLoading: false });
-    }
-  },
-
-  saveNote: async (note: Node) => {
+  clearUnsavedNote: (noteId: string) => {
     const state = get();
-    set({ isLoading: true });
-
-    try {
-      let savedNote: Node;
-
-      // Check if it's a new note (with temp ID) or an existing one
-      if (note._id.toString().startsWith("temp-")) {
-        // Create new note in DB
-        const { _id, ...noteData } = note;
-        savedNote = await database.createNote(noteData);
-
-        // Remove from newUnsavedNotes
-        const newUnsavedNotes = state.newUnsavedNotes.filter(
-          (n) => n._id.toString() !== note._id.toString(),
-        );
-
-        // Update in open notes
-        const openUserNotes = state.openUserNotes.map((n) =>
-          n._id.toString() === note._id.toString() ? savedNote : n,
-        );
-
-        // Update current note if needed
-        let currentNote = state.currentNote;
-        if (currentNote && currentNote._id.toString() === note._id.toString()) {
-          currentNote = savedNote;
-        }
-
-        // Add to userNotes
-        const userNotes = [...state.userNotes, savedNote];
-
-        // Update tree structure if needed
-        const treeStructure = [...state.treeStructure];
-        if (!savedNote.parentId) {
-          treeStructure.push(savedNote);
-        }
-
-        set({
-          newUnsavedNotes,
-          openUserNotes,
-          currentNote,
-          userNotes,
-          treeStructure,
-          isLoading: false,
-        });
-      } else {
-        // Update existing note in DB
-        savedNote = await database.updateNote(note._id.toString(), note);
-
-        // Remove from unsavedNotes
-        const unsavedNotes = new Map(state.unsavedNotes);
-        unsavedNotes.delete(note._id.toString());
-
-        // Update in userNotes
-        const userNotes = state.userNotes.map((n) =>
-          n._id.toString() === note._id.toString() ? savedNote : n,
-        );
-
-        // Update in open notes
-        const openUserNotes = state.openUserNotes.map((n) =>
-          n._id.toString() === note._id.toString() ? savedNote : n,
-        );
-
-        // Update current note if needed
-        let currentNote = state.currentNote;
-        if (currentNote && currentNote._id.toString() === note._id.toString()) {
-          currentNote = savedNote;
-        }
-
-        // Update tree structure if needed
-        const treeStructure = state.treeStructure.map((n) =>
-          n._id.toString() === note._id.toString() ? savedNote : n,
-        );
-
-        set({
-          unsavedNotes,
-          userNotes,
-          openUserNotes,
-          currentNote,
-          treeStructure,
-          isLoading: false,
-        });
-      }
-
-      return savedNote;
-    } catch (error) {
-      console.error("Failed to save note:", error);
-      set({ isLoading: false });
-      throw error;
-    }
+    const unsavedNotes = new Map(state.unsavedNotes);
+    unsavedNotes.delete(noteId);
+    set({ unsavedNotes });
   },
 
+  addNewUnsavedNote: (note: Node) => {
+    const state = get();
+    const newUnsavedNotes = [...state.newUnsavedNotes, note];
+    set({ newUnsavedNotes });
+  },
+
+  removeNewUnsavedNote: (noteId: string) => {
+    const state = get();
+    const newUnsavedNotes = state.newUnsavedNotes.filter(
+      (n) => n.quibble_id.toString() !== noteId,
+    );
+    set({ newUnsavedNotes });
+  },
+
+  // State synchronization helpers
+  updateNoteInCollections: (note: Node) => {
+    const state = get();
+
+    // Update in userNotes
+    const userNotes = state.userNotes.map((n) =>
+      n.quibble_id.toString() === note.quibble_id.toString() ? note : n,
+    );
+
+    // Update in open notes
+    const openUserNotes = state.openUserNotes.map((n) =>
+      n.quibble_id.toString() === note.quibble_id.toString() ? note : n,
+    );
+
+    // Update current note if needed
+    let currentNote = state.currentNote;
+    if (
+      currentNote &&
+      currentNote.quibble_id.toString() === note.quibble_id.toString()
+    ) {
+      currentNote = note;
+    }
+
+    // Update tree structure if needed
+    const treeStructure = state.treeStructure.map((n) =>
+      n.quibble_id.toString() === note.quibble_id.toString() ? note : n,
+    );
+
+    set({
+      userNotes,
+      openUserNotes,
+      currentNote,
+      treeStructure,
+    });
+  },
+
+  removeNoteFromCollections: (noteId: string) => {
+    const state = get();
+
+    // Remove from userNotes
+    const userNotes = state.userNotes.filter(
+      (n) => n.quibble_id.toString() !== noteId,
+    );
+
+    // Remove from open notes
+    const openUserNotes = state.openUserNotes.filter(
+      (n) => n.quibble_id.toString() !== noteId,
+    );
+
+    // Remove from tree structure
+    const treeStructure = state.treeStructure.filter(
+      (n) => n.quibble_id.toString() !== noteId,
+    );
+
+    // Remove from unsaved changes if present
+    const unsavedNotes = new Map(state.unsavedNotes);
+    unsavedNotes.delete(noteId);
+
+    const newUnsavedNotes = state.newUnsavedNotes.filter(
+      (n) => n.quibble_id.toString() !== noteId,
+    );
+
+    // Update current note if needed
+    let currentNote = state.currentNote;
+    if (currentNote && currentNote.quibble_id.toString() === noteId) {
+      currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
+    }
+
+    const currentView = currentNote ? "note" : "home";
+
+    set({
+      userNotes,
+      openUserNotes,
+      treeStructure,
+      unsavedNotes,
+      newUnsavedNotes,
+      currentNote,
+      currentView,
+    });
+  },
   saveAllUnsavedNotes: async () => {
     const state = get();
-    set({ isLoading: true });
+    const unsavedChanges = [
+      ...Array.from(state.unsavedNotes.values()),
+      ...state.newUnsavedNotes,
+    ];
 
+    if (unsavedChanges.length === 0) return true;
+
+    // In a real implementation, you would call your API here
+    // This is a simplified version for demonstration
     try {
-      const unsavedChanges = [
-        ...Array.from(state.unsavedNotes.values()),
-        ...state.newUnsavedNotes,
-      ];
-
-      if (unsavedChanges.length === 0) {
-        set({ isLoading: false });
-        return;
+      // Mark all notes as saved
+      for (const note of unsavedChanges) {
+        // Update in collections to ensure consistent state
+        state.updateNoteInCollections(note);
       }
 
-      const savedNotes = await database.bulkSaveNotes(unsavedChanges);
-
-      // Update userNotes with saved notes
-      const userNotes = [...state.userNotes];
-
-      savedNotes.forEach((savedNote) => {
-        const existingIndex = userNotes.findIndex(
-          (n) => n._id.toString() === savedNote._id.toString(),
-        );
-
-        if (existingIndex !== -1) {
-          userNotes[existingIndex] = savedNote;
-        } else {
-          userNotes.push(savedNote);
-        }
-      });
-
-      // Update open notes with saved versions
-      const openUserNotes = state.openUserNotes.map((openNote) => {
-        const savedVersion = savedNotes.find(
-          (n) =>
-            n._id.toString() === openNote._id.toString() ||
-            (openNote._id.toString().startsWith("temp-") &&
-              n.name === openNote.name),
-        );
-
-        return savedVersion || openNote;
-      });
-
-      // Update current note if needed
-      let currentNote = state.currentNote;
-      if (currentNote) {
-        const savedVersion = savedNotes.find(
-          (n) =>
-            n._id.toString() === currentNote?._id.toString() ||
-            (currentNote._id.toString().startsWith("temp-") &&
-              n.name === currentNote.name),
-        );
-
-        if (savedVersion) {
-          currentNote = savedVersion;
-        }
-      }
-
-      // Update tree structure
-      const treeStructure = state.treeStructure.map((node) => {
-        const savedVersion = savedNotes.find(
-          (n) => n._id.toString() === node._id.toString(),
-        );
-
-        return savedVersion || node;
-      });
-
-      // Add any new top-level nodes to tree structure
-      savedNotes.forEach((savedNote) => {
-        if (
-          !savedNote.parentId &&
-          !treeStructure.some(
-            (n) => n._id.toString() === savedNote._id.toString(),
-          )
-        ) {
-          treeStructure.push(savedNote);
-        }
-      });
-
-      set({
-        userNotes,
-        openUserNotes,
-        currentNote,
-        treeStructure,
-        unsavedNotes: new Map(),
-        newUnsavedNotes: [],
-        isLoading: false,
-      });
+      // Clear unsaved changes
+      set({ unsavedNotes: new Map(), newUnsavedNotes: [] });
+      return true;
     } catch (error) {
-      console.error("Failed to save all notes:", error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  deleteNote: async (noteId: string) => {
-    const state = get();
-    set({ isLoading: true });
-
-    try {
-      await database.deleteNote(noteId);
-
-      // Remove from userNotes
-      const userNotes = state.userNotes.filter(
-        (n) => n._id.toString() !== noteId,
-      );
-
-      // Remove from open notes
-      const openUserNotes = state.openUserNotes.filter(
-        (n) => n._id.toString() !== noteId,
-      );
-
-      // Remove from tree structure
-      const treeStructure = state.treeStructure.filter(
-        (n) => n._id.toString() !== noteId,
-      );
-
-      // Remove from unsaved changes if present
-      const unsavedNotes = new Map(state.unsavedNotes);
-      unsavedNotes.delete(noteId);
-
-      // Update current note if needed
-      let currentNote = state.currentNote;
-      if (currentNote && currentNote._id.toString() === noteId) {
-        currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
-      }
-
-      const currentView = currentNote ? "note" : "home";
-
-      set({
-        userNotes,
-        openUserNotes,
-        treeStructure,
-        unsavedNotes,
-        currentNote,
-        currentView,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error("Failed to delete note:", error);
-      set({ isLoading: false });
-      throw error;
+      console.error("Error saving all notes:", error);
+      return false;
     }
   },
 }));

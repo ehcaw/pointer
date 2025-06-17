@@ -15,17 +15,29 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { HomeView } from "@/components/views/home-view";
-import React, { useRef } from "react";
+import React, { useRef, useMemo, useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/notebook-view";
-import { BaseNode, Node, FileNode } from "@/types/note";
+import { FileNode, Node } from "@/types/note";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useNoteEditor } from "@/hooks/useNoteEditor";
+import { api } from "../../convex/_generated/api";
+import { useQuery } from "convex/react";
 
 export default function Page() {
-  const { currentView, currentNote } = useNotesStore();
+  const { currentView, currentNote, setUserNotes, userNotes } = useNotesStore();
   const editorRef = useRef<{ getJSON: () => any; getText: () => string }>(null);
   const { saveCurrentNote } = useNoteEditor();
+
+  const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb, {
+    // user_id: process.env.TEMP_TENANT_ID!,
+    user_id: "12345678",
+  });
+  useEffect(() => {
+    if (notes && notes.length > 0) {
+      setUserNotes(notes); // Replace state completely, don't append
+    }
+  }, [notes, setUserNotes]); // Only run when notes changes
 
   // Multiple combos in one hook (no spaces!), inspect handler.combo
   useHotkeys(

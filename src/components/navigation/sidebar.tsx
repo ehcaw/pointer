@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useNotesStore } from "@/lib/notes-store";
 import { Node } from "@/types/note";
+import { useNoteEditor } from "@/hooks/useNoteEditor";
 
 export function AppSidebar() {
   const {
@@ -21,9 +22,10 @@ export function AppSidebar() {
     setCurrentView,
     unsavedNotes,
     openUserNotes,
-    createNewNote,
     setCurrentNote,
   } = useNotesStore();
+
+  const { createNewNote } = useNoteEditor();
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
@@ -68,7 +70,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Changes</SidebarGroupLabel>
           {Array.from(unsavedNotes.values()).map((note) => {
             return (
-              <SidebarMenuItem key={String(note._id)}>
+              <SidebarMenuItem key={String(note.quibble_id)}>
                 <SidebarMenuButton onClick={() => handleNoteClick(note)}>
                   <FileText className="h-4 w-4" />
                   <span>{note.name}</span>
@@ -87,7 +89,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {userNotes.map((note) => (
-                <SidebarMenuItem key={String(note._id)}>
+                <SidebarMenuItem key={String(note.quibble_id)}>
                   <SidebarMenuButton onClick={() => handleNoteClick(note)}>
                     <FileText className="h-4 w-4" />
                     <span>{note.name}</span>

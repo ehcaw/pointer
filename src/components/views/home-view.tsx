@@ -148,7 +148,7 @@ export function HomeView() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {searchResults.map((note) => (
                       <SearchResultCard
-                        key={note._id.toString()}
+                        key={note.quibble_id.toString()}
                         note={note}
                         query={query}
                       />
@@ -182,7 +182,10 @@ export function HomeView() {
                   {recentNotes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {recentNotes.map((note) => (
-                        <RecentNoteCard key={note._id.toString()} note={note} />
+                        <RecentNoteCard
+                          key={note.quibble_id.toString()}
+                          note={note}
+                        />
                       ))}
                     </div>
                   ) : (

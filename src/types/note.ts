@@ -1,30 +1,16 @@
 // types/nodes.ts
 
-// Simple ObjectId type for frontend use (matches MongoDB ObjectId interface)
-export interface ObjectId {
-  toString(): string;
-  toHexString(): string;
-}
-
-// Helper function to create ObjectId-like objects
-export function createObjectId(id?: string): ObjectId {
-  const hexString =
-    id || Math.random().toString(16).substring(2, 26).padStart(24, "0");
-  return {
-    toString: () => hexString,
-    toHexString: () => hexString,
-  };
-}
-
 /**
  * Base fields shared by both folders and files.
  */
 export interface BaseNode {
   /** Unique identifier for this node (folder or file). */
-  _id: ObjectId;
+  _id?: string;
+
+  quibble_id: string;
 
   /** ID of the user (tenant) who owns this node. */
-  tenantId: ObjectId;
+  tenantId: string;
 
   /** Name of the folder or file (e.g. "app", "route.ts"). */
   name: string;
@@ -33,14 +19,14 @@ export interface BaseNode {
    * The parent folder's ObjectId.
    * - `null` if this node is a top‐level item in the bucket.
    */
-  parentId: ObjectId | null;
+  parentId: string | null;
 
   /**
    * Materialized path of ancestor folder IDs.
    * - Example: If this node lives at `/app/api/hello/route.ts`, then
    *   path = [ appFolderId, apiFolderId, helloFolderId ].
    */
-  path: ObjectId[];
+  path: string[];
 
   /** Timestamp when this node was first created. */
   createdAt: Date;

@@ -9,7 +9,7 @@ interface NoteEditorProps {
   noteId?: string;
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ noteId }) => {
+const NoteEditor: React.FC<NoteEditorProps> = () => {
   const { currentNote, markNoteAsUnsaved } = useNotesStore();
   const {
     editorRef,
@@ -33,7 +33,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId }) => {
     }
   };
 
-  const handleContentUpdate = (json: any, text: string) => {
+  const handleContentUpdate = (json: object, text: string) => {
     if (currentNote?.type === "file") {
       markNoteAsUnsaved({
         ...currentNote,

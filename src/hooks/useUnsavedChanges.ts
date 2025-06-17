@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { ask, confirm } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useNoteEditor } from "./useNoteEditor";
 
 /**
  * Hook to handle unsaved changes and exit prompts
@@ -15,9 +16,9 @@ export function useUnsavedChanges() {
   const {
     hasUnsavedChanges,
     getUnsavedChanges,
-    saveAllUnsavedNotes,
     discardAllChanges,
     discardChanges,
+    saveAllUnsavedNotes,
   } = useNotesStore();
 
   useEffect(() => {
@@ -50,7 +51,6 @@ export function useUnsavedChanges() {
               const confirmed = await confirm(
                 "You have unsaved changes. Do you want to save them before exiting?",
                 {
-                  type: "warning",
                   title: "Unsaved Changes",
                   okLabel: "Save and Exit",
                   cancelLabel: "Exit Without Saving",

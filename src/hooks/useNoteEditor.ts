@@ -1,22 +1,34 @@
 import { useEffect, useRef, useState } from "react";
+import { useConvex } from "convex/react";
 import { useNotesStore } from "@/lib/notes-store";
-import { FileNode } from "@/types/note";
+import { FileNode, Node } from "@/types/note";
 import { useUnsavedChanges } from "./useUnsavedChanges";
+import { api } from "../../convex/_generated/api";
 
 /**
  * Custom hook to connect TipTap editor with our notes store system.
  * Manages content syncing, saving, and unsaved changes tracking.
+ * Serves as the main interface for all note operations.
  *
  * @returns Methods and state for interfacing between TipTap and the notes store
  */
 export function useNoteEditor() {
+  const convex = useConvex();
+
   // Get necessary methods from notes store
   const {
     currentNote,
     setCurrentNote,
     markNoteAsUnsaved,
-    createNewNote,
-    saveNote,
+    setUserNotes,
+    setIsLoading,
+    clearUnsavedNote,
+    addNewUnsavedNote,
+    removeNewUnsavedNote,
+    updateNoteInCollections,
+    removeNoteFromCollections,
+    addOpenUserNote,
+    setTreeStructure,
   } = useNotesStore();
 
   // Get methods for managing unsaved changes
@@ -27,13 +39,13 @@ export function useNoteEditor() {
 
   // Reference to the TipTap editor instance
   const editorRef = useRef<{
-    getJSON: () => any;
+    getJSON: () => Record<string, unknown>;
     getText: () => string;
-  }>();
+  }>(null);
 
   // Keep track of last known content to avoid unnecessary updates
   const lastContentRef = useRef<{
-    tiptap?: Record<string, any>;
+    tiptap?: Record<string, unknown>;
     text?: string;
   }>({});
 
@@ -85,21 +97,84 @@ export function useNoteEditor() {
   };
 
   /**
+   * Fetch all notes for a tenant from the database
+   */
+  const fetchAllNotes = async (tenantId: string) => {
+    setIsLoading(true);
+    try {
+      const notes = await convex.query(api.notes.readNotesFromDb, {
+        user_id: tenantId,
+      });
+
+      // Build tree structure from flat notes list
+      const treeStructure = notes.filter((note) => note.parentId === null);
+
+      setUserNotes(notes);
+      setTreeStructure(treeStructure);
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Create a new note in the database
+   */
+  const createNewNote = async (
+    name: string,
+    parentId: string | null = null,
+    path: string[] = [],
+  ): Promise<FileNode> => {
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+
+    const newNote: FileNode = {
+      quibble_id: tempId,
+      tenantId: process.env.TEMP_TENANT_ID || "default-tenant",
+      name,
+      type: "file",
+      parentId,
+      path,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastEdited: new Date(),
+      content: {
+        tiptap: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "" }],
+            },
+          ],
+        },
+        text: "",
+      },
+    };
+
+    // Add to store as unsaved
+    addNewUnsavedNote(newNote);
+    addOpenUserNote(newNote);
+
+    return newNote;
+  };
+
+  /**
    * Save current editor content to database
    */
   const saveCurrentNote = async (): Promise<boolean> => {
     if (!currentNote) return false;
 
-    // Ensure content is up-to-date before saving (this might be redundant
-    // if onUpdate is firing reliably, but adds safety)
+    // Ensure content is up-to-date before saving
     handleEditorUpdate();
 
     setIsSaving(true);
     try {
-      // Save to database
-      await saveNote(currentNote);
-      console.log("Note saved successfully");
-      return true;
+      const success = await saveNote(currentNote);
+      if (success) {
+        console.log("Note saved successfully");
+      }
+      return success;
     } catch (error) {
       console.error("Error saving note:", error);
       return false;
@@ -109,16 +184,115 @@ export function useNoteEditor() {
   };
 
   /**
-   * Create a new empty note
+   * Save a specific note to the database
    */
-  const createEmptyNote = (name: string = "Untitled Note") => {
-    const newNote = createNewNote(name, null, []);
+  const saveNote = async (note: Node): Promise<boolean> => {
+    try {
+      // Check if it's a new note (with temp ID) or an existing one
+      if (note.quibble_id.toString().startsWith("temp-")) {
+        // Create new note in DB
+        const noteData = note;
+        const mutationData: Record<string, unknown> = {
+          name: noteData.name,
+          tenantId: noteData.tenantId,
+          parentId: noteData.parentId || "",
+          path: noteData.path || [],
+          createdAt: String(noteData.createdAt),
+          updatedAt: String(noteData.updatedAt),
+          lastAccessed: String(new Date()),
+          lastEdited: String(noteData.lastEdited || new Date()),
+        };
+
+        // Only add content if this is a FileNode
+        if (note.type === "file") {
+          mutationData.content = note.content || { tiptap: {}, text: "" };
+        }
+
+        const newId = await convex.mutation(
+          api.notes.createNoteInDb,
+          mutationData,
+        );
+
+        // Remove from new unsaved notes
+        removeNewUnsavedNote(note.quibble_id.toString());
+
+        // Update the note with the real ID from Convex
+        const savedNote = { ...note, _id: newId };
+        updateNoteInCollections(savedNote);
+
+        return true;
+      } else {
+        // Update existing note
+        const updateData: Record<string, unknown> = {
+          quibble_id: note.quibble_id,
+          name: note.name,
+          lastEdited: String(new Date()),
+        };
+
+        if (note.type === "file") {
+          updateData.content = note.content || { tiptap: {}, text: "" };
+        }
+
+        await convex.mutation(api.notes.updateNoteInDb, updateData);
+
+        // Clear from unsaved notes
+        clearUnsavedNote(note.quibble_id.toString());
+
+        // Update in collections
+        updateNoteInCollections(note);
+
+        return true;
+      }
+    } catch (error) {
+      console.error("Error saving note:", error);
+      return false;
+    }
+  };
+
+  /**
+   * Delete a note from the database
+   */
+  const deleteNote = async (noteId: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      // Only try to delete from DB if it's not a temp note
+      if (!noteId.startsWith("temp-")) {
+        await convex.mutation(api.notes.deleteNoteInDb, {
+          quibble_id: noteId,
+        });
+      }
+
+      // Remove from all collections in store
+      removeNoteFromCollections(noteId);
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Create a new empty note and open it
+   */
+  const createEmptyNote = async (name: string = "Untitled Note") => {
+    const newNote = await createNewNote(name, null, []);
     setCurrentNote(newNote);
 
     // Reset the last content tracking
     lastContentRef.current = {};
 
     return newNote;
+  };
+
+  /**
+   * Open an existing note
+   */
+  const openNote = (note: Node) => {
+    addOpenUserNote(note);
+    setCurrentNote(note);
   };
 
   /**
@@ -161,50 +335,25 @@ export function useNoteEditor() {
     }
   }, [currentNote]);
 
-  // The debounced update and interval are now less necessary if using onUpdate,
-  // but can be kept as a fallback or for title changes if not handled elsewhere.
-  // Consider if this interval is truly needed anymore.
-  // Currently, SimpleEditor calls onUpdate, and handleEditorUpdate does the diff.
-  // The interval below checks every 2s and calls handleEditorUpdate.
-  // This might cause redundancy or slight delays.
-  // Let's remove the interval for now, assuming onUpdate is the main trigger.
-
-  /*
-  // Setup debounced content update to track changes while typing
-  useEffect(() => {
-    // Create a debounced function to avoid excessive updates
-    let debounceTimer: NodeJS.Timeout;
-
-    const debouncedUpdate = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        updateNoteContent(); // Now calls the logic inside handleEditorUpdate
-      }, 500); // Update after 500ms of inactivity
-    };
-
-    // Set up an interval to check for updates
-    const intervalId = setInterval(() => {
-      if (editorRef.current) {
-        debouncedUpdate();
-      }
-    }, 2000); // Check every 2 seconds
-
-    return () => {
-      clearTimeout(debounceTimer);
-      clearInterval(intervalId);
-      // Save content one last time when unmounting
-      updateNoteContent(); // Now calls the logic inside handleEditorUpdate
-    };
-  }, [currentNote]);
-  */
-
   return {
+    // Editor refs and state
     editorRef,
     currentNote,
     isSaving,
-    handleEditorUpdate, // Expose the handler
-    saveCurrentNote,
+
+    // Editor operations
+    handleEditorUpdate,
+
+    // Note CRUD operations
+    fetchAllNotes,
+    createNewNote,
     createEmptyNote,
+    openNote,
+    saveCurrentNote,
+    saveNote,
+    deleteNote,
+
+    // Navigation
     handleNavigateAway,
   };
 }
