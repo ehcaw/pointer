@@ -111,7 +111,7 @@ export const updateNoteInDb = mutation({
       const doc: Record<string, any> = {
         quibble_id,
         name: fields.name,
-        tenantId: fields.tenantId || "default-tenant", // Use default if not provided
+        tenantId: fields.tenantId || "12345678", // Use default if not provided
         type: fields.type || "file", // Default to file if not specified
         parentId: fields.parentId || null,
         path: fields.path || [],
