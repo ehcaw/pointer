@@ -1,29 +1,6 @@
 import { create } from "zustand";
 import type { FileNode, Node } from "@/types/note";
 
-const initialNote: FileNode = {
-  quibble_id: "1234879655",
-  tenantId: process.env.TEMP_TENANT_ID || "default-tenant",
-  name: "Welcome Note",
-  type: "file",
-  parentId: null,
-  path: [],
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  content: {
-    tiptap: {
-      type: "doc",
-      content: [
-        {
-          type: "paragraph",
-          content: [{ type: "text", text: "Welcome to your notes app!" }],
-        },
-      ],
-    },
-    text: "Welcome to your notes app!",
-  },
-};
-
 interface NotesStore {
   // Core note collections
   userNotes: Node[];
@@ -69,8 +46,8 @@ interface NotesStore {
 
 export const useNotesStore = create<NotesStore>((set, get) => ({
   // Core note collections
-  userNotes: [initialNote],
-  treeStructure: [initialNote],
+  userNotes: [],
+  treeStructure: [],
 
   // UI state
   openUserNotes: [],
@@ -79,7 +56,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   isLoading: false,
 
   // Unsaved changes tracking
-  unsavedNotes: new Map([[initialNote.quibble_id.toString(), initialNote]]),
+  unsavedNotes: new Map([]),
   newUnsavedNotes: [],
 
   // Basic state setters
@@ -87,7 +64,9 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
   setCurrentView: (view: "home" | "note") => set({ currentView: view }),
-  setCurrentNote: (note: Node | null) => set({ currentNote: note }),
+  setCurrentNote: (note: Node | null) => {
+    set({ currentNote: note });
+  },
   setIsLoading: (isLoading: boolean) => set({ isLoading }),
 
   // Note UI management
@@ -243,7 +222,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     if (isNewNote) {
       // Remove from new notes
       const newUnsavedNotes = state.newUnsavedNotes.filter(
-        (n) => n._id.toString() !== noteId,
+        (n) => n.quibble_id.toString() !== noteId,
       );
 
       // Remove from open notes
