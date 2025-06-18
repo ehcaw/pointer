@@ -44,7 +44,12 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
   };
 
   const handleCreateNew = () => createEmptyNote("New Note");
-  const handleSave = async () => saveCurrentNote();
+  const handleSave = async () => {
+    const successfulUpdate = await saveCurrentNote();
+    if (!successfulUpdate) {
+      alert("Failed to save");
+    }
+  };
   const hna = async () =>
     handleNavigateAway(() => console.log("Navigated away"));
 
@@ -86,7 +91,7 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
       <div className="note-content-editor">
         {currentNote.type === "file" && (
           <SimpleEditor
-            content={content}
+            content={currentNote.content.tiptap || {}}
             editorRef={editorRef}
             onUpdate={handleContentUpdate}
           />

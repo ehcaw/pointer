@@ -41,6 +41,7 @@ export function useNoteEditor() {
   const editorRef = useRef<{
     getJSON: () => Record<string, unknown>;
     getText: () => string;
+    setJSON: (content: Record<string, unknown>) => void;
   }>(null);
 
   // Keep track of last known content to avoid unnecessary updates
@@ -81,14 +82,14 @@ export function useNoteEditor() {
         const updatedNote: FileNode = {
           ...currentNote,
           content: {
-            ...currentNote.content,
             tiptap: tiptapContent,
             text: textContent,
           },
           lastEdited: new Date(),
         };
 
-        // Mark the note as having unsaved changes
+        // Mark the note as having unsaved changes)
+        setCurrentNote(updatedNote);
         markNoteAsUnsaved(updatedNote);
       }
     } catch (error) {
@@ -130,7 +131,7 @@ export function useNoteEditor() {
 
     const newNote: FileNode = {
       quibble_id: tempId,
-      tenantId: process.env.TEMP_TENANT_ID || "default-tenant",
+      tenantId: process.env.TEMP_TENANT_ID || "12345678",
       name,
       type: "file",
       parentId,
@@ -201,6 +202,10 @@ export function useNoteEditor() {
           updatedAt: String(noteData.updatedAt),
           lastAccessed: String(new Date()),
           lastEdited: String(noteData.lastEdited || new Date()),
+          content: {
+            tiptap: (note as FileNode).content.tiptap,
+            text: (note as FileNode).content.text,
+          },
         };
 
         // Only add content if this is a FileNode
