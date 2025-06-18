@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { HomeView } from "@/components/views/home-view";
-import React, { useRef, useMemo, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/notebook-view";
 import { FileNode, Node } from "@/types/note";
@@ -25,8 +25,7 @@ import { api } from "../../convex/_generated/api";
 import { useQuery } from "convex/react";
 
 export default function Page() {
-  const { currentView, currentNote, setUserNotes, userNotes } = useNotesStore();
-  const editorRef = useRef<{ getJSON: () => any; getText: () => string }>(null);
+  const { currentView, currentNote, setUserNotes } = useNotesStore();
   const { saveCurrentNote } = useNoteEditor();
 
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb, {
@@ -54,22 +53,6 @@ export default function Page() {
       scopes: ["all"],
     },
   );
-
-  const handleGetJSON = () => {
-    if (editorRef.current) {
-      const json = editorRef.current.getJSON();
-      return json;
-    }
-    return null;
-  };
-
-  const handleGetText = () => {
-    if (editorRef.current) {
-      const text = editorRef.current.getText();
-      return text;
-    }
-    return "";
-  };
 
   return (
     <SidebarProvider>

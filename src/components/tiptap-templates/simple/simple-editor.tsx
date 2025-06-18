@@ -188,6 +188,7 @@ interface SimpleEditorProps {
   editorRef?: React.RefObject<{
     getJSON: () => any;
     getText: () => string;
+    setJSON: (content: Record<string, unknown>) => void;
   }>;
   onUpdate?: (json: any, text: string) => void;
 }
