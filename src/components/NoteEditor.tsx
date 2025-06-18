@@ -66,9 +66,6 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
     );
   }
 
-  const content =
-    currentNote.type === "file" ? currentNote.content?.tiptap || "" : "";
-
   return (
     <div className="note-editor">
       <div className="note-editor-header">
