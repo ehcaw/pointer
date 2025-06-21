@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "@/lib/notes-store";
-import { useNoteEditor } from "@/hooks/useNoteEditor";
 
 interface AutoSaveProviderProps {
   children: React.ReactNode;
@@ -37,8 +36,7 @@ export const AutoSaveProvider: React.FC<AutoSaveProviderProps> = ({
   showIndicator = true,
   indicatorDuration = 2000,
 }) => {
-  const { hasUnsavedChanges } = useNotesStore();
-  const { saveAllUnsavedNotes } = useNoteEditor();
+  const { hasUnsavedChanges, saveAllUnsavedNotes } = useNotesStore();
   const [isSaving, setIsSaving] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -110,8 +108,7 @@ export const AutoSaveProvider: React.FC<AutoSaveProviderProps> = ({
  * Hook to manually trigger auto-save functionality
  */
 export function useAutoSave() {
-  const { hasUnsavedChanges } = useNotesStore();
-  const { saveAllUnsavedNotes } = useNoteEditor();
+  const { hasUnsavedChanges, saveAllUnsavedNotes } = useNotesStore();
   const [isSaving, setIsSaving] = useState(false);
 
   const saveChanges = async () => {

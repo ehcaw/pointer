@@ -23,18 +23,18 @@ import {
 // Store
 import { useNotesStore } from "@/lib/notes-store";
 import { FileNode, type Node } from "@/types/note";
+import { useNoteEditor } from "@/hooks/useNoteEditor";
 
 export function HomeView() {
   const {
     unsavedNotes,
     userNotes,
-    currentView,
-    setCurrentView,
     addOpenUserNote,
-    setCurrentNote,
-    createNewNote,
     markNoteAsUnsaved,
+    setCurrentNote,
   } = useNotesStore();
+
+  const { createNewNote } = useNoteEditor();
   const [query, setQuery] = React.useState("");
   const [isSearching, setIsSearching] = React.useState(false);
   const [searchResults, setSearchResults] = React.useState<Node[]>([]);
@@ -81,16 +81,16 @@ export function HomeView() {
 
   const recentNotes = React.useMemo(() => {
     // Sort by most recently updated
-    return [...unsavedNotes.values()]
+    return [...userNotes.values()]
       .sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       )
       .slice(0, 6);
-  }, [unsavedNotes]);
+  }, [userNotes]);
 
-  const createNewNoteAction = () => {
-    const newNote = createNewNote("Untitled Note", null, []);
+  const createNewNoteAction = async () => {
+    const newNote = await createNewNote("Untitled Note", null, []);
     addOpenUserNote(newNote);
     setCurrentNote(newNote);
     markNoteAsUnsaved(newNote);

@@ -107,7 +107,7 @@ export function useNoteEditor() {
         user_id: tenantId,
       });
 
-      // Build tree structure from flat notes list
+      // Build tree structure from flat notes lista
       const treeStructure = notes.filter((note) => note.parentId === null);
 
       setUserNotes(notes);
@@ -119,6 +119,20 @@ export function useNoteEditor() {
     }
   };
 
+  const fetchNoteById = async (noteId: string) => {
+    try {
+      const note = await convex.query(api.notes.findNoteByQuibbleId, {
+        quibble_id: noteId,
+      });
+      if (!note) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   /**
    * Create a new note in the database
    */
@@ -127,7 +141,7 @@ export function useNoteEditor() {
     parentId: string | null = null,
     path: string[] = [],
   ): Promise<FileNode> => {
-    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const tempId = `${Date.now()}-${Math.random()}`;
 
     const newNote: FileNode = {
       quibble_id: tempId,
@@ -189,65 +203,99 @@ export function useNoteEditor() {
    */
   const saveNote = async (note: Node): Promise<boolean> => {
     try {
-      // Check if it's a new note (with temp ID) or an existing one
-      if (note.quibble_id.toString().startsWith("temp-")) {
-        // Create new note in DB
-        const noteData = note;
-        const mutationData: Record<string, unknown> = {
-          name: noteData.name,
-          tenantId: noteData.tenantId,
-          parentId: noteData.parentId || "",
-          path: noteData.path || [],
-          createdAt: String(noteData.createdAt),
-          updatedAt: String(noteData.updatedAt),
-          lastAccessed: String(new Date()),
-          lastEdited: String(noteData.lastEdited || new Date()),
-          content: {
-            tiptap: (note as FileNode).content.tiptap,
-            text: (note as FileNode).content.text,
-          },
-        };
+      const noteData = note;
+      const mutationData = {
+        quibble_id: noteData.quibble_id,
+        name: noteData.name,
+        tenantId: noteData.tenantId,
+        parentId: noteData.parentId || "",
+        path: noteData.path || [],
+        createdAt: String(noteData.createdAt),
+        updatedAt: String(noteData.updatedAt),
+        lastAccessed: String(new Date()),
+        lastEdited: String(noteData.lastEdited || new Date()),
+        content: {
+          tiptap: (noteData as FileNode).content.tiptap,
+          text: (noteData as FileNode).content.text,
+        },
+      };
 
-        // Only add content if this is a FileNode
-        if (note.type === "file") {
-          mutationData.content = note.content || { tiptap: {}, text: "" };
-        }
-
-        const newId = await convex.mutation(
-          api.notes.createNoteInDb,
-          mutationData,
-        );
-
-        // Remove from new unsaved notes
-        removeNewUnsavedNote(note.quibble_id.toString());
-
-        // Update the note with the real ID from Convex
-        const savedNote = { ...note, _id: newId };
-        updateNoteInCollections(savedNote);
-
-        return true;
-      } else {
-        // Update existing note
-        const updateData: Record<string, unknown> = {
-          quibble_id: note.quibble_id,
-          name: note.name,
-          lastEdited: String(new Date()),
-        };
-
-        if (note.type === "file") {
-          updateData.content = note.content || { tiptap: {}, text: "" };
-        }
-
-        await convex.mutation(api.notes.updateNoteInDb, updateData);
-
-        // Clear from unsaved notes
-        clearUnsavedNote(note.quibble_id.toString());
-
-        // Update in collections
-        updateNoteInCollections(note);
-
-        return true;
+      // Only add content if this is a FileNode
+      if (note.type === "file") {
+        mutationData.content = note.content || { tiptap: {}, text: "" };
       }
+
+      const doesNoteExist = await fetchNoteById(note.quibble_id);
+      if (doesNoteExist) {
+        await convex.mutation(api.notes.updateNoteInDb, mutationData);
+      } else {
+        await convex.mutation(api.notes.createNoteInDb, mutationData);
+      }
+      const savedNote = { ...note, _id: note.quibble_id };
+      updateNoteInCollections(savedNote);
+      clearUnsavedNote(note.quibble_id.toString());
+      return true;
+      // Check if it's a new note (with temp ID) or an existing one
+      // if (note.quibble_id.toString().startsWith("temp-")) {
+      //   // Create new note in DB
+      //   const noteData = note;
+      //   const mutationData = {
+      //     quibble_id: noteData.quibble_id,
+      //     name: noteData.name,
+      //     tenantId: noteData.tenantId,
+      //     parentId: noteData.parentId || "",
+      //     path: noteData.path || [],
+      //     createdAt: String(noteData.createdAt),
+      //     updatedAt: String(noteData.updatedAt),
+      //     lastAccessed: String(new Date()),
+      //     lastEdited: String(noteData.lastEdited || new Date()),
+      //     content: {
+      //       tiptap: (noteData as FileNode).content.tiptap,
+      //       text: (noteData as FileNode).content.text,
+      //     },
+      //   };
+
+      //   // Only add content if this is a FileNode
+      //   if (note.type === "file") {
+      //     mutationData.content = note.content || { tiptap: {}, text: "" };
+      //   }
+
+      //   const newId = await convex.mutation(
+      //     api.notes.createNoteInDb,
+      //     mutationData,
+      //   );
+
+      //   // Remove from new unsaved notes
+      //   removeNewUnsavedNote(note.quibble_id.toString());
+
+      //   // Update the note with the real ID from Convex
+      //   const savedNote = { ...note, _id: newId };
+      //   updateNoteInCollections(savedNote);
+
+      //   return true;
+      // } else {
+      //   // Update existing note
+      //   const updateData = {
+      //     quibble_id: note.quibble_id,
+      //     name: note.name,
+      //     lastEdited: String(new Date()),
+      //     content: {},
+      //   };
+
+      //   if (note.type === "file") {
+      //     updateData.content = note.content || { tiptap: {}, text: "" };
+      //   }
+
+      //   await convex.mutation(api.notes.updateNoteInDb, updateData);
+
+      //   // Clear from unsaved notes
+      //   clearUnsavedNote(note.quibble_id.toString());
+
+      //   // Update in collections
+      //   updateNoteInCollections(note);
+
+      //   return true;
+      // }
     } catch (error) {
       console.error("Error saving note:", error);
       return false;
@@ -262,7 +310,7 @@ export function useNoteEditor() {
     try {
       // Only try to delete from DB if it's not a temp note
       if (!noteId.startsWith("temp-")) {
-        await convex.mutation(api.notes.deleteNoteInDb, {
+        await convex.mutation(api.notes.deleteNoteByQuibbleId, {
           quibble_id: noteId,
         });
       }
@@ -351,6 +399,7 @@ export function useNoteEditor() {
 
     // Note CRUD operations
     fetchAllNotes,
+    fetchNoteById,
     createNewNote,
     createEmptyNote,
     openNote,

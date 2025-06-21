@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useNotesStore } from "@/lib/notes-store";
-import { Node } from "@/types/note";
+import { Node, FileNode } from "@/types/note";
 import { useNoteEditor } from "@/hooks/useNoteEditor";
 
 export function AppSidebar() {
@@ -23,9 +23,12 @@ export function AppSidebar() {
     unsavedNotes,
     openUserNotes,
     setCurrentNote,
+    currentNote,
   } = useNotesStore();
 
   const { createNewNote } = useNoteEditor();
+
+  console.log(userNotes, userNotes.length);
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
@@ -39,12 +42,6 @@ export function AppSidebar() {
   };
 
   const handleNoteClick = (note: Node) => {
-    // addTab({
-    //   id: note.id,
-    //   title: note.title,
-    //   type: "note",
-    // });
-    // setActiveTab(note.id);
     setCurrentNote(note);
     setCurrentView("note");
   };

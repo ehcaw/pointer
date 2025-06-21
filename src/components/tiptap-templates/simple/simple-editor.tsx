@@ -269,25 +269,29 @@ export function SimpleEditor({
       editorRef.current = {
         getJSON: () => editor.getJSON(),
         getText: () => editor.getText(),
+        setJSON: (content: Record<string, unknown>) => {
+          console.log("Setting editor content to:", content);
+          editor.commands.setContent(content);
+        },
       };
     }
   }, [isMobile, mobileView, editor, editorRef]);
 
-  // // Update editor content when the content prop changes
-  // React.useEffect(() => {
-  //   if (editor && content) {
-  //     const currentJSON = JSON.stringify(editor.getJSON());
-  //     const newContent =
-  //       typeof content === "object"
-  //         ? JSON.stringify(content)
-  //         : content.toString();
+  // Update editor content when the content prop changes
+  React.useEffect(() => {
+    if (editor && content) {
+      const currentJSON = JSON.stringify(editor.getJSON());
+      const newContent =
+        typeof content === "object"
+          ? JSON.stringify(content)
+          : content.toString();
 
-  //     // Only update if content has changed to avoid cursor position issues
-  //     if (currentJSON !== newContent) {
-  //       editor.commands.setContent(content);
-  //     }
-  //   }
-  // }, [editor, content]);
+      // Only update if content has changed to avoid cursor position issues
+      if (currentJSON !== newContent) {
+        editor.commands.setContent(content);
+      }
+    }
+  }, [editor, content]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

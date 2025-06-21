@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNotesStore } from "../lib/notes-store";
 import { useNoteEditor } from "../hooks/useNoteEditor";
+import { Input } from "./ui/input";
 
 import type { FileNode } from "../types/note";
 import { SimpleEditor } from "./tiptap-templates/simple/simple-editor";
@@ -27,6 +28,7 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
   }, [currentNote]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
     setTitle(e.target.value);
     if (currentNote) {
       markNoteAsUnsaved({ ...currentNote, name: e.target.value });
@@ -67,14 +69,14 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
   }
 
   return (
-    <div className="note-editor">
-      <div className="note-editor-header">
-        <input
+    <div className="flex flex-1 flex-col gap-4 p-4 h-screen overflow-y-auto">
+      <div className="flex justify-between items-center">
+        <Input
           type="text"
-          value={title}
+          value="OOGABOOGA"
           onChange={handleTitleChange}
           placeholder="Note Title"
-          className="note-title-input"
+          className="text-xl font-semibold w-2/3"
         />
 
         <div className="note-actions">
@@ -85,7 +87,7 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
         </div>
       </div>
 
-      <div className="note-content-editor">
+      <div>
         {currentNote.type === "file" && (
           <SimpleEditor
             content={currentNote.content.tiptap || {}}
