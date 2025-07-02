@@ -4,7 +4,6 @@ import { useNotesStore } from "@/lib/notes-store";
 import { FileNode, Node } from "@/types/note";
 import { useUnsavedChanges } from "./useUnsavedChanges";
 import { api } from "../../convex/_generated/api";
-
 /**
  * Custom hook to connect TipTap editor with our notes store system.
  * Manages content syncing, saving, and unsaved changes tracking.
@@ -24,7 +23,6 @@ export function useNoteEditor() {
     setIsLoading,
     clearUnsavedNote,
     addNewUnsavedNote,
-    removeNewUnsavedNote,
     updateNoteInCollections,
     removeNoteFromCollections,
     addOpenUserNote,
@@ -60,6 +58,7 @@ export function useNoteEditor() {
     try {
       // Get content from TipTap editor
       const tiptapContent = editorRef.current.getJSON();
+
       const textContent = editorRef.current.getText();
 
       // Skip if content hasn't changed
@@ -106,6 +105,8 @@ export function useNoteEditor() {
       const notes = await convex.query(api.notes.readNotesFromDb, {
         user_id: tenantId,
       });
+
+      console.log("USE NOTES API ", notes);
 
       // Build tree structure from flat notes lista
       const treeStructure = notes.filter((note) => note.parentId === null);
@@ -220,11 +221,6 @@ export function useNoteEditor() {
         },
       };
 
-      // Only add content if this is a FileNode
-      if (note.type === "file") {
-        mutationData.content = note.content || { tiptap: {}, text: "" };
-      }
-
       const doesNoteExist = await fetchNoteById(note.quibble_id);
       if (doesNoteExist) {
         await convex.mutation(api.notes.updateNoteInDb, mutationData);
@@ -234,6 +230,7 @@ export function useNoteEditor() {
       const savedNote = { ...note, _id: note.quibble_id };
       updateNoteInCollections(savedNote);
       clearUnsavedNote(note.quibble_id.toString());
+      console.log("note saved");
       return true;
       // Check if it's a new note (with temp ID) or an existing one
       // if (note.quibble_id.toString().startsWith("temp-")) {

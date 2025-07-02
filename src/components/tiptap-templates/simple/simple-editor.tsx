@@ -76,7 +76,8 @@ import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import "@/components/tiptap-templates/simple/simple-editor.scss";
 import "@/components/tiptap-templates/active-button.scss";
 
-//import content from "@/components/tiptap-templates/simple/data/content.json";
+import { useNotesStore } from "@/lib/notes-store";
+import { FileNode } from "@/types/note";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -184,13 +185,13 @@ const MobileToolbarContent = ({
 );
 
 interface SimpleEditorProps {
-  content: string | Record<string, any>;
+  content: string | Record<string, unknown> | null | undefined;
   editorRef?: React.RefObject<{
-    getJSON: () => any;
+    getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
-  }>;
-  onUpdate?: (json: any, text: string) => void;
+  } | null>;
+  onUpdate?: (json: Record<string, unknown>, text: string) => void;
 }
 
 export function SimpleEditor({
@@ -205,14 +206,48 @@ export function SimpleEditor({
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
 
+  const { currentNote } = useNotesStore();
+
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
+    // If content is null or undefined, treat it as an empty string for Tiptap
+    if (content === null || content === undefined) {
+      return "";
+    }
+
     // If content is an object (TipTap JSON), use it directly
     if (content && typeof content === "object") {
+      // If content is an empty object, treat it as an empty string for Tiptap
+      if (Object.keys(content).length === 0) {
+        return "";
+      }
       return content;
     }
-    // If content is a string, use it as-is
-    return content || "";
+
+    // If content is a string, try to parse it as JSON first
+    if (typeof content === "string") {
+      // If it's an empty string, return empty string for Tiptap
+      if (content.trim() === "") {
+        return "";
+      }
+
+      // Try to parse as JSON (for stored TipTap content)
+      try {
+        const parsed = JSON.parse(content);
+
+        // Verify it looks like TipTap JSON (has type and content properties)
+        if (parsed && typeof parsed === "object" && parsed.type) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("JSON parsing failed: ", e);
+      }
+
+      return content;
+    }
+
+    // Fallback
+    return "";
   }, [content]);
 
   const editor = useEditor({
@@ -270,28 +305,41 @@ export function SimpleEditor({
         getJSON: () => editor.getJSON(),
         getText: () => editor.getText(),
         setJSON: (content: Record<string, unknown>) => {
-          console.log("Setting editor content to:", content);
           editor.commands.setContent(content);
         },
       };
     }
   }, [isMobile, mobileView, editor, editorRef]);
 
+  // Update editor content when switching notes
+  React.useEffect(() => {
+    if (editor && initialContent) {
+      const currentContent = editor.getJSON();
+      // Only update if content has actually changed to avoid cursor position issues
+      if (JSON.stringify(currentContent) !== JSON.stringify(initialContent)) {
+        editor.commands.setContent(initialContent);
+      }
+    }
+  }, [editor, initialContent]);
+
   // Update editor content when the content prop changes
   React.useEffect(() => {
     if (editor && content) {
       const currentJSON = JSON.stringify(editor.getJSON());
-      const newContent =
-        typeof content === "object"
-          ? JSON.stringify(content)
-          : content.toString();
-
+      const currentText = editor.getText();
       // Only update if content has changed to avoid cursor position issues
-      if (currentJSON !== newContent) {
-        editor.commands.setContent(content);
+      if (
+        (currentNote &&
+          JSON.stringify((currentNote as FileNode).content.tiptap) !=
+            currentJSON) ||
+        (currentNote as FileNode).content.text != currentText
+      ) {
+        currentNote.content.tiptap = currentJSON;
+        currentNote.content.text = currentText;
+        editor.commands.setContent(JSON.parse(currentJSON));
       }
     }
-  }, [editor, content]);
+  }, [editor, content, currentNote]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

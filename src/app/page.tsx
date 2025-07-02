@@ -32,6 +32,7 @@ export default function Page() {
     // user_id: process.env.TEMP_TENANT_ID!,
     user_id: "12345678",
   });
+
   useEffect(() => {
     if (notes && notes.length > 0) {
       setUserNotes(notes); // Replace state completely, don't append

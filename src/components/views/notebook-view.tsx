@@ -3,12 +3,13 @@ import { useNoteEditor } from "@/hooks/useNoteEditor";
 import { useEffect, useState } from "react"; // Removed useMemo as it's no longer used
 import { useNotesStore } from "@/lib/notes-store";
 import { Button } from "@/components/tiptap-ui-primitive/button";
-import { FileNode } from "@/types/note";
+
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
 
 export const NotebookView = () => {
   const {
+    currentNote,
     editorRef,
     isSaving,
     saveCurrentNote,
@@ -16,7 +17,7 @@ export const NotebookView = () => {
     handleEditorUpdate,
   } = useNoteEditor(); // Imported handleEditorUpdate
 
-  const { currentView, currentNote, markNoteAsUnsaved } = useNotesStore(); // unsavedNotes and markNoteAsUnsaved are now handled inside useNoteEditor
+  const { currentView, markNoteAsUnsaved } = useNotesStore(); // unsavedNotes and markNoteAsUnsaved are now handled inside useNoteEditor
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {
@@ -40,11 +41,16 @@ export const NotebookView = () => {
     if (currentNote) setTitle(currentNote.name);
     else setTitle("");
   }, [currentNote]);
-
-  // Removed the manual useEffect hook that checked editorRef.current.getText()
-  // Changes will now be detected by TipTap's onUpdate event passed to SimpleEditor
-
-  // Get TipTap content from current note
+  const noteContent = currentNote
+    ? currentNote.content.tiptap
+    : {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+          },
+        ],
+      };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 h-screen overflow-y-auto">
@@ -78,11 +84,8 @@ export const NotebookView = () => {
 
       <div style={{ maxHeight: "calc(100vh - 80px)" }}>
         <SimpleEditor
-          content={
-            currentNote?.type === "file"
-              ? (currentNote as FileNode).content.tiptap
-              : {}
-          }
+          key={currentNote?.quibble_id || "new-note"}
+          content={noteContent}
           editorRef={editorRef}
           onUpdate={handleEditorUpdate}
         />
