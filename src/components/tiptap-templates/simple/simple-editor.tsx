@@ -206,7 +206,7 @@ export function SimpleEditor({
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
 
-  const { currentNote } = useNotesStore();
+  const { currentNote, markNoteAsUnsaved } = useNotesStore();
 
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
@@ -335,12 +335,13 @@ export function SimpleEditor({
             currentJSON) ||
         (currentNote as FileNode).content.text != currentText
       ) {
+        markNoteAsUnsaved(currentNote);
         currentNote.content.tiptap = currentJSON;
         currentNote.content.text = currentText;
         editor.commands.setContent(JSON.parse(currentJSON));
       }
     }
-  }, [editor, content, currentNote]);
+  }, [editor, content, currentNote, markNoteAsUnsaved]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

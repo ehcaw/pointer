@@ -43,6 +43,7 @@ export const NotebookView = () => {
     if (currentNote) setTitle(currentNote.name);
     else setTitle("");
   }, [currentNote]);
+
   const noteContent = currentNote
     ? currentNote.content.tiptap
     : {

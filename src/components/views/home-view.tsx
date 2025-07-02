@@ -165,7 +165,7 @@ export function HomeView() {
                 <Button
                   onClick={handleCreateNote}
                   size="lg"
-                  className="rounded-xl px-8 py-3 bg-primary hover:bg-primary/90 text-black font-medium shadow-lg hover:shadow-xl transition-all"
+                  className="rounded-xl px-8 py-3 bg-primary hover:bg-primary/90 font-medium shadow-lg hover:shadow-xl transition-all"
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Create New Note
