@@ -39,6 +39,13 @@ export const createNoteInDb = mutation({
   },
   handler: async (ctx, args) => {
     // Store the quibble_id along with other fields
+    const existingNote = await ctx.db
+      .query("notes")
+      .filter((q) => q.eq(q.field("quibble_id"), args.quibble_id))
+      .first();
+    if (existingNote !== null) {
+      return existingNote.id;
+    }
     const noteId = await ctx.db.insert("notes", {
       name: args.name,
       content: args.content,
