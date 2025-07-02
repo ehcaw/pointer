@@ -35,6 +35,7 @@ export const NotebookView = () => {
     setTitle(e.target.value);
     if (currentNote) {
       markNoteAsUnsaved({ ...currentNote, name: e.target.value });
+      currentNote.name = e.target.value;
     }
   };
 
