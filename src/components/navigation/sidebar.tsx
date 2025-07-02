@@ -42,7 +42,6 @@ export function AppSidebar() {
   const handleNoteClick = (note: Node) => {
     setCurrentNote(note);
     console.log(currentNote?.quibble_id);
-    console.log("CURRENT MEOTLKSDJFLKSDJFSD ", currentNote.content);
     setCurrentView("note");
   };
 

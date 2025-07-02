@@ -5,6 +5,7 @@ import { Search, Sparkles, Clock, File, Folder } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 // UI Components
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -254,6 +255,7 @@ export function HomeView() {
 }
 
 function RecentNoteCard({ note }: { note: Node }) {
+  const { setCurrentNote, setCurrentView } = useNotesStore();
   const isFolder = note.type === "folder";
   const timeAgo = formatDistanceToNow(new Date(note.updatedAt), {
     addSuffix: true,
@@ -279,7 +281,24 @@ function RecentNoteCard({ note }: { note: Node }) {
   }, [note, isFolder]);
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-all cursor-pointer">
+    <Card
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-accent",
+        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+      )}
+      onClick={() => {
+        setCurrentNote(note);
+        setCurrentView("note");
+      }}
+      tabIndex={0}
+      role="button"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          console.log("Card clicked");
+        }
+      }}
+    >
       <CardHeader className="p-4 pb-3 flex flex-row items-start gap-2">
         {isFolder ? (
           <Folder className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -337,16 +356,8 @@ function SearchResultCard({ note, query }: { note: Node; query: string }) {
   const contentPreview = React.useMemo(() => {
     if (isFolder) return "";
 
-    if (typeof note.content === "string") {
-      return highlightText(note.content, query);
-    }
-
-    if (typeof note.content === "object") {
-      try {
-        return highlightText(JSON.stringify(note.content), query);
-      } catch (e: any) {
-        return "";
-      }
+    if (typeof note.content.text === "string") {
+      return highlightText(note.content.text, query);
     }
 
     return "";
