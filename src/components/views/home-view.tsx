@@ -1,25 +1,28 @@
 "use client";
 
 import * as React from "react";
-import { Search, Sparkles, Clock, File, Folder } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import {
+  Search,
+  Plus,
+  FileText,
+  Calendar,
+  TrendingUp,
+  Zap,
+  ArrowRight,
+  Filter,
+  Grid3X3,
+  List,
+  Clock,
+} from "lucide-react";
+import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 
 // UI Components
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Store
 import { useNotesStore } from "@/lib/notes-store";
@@ -27,34 +30,18 @@ import { FileNode, type Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/useNoteEditor";
 
 export function HomeView() {
-  const {
-    unsavedNotes,
-    userNotes,
-    addOpenUserNote,
-    markNoteAsUnsaved,
-    setCurrentNote,
-  } = useNotesStore();
+  const { userNotes, setCurrentNote, setCurrentView } = useNotesStore();
 
-  const { createNewNote } = useNoteEditor();
+  const { createEmptyNote } = useNoteEditor();
   const [query, setQuery] = React.useState("");
-  const [isSearching, setIsSearching] = React.useState(false);
-  const [searchResults, setSearchResults] = React.useState<Node[]>([]);
-  const [aiDialogOpen, setAiDialogOpen] = React.useState(false);
-  const [aiResponse, setAiResponse] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
 
   // Get filtered notes for search
-  React.useEffect(() => {
-    if (query.trim() === "") {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
+  const searchResults = React.useMemo(() => {
+    if (query.trim() === "") return [];
 
-    setIsSearching(true);
     const lowerQuery = query.toLowerCase();
-    // Simple fuzzy search
-    const results = userNotes.filter((note) => {
+    return userNotes.filter((note) => {
       const fileNote = note as FileNode;
       return (
         fileNote?.name?.toLowerCase().includes(lowerQuery) ||
@@ -62,350 +49,516 @@ export function HomeView() {
           fileNote.content.text.toLowerCase().includes(lowerQuery))
       );
     });
-
-    setSearchResults(results);
   }, [query, userNotes]);
 
-  // AI chat query handler
-  const handleAiQuery = () => {
-    setAiDialogOpen(true);
-    setIsLoading(true);
+  // Organize notes by time periods
+  const organizedNotes = React.useMemo(() => {
+    const today: Node[] = [];
+    const yesterday: Node[] = [];
+    const thisWeek: Node[] = [];
+    const older: Node[] = [];
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
-      setAiResponse(
-        `Based on your notes, here's what I found related to "${query}":\n\n1. You have 3 notes that mention this topic\n2. The most recent mention was in "Meeting Notes" from yesterday\n3. There seems to be a connection with your project timeline`,
-      );
-      setIsLoading(false);
-    }, 1500);
-  };
+    const sortedNotes = [...userNotes].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
 
-  const recentNotes = React.useMemo(() => {
-    // Sort by most recently updated
-    return [...userNotes.values()]
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      )
-      .slice(0, 6);
+    sortedNotes.forEach((note) => {
+      const noteDate = new Date(note.updatedAt);
+
+      if (isToday(noteDate)) {
+        today.push(note);
+      } else if (isYesterday(noteDate)) {
+        yesterday.push(note);
+      } else if (Date.now() - noteDate.getTime() < 7 * 24 * 60 * 60 * 1000) {
+        thisWeek.push(note);
+      } else {
+        older.push(note);
+      }
+    });
+
+    return { today, yesterday, thisWeek, older };
   }, [userNotes]);
 
-  const createNewNoteAction = async () => {
-    const newNote = await createNewNote("Untitled Note", null, []);
-    addOpenUserNote(newNote);
-    setCurrentNote(newNote);
-    markNoteAsUnsaved(newNote);
-    console.log(unsavedNotes);
+  const stats = React.useMemo(
+    () => ({
+      total: userNotes.length,
+      todayCount: organizedNotes.today.length,
+      recentlyModified: userNotes.filter(
+        (note) =>
+          Date.now() - new Date(note.updatedAt).getTime() < 24 * 60 * 60 * 1000,
+      ).length,
+    }),
+    [userNotes, organizedNotes],
+  );
+
+  const handleCreateNote = async () => {
+    createEmptyNote("Untitled Note");
+    setCurrentView("note");
   };
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header with search */}
-      <div className="p-6 pb-4 border-b">
-        <h1 className="text-2xl font-semibold mb-6">Welcome to Quibble</h1>
+  const handleOpenNote = (note: Node) => {
+    setCurrentNote(note);
+    setCurrentView("note");
+  };
 
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <Input
-            type="text"
-            placeholder="Search notes or ask AI about your notes..."
-            className="pl-10 pr-24 py-6 text-base"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query.trim() !== "" && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleAiQuery}
-                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Ask AI</span>
-              </Button>
+  const isSearching = query.trim() !== "";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-800 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
+
+        <div className="relative px-6 py-12">
+          <div className="mx-auto max-w-6xl">
+            {/* Header */}
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+                <Zap className="h-4 w-4" />
+                Welcome back to Quibble
+              </div>
+
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-4">
+                Your ideas, beautifully organized
+              </h1>
+
+              <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
+                Capture, organize, and develop your thoughts with our intuitive
+                note-taking experience.
+              </p>
+
+              {/* Quick Stats */}
+              <div className="flex justify-center items-center gap-8 text-sm text-slate-600 dark:text-slate-400">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span>{stats.total} notes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>{stats.recentlyModified} recently modified</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>{stats.todayCount} created today</span>
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search your notes..."
+                  className="pl-12 pr-4 py-4 text-base bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm focus:shadow-md transition-all"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            {!isSearching && (
+              <div className="flex justify-center gap-4 mb-12">
+                <Button
+                  onClick={handleCreateNote}
+                  size="lg"
+                  className="rounded-xl px-8 py-3 bg-primary hover:bg-primary/90 text-black font-medium shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create New Note
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-xl px-8 py-3 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium transition-all"
+                >
+                  <Filter className="h-5 w-5 mr-2" />
+                  Browse All
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-6">
-            {/* Search results when searching */}
-            {isSearching ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-medium">Search Results</h2>
-                  <Badge variant="outline">
-                    {searchResults.length} results
-                  </Badge>
-                </div>
-
-                {searchResults.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {searchResults.map((note) => (
-                      <SearchResultCard
-                        key={note.quibble_id.toString()}
-                        note={note}
-                        query={query}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <p className="text-muted-foreground">
-                      No notes found matching {query}
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={handleAiQuery}
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Ask AI Instead
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                {/* Recently edited notes */}
-                <div className="space-y-4 mb-10">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                    <h2 className="text-lg font-medium">Recently Edited</h2>
-                  </div>
-
-                  {recentNotes.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {recentNotes.map((note) => (
-                        <RecentNoteCard
-                          key={note.quibble_id.toString()}
-                          note={note}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-10 text-center">
-                      <p className="text-muted-foreground">
-                        No recently edited notes
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick start section */}
-                <div className="bg-muted/40 rounded-lg p-6 max-w-2xl mx-auto text-center">
-                  <h3 className="text-lg font-medium mb-2">Quick Start</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create a new note or use the search bar to find existing
-                    notes
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button onClick={() => createNewNoteAction()}>
-                      Create New Note
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </ScrollArea>
+      <div className="px-6 pb-12">
+        <div className="mx-auto max-w-6xl">
+          {isSearching ? (
+            <SearchResults
+              results={searchResults}
+              query={query}
+              onOpenNote={handleOpenNote}
+            />
+          ) : (
+            <NotesTimeline
+              organizedNotes={organizedNotes}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              onOpenNote={handleOpenNote}
+            />
+          )}
+        </div>
       </div>
-
-      {/* AI Dialog */}
-      <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>AI Assistant</DialogTitle>
-            <DialogDescription>
-              Results based on your notes and query: {query}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            {isLoading ? (
-              <div className="h-32 flex items-center justify-center">
-                <div className="animate-pulse flex flex-col items-center">
-                  <Sparkles className="h-8 w-8 text-primary mb-2" />
-                  <p>Analyzing your notes...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="whitespace-pre-wrap bg-muted p-3 rounded-md text-sm">
-                {aiResponse}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAiDialogOpen(false)}>
-              Close
-            </Button>
-            <Button disabled={isLoading}>Open Related Notes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-function RecentNoteCard({ note }: { note: Node }) {
-  const { setCurrentNote, setCurrentView } = useNotesStore();
-  const isFolder = note.type === "folder";
+function SearchResults({
+  results,
+  query,
+  onOpenNote,
+}: {
+  results: Node[];
+  query: string;
+  onOpenNote: (note: Node) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Search Results
+        </h2>
+        <Badge variant="secondary" className="px-3 py-1">
+          {results.length} results
+        </Badge>
+      </div>
+
+      {results.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {results.map((note) => (
+            <SearchResultCard
+              key={note.quibble_id}
+              note={note}
+              query={query}
+              onOpen={() => onOpenNote(note)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <div className="mx-auto w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+            <Search className="h-10 w-10 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+            No results found
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400">
+            Try adjusting your search terms or create a new note
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NotesTimeline({
+  organizedNotes,
+  viewMode,
+  setViewMode,
+  onOpenNote,
+}: {
+  organizedNotes: {
+    today: Node[];
+    yesterday: Node[];
+    thisWeek: Node[];
+    older: Node[];
+  };
+  viewMode: "grid" | "list";
+  setViewMode: (mode: "grid" | "list") => void;
+  onOpenNote: (note: Node) => void;
+}) {
+  const sections = [
+    {
+      title: "Today",
+      notes: organizedNotes.today,
+      color: "text-green-600 dark:text-green-400",
+    },
+    {
+      title: "Yesterday",
+      notes: organizedNotes.yesterday,
+      color: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      title: "This Week",
+      notes: organizedNotes.thisWeek,
+      color: "text-orange-600 dark:text-orange-400",
+    },
+    {
+      title: "Older",
+      notes: organizedNotes.older,
+      color: "text-slate-600 dark:text-slate-400",
+    },
+  ];
+
+  const hasAnyNotes = sections.some((section) => section.notes.length > 0);
+
+  return (
+    <div className="space-y-8">
+      {/* View Controls */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Your Notes
+        </h2>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            className="rounded-lg"
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="rounded-lg"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {hasAnyNotes ? (
+        sections.map((section) => {
+          if (section.notes.length === 0) return null;
+
+          return (
+            <div key={section.title} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <h3 className={cn("text-lg font-medium", section.color)}>
+                  {section.title}
+                </h3>
+                <Badge variant="outline" className="px-2 py-1">
+                  {section.notes.length}
+                </Badge>
+              </div>
+
+              <div
+                className={cn(
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    : "space-y-3",
+                )}
+              >
+                {section.notes.map((note) => (
+                  <NoteCard
+                    key={note.quibble_id}
+                    note={note}
+                    viewMode={viewMode}
+                    onOpen={() => onOpenNote(note)}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <EmptyState />
+      )}
+    </div>
+  );
+}
+
+function NoteCard({
+  note,
+  viewMode,
+  onOpen,
+}: {
+  note: Node;
+  viewMode: "grid" | "list";
+  onOpen: () => void;
+}) {
+  const fileNote = note as FileNode;
+  const preview = React.useMemo(() => {
+    if (note.type === "folder") return "";
+    if (typeof fileNote.content?.text === "string") {
+      return fileNote.content.text.slice(0, 120);
+    }
+    return "";
+  }, [note, fileNote]);
+
   const timeAgo = formatDistanceToNow(new Date(note.updatedAt), {
     addSuffix: true,
   });
 
-  // Get content preview for files
-  const previewText = React.useMemo(() => {
-    if (isFolder) return "";
-
-    if (typeof note.content.text === "string") {
-      return note.content.text.slice(0, 120);
-    }
-
-    if (typeof note.content === "object") {
-      try {
-        return JSON.stringify(note.content).slice(0, 120);
-      } catch (e: any) {
-        return "";
-      }
-    }
-
-    return "";
-  }, [note, isFolder]);
+  if (viewMode === "list") {
+    return (
+      <Card
+        className="p-4 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+        onClick={onOpen}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="h-4 w-4 text-slate-500 flex-shrink-0" />
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                {note.name || "Untitled"}
+              </h4>
+            </div>
+            {preview && (
+              <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1">
+                {preview}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <span className="text-xs text-slate-500">{timeAgo}</span>
+            <ArrowRight className="h-4 w-4 text-slate-400" />
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
-      className={cn(
-        "cursor-pointer transition-colors hover:bg-accent",
-        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-      )}
-      onClick={() => {
-        setCurrentNote(note);
-        setCurrentView("note");
-      }}
-      tabIndex={0}
-      role="button"
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          console.log("Card clicked");
-        }
-      }}
+      className="group p-6 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl"
+      onClick={onOpen}
     >
-      <CardHeader className="p-4 pb-3 flex flex-row items-start gap-2">
-        {isFolder ? (
-          <Folder className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-        ) : (
-          <File className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
-        )}
-        <div className="space-y-1">
-          <CardTitle className="text-base font-medium leading-none">
-            {note.name || "Untitled"}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">{timeAgo}</p>
+      <div className="space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                {note.name || "Untitled"}
+              </h4>
+              <p className="text-sm text-slate-500 flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {timeAgo}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
         </div>
-      </CardHeader>
 
-      {!isFolder && previewText && (
-        <CardContent className="p-4 pt-0">
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {previewText}
+        {preview && (
+          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
+            {preview}
           </p>
-        </CardContent>
-      )}
+        )}
+      </div>
     </Card>
   );
 }
 
-function SearchResultCard({ note, query }: { note: Node; query: string }) {
-  const isFolder = note.type === "folder";
+function SearchResultCard({
+  note,
+  query,
+  onOpen,
+}: {
+  note: Node;
+  query: string;
+  onOpen: () => void;
+}) {
+  const fileNote = note as FileNode;
+  const highlightedContent = React.useMemo(() => {
+    if (note.type === "folder") return "";
 
-  // Function to highlight matching text
-  const highlightText = (text: string, query: string) => {
-    if (!text) return "";
-
+    const text = fileNote.content?.text || "";
     const lowerText = text.toLowerCase();
     const lowerQuery = query.toLowerCase();
 
-    if (!lowerText.includes(lowerQuery)) {
-      return text.slice(0, 150) + (text.length > 150 ? "..." : "");
-    }
+    if (!lowerText.includes(lowerQuery)) return text.slice(0, 120);
 
-    // Find position of match
     const matchIndex = lowerText.indexOf(lowerQuery);
-
-    // Get snippet around match
     const start = Math.max(0, matchIndex - 50);
-    const end = Math.min(text.length, matchIndex + query.length + 50);
+    const end = Math.min(text.length, matchIndex + query.length + 100);
 
-    // Add ellipsis for context
-    const prefix = start > 0 ? "..." : "";
-    const suffix = end < text.length ? "..." : "";
-
-    return prefix + text.slice(start, end) + suffix;
-  };
-
-  // Get content preview with query highlight
-  const contentPreview = React.useMemo(() => {
-    if (isFolder) return "";
-
-    if (typeof note.content.text === "string") {
-      return highlightText(note.content.text, query);
-    }
-
-    return "";
-  }, [note, query, isFolder]);
-
-  const updatedDate = format(new Date(note.updatedAt), "MMM d, yyyy");
+    return (
+      (start > 0 ? "..." : "") +
+      text.slice(start, end) +
+      (end < text.length ? "..." : "")
+    );
+  }, [note, query, fileNote]);
 
   return (
-    <Card className="overflow-hidden hover:border-primary transition-all cursor-pointer">
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-start gap-2">
-          {isFolder ? (
-            <Folder className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-          ) : (
-            <File className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
-          )}
-          <div>
-            <CardTitle className="text-base font-medium">
-              {note.name || "Untitled"}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">{updatedDate}</p>
+    <Card
+      className="p-6 hover:shadow-lg transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl group"
+      onClick={onOpen}
+    >
+      <div className="space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+              <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                {note.name || "Untitled"}
+              </h4>
+              <p className="text-sm text-slate-500">
+                {format(new Date(note.updatedAt), "MMM d, yyyy")}
+              </p>
+            </div>
           </div>
+          <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
         </div>
-      </CardHeader>
 
-      {!isFolder && contentPreview && (
-        <>
-          <Separator />
-          <CardContent className="p-4 pt-2">
-            <p className="text-sm">
-              {contentPreview
-                .split(new RegExp(`(${query})`, "i"))
-                .map((part, i) =>
-                  part.toLowerCase() === query.toLowerCase() ? (
-                    <span
-                      key={i}
-                      className="bg-yellow-100 dark:bg-yellow-900/40"
-                    >
-                      {part}
-                    </span>
-                  ) : (
-                    <span key={i}>{part}</span>
-                  ),
-                )}
-            </p>
-          </CardContent>
-        </>
-      )}
+        {highlightedContent && (
+          <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            {highlightedContent
+              .split(new RegExp(`(${query})`, "i"))
+              .map((part, i) =>
+                part.toLowerCase() === query.toLowerCase() ? (
+                  <span
+                    key={i}
+                    className="bg-yellow-200 dark:bg-yellow-900/50 px-1 rounded"
+                  >
+                    {part}
+                  </span>
+                ) : (
+                  <span key={i}>{part}</span>
+                ),
+              )}
+          </div>
+        )}
+      </div>
     </Card>
+  );
+}
+
+function EmptyState() {
+  const { createEmptyNote } = useNoteEditor();
+  const { setCurrentView } = useNotesStore();
+
+  const handleCreateNote = () => {
+    createEmptyNote("My First Note");
+    setCurrentView("note");
+  };
+
+  return (
+    <div className="text-center py-16">
+      <div className="mx-auto w-32 h-32 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center mb-8">
+        <FileText className="h-16 w-16 text-primary" />
+      </div>
+
+      <h3 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        Ready to start writing?
+      </h3>
+
+      <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
+        Create your first note and begin capturing your ideas, thoughts, and
+        inspirations.
+      </p>
+
+      <Button
+        onClick={handleCreateNote}
+        size="lg"
+        className="rounded-xl px-8 py-3 bg-primary hover:bg-primary/90 text-white font-medium shadow-lg hover:shadow-xl transition-all"
+      >
+        <Plus className="h-5 w-5 mr-2" />
+        Create Your First Note
+      </Button>
+    </div>
   );
 }

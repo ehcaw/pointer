@@ -211,6 +211,7 @@ export function SimpleEditor({
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
     // If content is null or undefined, treat it as an empty string for Tiptap
+    console.log(content);
     if (content === null || content === undefined) {
       return "";
     }
