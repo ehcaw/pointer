@@ -42,21 +42,6 @@ export default function Page() {
     }
   }, [notes, setUserNotes]);
 
-  useHotkeys(
-    "meta+s",
-    (e) => {
-      console.log("Save hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      saveCurrentNote();
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
-
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
 
   return (

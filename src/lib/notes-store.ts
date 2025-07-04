@@ -390,17 +390,61 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     if (unsavedChanges.length === 0) return true;
 
-    // In a real implementation, you would call your API here
-    // This is a simplified version for demonstration
     try {
-      // Mark all notes as saved
+      let updatedUserNotes = [...state.userNotes];
+      let updatedOpenUserNotes = [...state.openUserNotes];
+      let updatedTreeStructure = [...state.treeStructure];
+      let updatedCurrentNote = state.currentNote;
+
       for (const note of unsavedChanges) {
-        // Update in collections to ensure consistent state
-        state.updateNoteInCollections(note);
+        const noteId = note.quibble_id.toString();
+
+        // Update or add to userNotes
+        const userNoteIndex = updatedUserNotes.findIndex(
+          (n) => n.quibble_id.toString() === noteId,
+        );
+        if (userNoteIndex !== -1) {
+          updatedUserNotes[userNoteIndex] = note;
+        } else {
+          updatedUserNotes.push(note); // Add new notes to userNotes
+        }
+
+        // Update open notes
+        const openNoteIndex = updatedOpenUserNotes.findIndex(
+          (n) => n.quibble_id.toString() === noteId,
+        );
+        if (openNoteIndex !== -1) {
+          updatedOpenUserNotes[openNoteIndex] = note;
+        }
+
+        // Update current note if it's the one being saved
+        if (
+          updatedCurrentNote &&
+          updatedCurrentNote.quibble_id.toString() === noteId
+        ) {
+          updatedCurrentNote = note;
+        }
+
+        // Update or add to tree structure
+        const treeNoteIndex = updatedTreeStructure.findIndex(
+          (n) => n.quibble_id.toString() === noteId,
+        );
+        if (treeNoteIndex !== -1) {
+          updatedTreeStructure[treeNoteIndex] = note;
+        } else {
+          updatedTreeStructure.push(note); // Add new notes to treeStructure
+        }
       }
 
-      // Clear unsaved changes
-      set({ unsavedNotes: new Map(), newUnsavedNotes: [] });
+      // Perform a single, batched state update
+      set({
+        userNotes: updatedUserNotes,
+        openUserNotes: updatedOpenUserNotes,
+        treeStructure: updatedTreeStructure,
+        currentNote: updatedCurrentNote,
+        unsavedNotes: new Map(),
+        newUnsavedNotes: [],
+      });
       return true;
     } catch (error) {
       console.error("Error saving all notes:", error);

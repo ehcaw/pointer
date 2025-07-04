@@ -79,6 +79,8 @@ import "@/components/tiptap-templates/active-button.scss";
 import { useNotesStore } from "@/lib/notes-store";
 import { FileNode } from "@/types/note";
 
+type Snapshot = { json: string; text: string };
+
 const MainToolbarContent = ({
   onHighlighterClick,
   onLinkClick,
@@ -208,6 +210,10 @@ export function SimpleEditor({
 
   const { currentNote, markNoteAsUnsaved } = useNotesStore();
 
+  const [mostCurrentNote, setMostCurrentNote] = React.useState(
+    useNotesStore.getState().currentNote,
+  );
+
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
     // If content is null or undefined, treat it as an empty string for Tiptap
@@ -323,25 +329,36 @@ export function SimpleEditor({
     }
   }, [editor, initialContent]);
 
-  // Update editor content when the content prop changes
+  const snapshots = React.useRef<Map<string, Snapshot>>(new Map());
+
   React.useEffect(() => {
-    if (editor && content) {
-      const currentJSON = JSON.stringify(editor.getJSON());
-      const currentText = editor.getText();
-      // Only update if content has changed to avoid cursor position issues
-      if (
-        (currentNote &&
-          JSON.stringify((currentNote as FileNode).content.tiptap) !=
-            currentJSON) ||
-        (currentNote as FileNode).content.text != currentText
-      ) {
-        markNoteAsUnsaved(currentNote);
-        currentNote.content.tiptap = currentJSON;
-        currentNote.content.text = currentText;
-        editor.commands.setContent(JSON.parse(currentJSON));
-      }
+    if (!editor || !currentNote) return;
+
+    const { id } = currentNote.quibble_id; // or path / UID—whatever uniquely identifies the file
+    const current: Snapshot = {
+      json: JSON.stringify(editor.getJSON()),
+      text: editor.getText(),
+    };
+
+    // Pull (or prime) the snapshot for *this* note
+    const last = snapshots.current.get(id) ?? {
+      json: currentNote.content.tiptap,
+      text: currentNote.content.text,
+    };
+
+    // Only flag unsaved if THIS note’s content actually diverged
+    const changed = current.json !== last.json || current.text !== last.text;
+    if (changed) {
+      markNoteAsUnsaved(currentNote);
+
+      // update the on-disk cache inside your model
+      currentNote.content.tiptap = current.json;
+      currentNote.content.text = current.text;
+
+      // update the snapshot so future comparisons are correct
+      snapshots.current.set(id, current);
     }
-  }, [editor, content, currentNote, markNoteAsUnsaved]);
+  }, [editor, currentNote, markNoteAsUnsaved]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

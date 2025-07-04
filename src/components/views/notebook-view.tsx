@@ -7,6 +7,7 @@ import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
 import { Save, FileText, Clock, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export const NotebookView = () => {
   const {
@@ -30,6 +31,21 @@ export const NotebookView = () => {
   const [title, setTitle] = useState("");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
 
+  useHotkeys(
+    "meta+s",
+    (e) => {
+      console.log("Save hotkey triggered");
+      e.preventDefault();
+      e.stopPropagation();
+      saveCurrentNote();
+    },
+    {
+      enableOnContentEditable: true,
+      preventDefault: true,
+      scopes: ["all"],
+    },
+  );
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     setTitle(e.target.value);
@@ -44,8 +60,9 @@ export const NotebookView = () => {
     else setTitle("");
   }, [currentNote]);
 
-  const noteContent = currentNote
-    ? currentNote.content.tiptap
+  const mostCurrentNote = useNotesStore.getState().currentNote;
+  const noteContent = mostCurrentNote
+    ? mostCurrentNote.content.tiptap
     : {
         type: "doc",
         content: [

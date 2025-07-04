@@ -46,7 +46,6 @@ export function AppSidebar() {
 
   const handleNoteClick = (note: Node) => {
     setCurrentNote(note);
-    console.log(note.content);
     setCurrentView("note");
   };
 
