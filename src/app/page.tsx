@@ -111,13 +111,11 @@ export default function Page() {
             </header>
           )}
 
-          {/* Main content area */}
-          <div className="flex-1">
-            {currentView === "home" && (
-              <div className="h-full">
-                <HomeView />
-              </div>
-            )}
+          {/* Main content area - Fixed for Tauri */}
+          <div
+            className={`overflow-y-auto ${currentView === "note" ? "h-[calc(100vh-4rem)]" : "h-screen"}`}
+          >
+            {currentView === "home" && <HomeView />}
             {currentView === "note" && <NotebookView />}
           </div>
         </SidebarInset>

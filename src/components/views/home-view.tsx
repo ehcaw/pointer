@@ -105,7 +105,7 @@ export function HomeView() {
   const isSearching = query.trim() !== "";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-full">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-800 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
@@ -184,7 +184,6 @@ export function HomeView() {
           </div>
         </div>
       </div>
-
       {/* Main Content */}
       <div className="px-6 pb-12">
         <div className="mx-auto max-w-6xl">
