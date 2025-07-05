@@ -157,9 +157,9 @@ export const NotebookView = () => {
 
       {/* Main Editor */}
       <div className="px-6 py-8">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-[80%]">
           <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="min-h-[calc(100vh-200px)]">
+            <div className="w-full min-h-[calc(100vh-200px)]">
               <SimpleEditor
                 key={currentNote?.quibble_id || "new-note"}
                 content={noteContent}

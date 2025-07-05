@@ -1,84 +1,84 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 
 body {
-    --tt-toolbar-height: 44px;
-    --tt-theme-text: var(--tt-gray-light-900);
+  --tt-toolbar-height: 44px;
+  --tt-theme-text: var(--tt-gray-light-900);
 
-    .dark & {
-        --tt-theme-text: #ffffff;
-    }
+  .dark & {
+    --tt-theme-text: #ffffff;
+  }
 }
 
 body {
-    font-family: "Inter", sans-serif;
-    color: var(--tt-theme-text);
-    font-optical-sizing: auto;
-    font-weight: 400;
-    font-style: normal;
-    padding: 0;
+  font-family: "Inter", sans-serif;
+  color: var(--tt-theme-text);
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+  padding: 0;
 }
 
 html,
 body,
 #root,
 #app {
-    height: 100%;
-    background-color: var(--tt-bg-color);
+  height: 100%;
+  background-color: var(--tt-bg-color);
 }
 
 body {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .tiptap.ProseMirror {
-    font-family: "DM Sans", sans-serif;
+  font-family: "DM Sans", sans-serif;
 }
 
 .content-wrapper {
-    height: calc(100% - var(--tt-toolbar-height));
-    overflow-y: auto;
+  height: calc(100% - var(--tt-toolbar-height));
+  overflow-y: auto;
 
-    &::-webkit-scrollbar {
-        display: block;
-        width: 0.5rem;
-    }
+  &::-webkit-scrollbar {
+    display: block;
+    width: 0.5rem;
+  }
 
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-    &::-webkit-scrollbar-thumb {
-        background-color: var(--tt-scrollbar-color);
-        border-radius: 4px;
-    }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--tt-scrollbar-color);
+    border-radius: 4px;
+  }
 
-    /* Firefox scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--tt-scrollbar-color) transparent;
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--tt-scrollbar-color) transparent;
 }
 
 .simple-editor-content {
-    max-width: 640px;
-    width: 100%;
-    margin: 0 auto;
+  max-width: 75%;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .simple-editor-content .tiptap.ProseMirror {
-    padding: 3rem 3rem;
+  padding: 3rem 3rem;
 }
 
 @media screen and (max-width: 480px) {
-    .simple-editor-content .tiptap.ProseMirror {
-        padding: 1rem 1.5rem;
-    }
+  .simple-editor-content .tiptap.ProseMirror {
+    padding: 1rem 1.5rem;
+  }
 }
 
 .dark .tiptap.ProseMirror {
-    color: #fff;
+  color: #fff;
 }
 
 .dark .tiptap.ProseMirror ::placeholder {
-    color: #bbb;
+  color: #bbb;
 }
 
 html.dark .tiptap.ProseMirror,
@@ -88,25 +88,25 @@ html.dark .tiptap.ProseMirror h2,
 html.dark .tiptap.ProseMirror h3,
 html.dark .tiptap.ProseMirror h4,
 html.dark .tiptap.ProseMirror li {
-    color: #fff !important;
+  color: #fff !important;
 }
 
 /* Comprehensive fix for all toolbar elements in dark mode */
 html.dark .tiptap-toolbar,
 .dark .tiptap-toolbar {
-    /* Override button icon colors */
-    --tt-button-default-icon-color: #ffffff !important;
-    --tt-button-hover-icon-color: #ffffff !important;
-    --tt-button-active-icon-color: #60a5fa !important;
-    --tt-button-active-icon-color-emphasized: #60a5fa !important;
-    --tt-button-active-icon-color-subdued: #ffffff !important;
-    
-    /* Override button text colors */
-    --tt-button-default-text-color: #ffffff !important;
-    --tt-button-hover-text-color: #ffffff !important;
-    --tt-button-active-text-color: #ffffff !important;
-    --tt-button-active-text-color-emphasized: #ffffff !important;
-    --tt-button-active-text-color-subdued: #ffffff !important;
+  /* Override button icon colors */
+  --tt-button-default-icon-color: #ffffff !important;
+  --tt-button-hover-icon-color: #ffffff !important;
+  --tt-button-active-icon-color: #60a5fa !important;
+  --tt-button-active-icon-color-emphasized: #60a5fa !important;
+  --tt-button-active-icon-color-subdued: #ffffff !important;
+
+  /* Override button text colors */
+  --tt-button-default-text-color: #ffffff !important;
+  --tt-button-hover-text-color: #ffffff !important;
+  --tt-button-active-text-color: #ffffff !important;
+  --tt-button-active-text-color-emphasized: #ffffff !important;
+  --tt-button-active-text-color-subdued: #ffffff !important;
 }
 
 /* Force all button icons to be visible in dark mode */
@@ -114,7 +114,7 @@ html.dark .tiptap-button-icon,
 .dark .tiptap-button-icon,
 html.dark .tiptap-toolbar .tiptap-button-icon,
 .dark .tiptap-toolbar .tiptap-button-icon {
-    color: #ffffff !important;
+  color: #ffffff !important;
 }
 
 /* Force all button text to be visible in dark mode */
@@ -122,7 +122,7 @@ html.dark .tiptap-button-text,
 .dark .tiptap-button-text,
 html.dark .tiptap-toolbar .tiptap-button-text,
 .dark .tiptap-toolbar .tiptap-button-text {
-    color: #ffffff !important;
+  color: #ffffff !important;
 }
 
 /* Special handling for ImageUploadButton */
@@ -132,11 +132,11 @@ html.dark .tiptap-toolbar ToolbarGroup:last-of-type .tiptap-button-icon,
 .dark .tiptap-toolbar ToolbarGroup:last-of-type .tiptap-button-icon,
 html.dark .tiptap-toolbar .tiptap-button span,
 .dark .tiptap-toolbar .tiptap-button span {
-    color: #ffffff !important;
+  color: #ffffff !important;
 }
 
 /* Make separator more visible in dark mode */
 html.dark .tiptap-separator,
 .dark .tiptap-separator {
-    background-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }
