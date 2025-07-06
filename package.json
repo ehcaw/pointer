@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^1.2.9",
     "@floating-ui/react": "^0.27.10",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -31,6 +32,8 @@
     "@tiptap/pm": "^2.12.0",
     "@tiptap/react": "^2.12.0",
     "@tiptap/starter-kit": "^2.12.0",
+    "@tiptap/suggestion": "^2.24.2",
+    "ai": "^4.3.16",
     "child_process": "^1.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -49,6 +52,7 @@
     "swr": "^2.3.3",
     "tailwind-merge": "^3.3.0",
     "timers": "^0.1.1",
+    "tippy.js": "^6.3.7",
     "tls": "^0.0.1",
     "zustand": "^5.0.5"
   },

@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 
@@ -19,6 +17,8 @@ import { Underline } from "@tiptap/extension-underline";
 import { Link } from "@/components/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap-extension/trailing-node-extension";
+import { AutocompleteExtension } from "./autocomplete";
+// import { AutocompleteExtension } from "./autocomplete-2";
 
 // --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button";
@@ -216,8 +216,6 @@ export function SimpleEditor({
 
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
-    // If content is null or undefined, treat it as an empty string for Tiptap
-    console.log(content);
     if (content === null || content === undefined) {
       return "";
     }
@@ -262,7 +260,7 @@ export function SimpleEditor({
     editorProps: {
       attributes: {
         autocomplete: "off",
-        autocorrect: "off",
+        autocorrect: "on",
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
       },
@@ -289,6 +287,7 @@ export function SimpleEditor({
       }),
       TrailingNode,
       Link.configure({ openOnClick: false }),
+      AutocompleteExtension,
     ],
     content: initialContent,
     onUpdate: ({ editor }) => {

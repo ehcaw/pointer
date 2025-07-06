@@ -26,6 +26,7 @@ import { api } from "../../convex/_generated/api";
 import { useQuery } from "convex/react";
 import { FileText, Home, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { invoke } from "@tauri-apps/api";
 
 export default function Page() {
   const { currentView, currentNote, setUserNotes, unsavedNotes } =
