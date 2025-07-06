@@ -20,7 +20,7 @@ export const NotebookView = () => {
     handleEditorUpdate,
   } = useNoteEditor(); // Imported handleEditorUpdate
 
-  const { currentView, markNoteAsUnsaved } = useNotesStore(); // unsavedNotes and markNoteAsUnsaved are now handled inside useNoteEditor
+  const { currentView, markNoteAsUnsaved } = useNotesStore();
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {

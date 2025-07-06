@@ -331,9 +331,9 @@ export function SimpleEditor({
   const snapshots = React.useRef<Map<string, Snapshot>>(new Map());
 
   React.useEffect(() => {
-    if (!editor || !currentNote) return;
+    if (!editor || !mostCurrentNote) return;
 
-    const { id } = currentNote.quibble_id; // or path / UID—whatever uniquely identifies the file
+    const id = mostCurrentNote.quibble_id; // or path / UID—whatever uniquely identifies the file
     const current: Snapshot = {
       json: JSON.stringify(editor.getJSON()),
       text: editor.getText(),
@@ -341,23 +341,23 @@ export function SimpleEditor({
 
     // Pull (or prime) the snapshot for *this* note
     const last = snapshots.current.get(id) ?? {
-      json: currentNote.content.tiptap,
-      text: currentNote.content.text,
+      json: mostCurrentNote.content.tiptap,
+      text: mostCurrentNote.content.text,
     };
 
     // Only flag unsaved if THIS note’s content actually diverged
-    const changed = current.json !== last.json || current.text !== last.text;
+    const changed = current.json !== last.json && current.text !== last.text;
     if (changed) {
-      markNoteAsUnsaved(currentNote);
+      markNoteAsUnsaved(mostCurrentNote);
 
       // update the on-disk cache inside your model
-      currentNote.content.tiptap = current.json;
-      currentNote.content.text = current.text;
+      mostCurrentNote.content.tiptap = current.json;
+      mostCurrentNote.content.text = current.text;
 
       // update the snapshot so future comparisons are correct
       snapshots.current.set(id, current);
     }
-  }, [editor, currentNote, markNoteAsUnsaved]);
+  }, [editor, mostCurrentNote, markNoteAsUnsaved]);
 
   return (
     <EditorContext.Provider value={{ editor }}>
