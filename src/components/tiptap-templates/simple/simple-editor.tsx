@@ -73,6 +73,7 @@ import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle";
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import { useVoiceRecorderStore } from "@/hooks/useVoiceRecorder";
+import { useHotkeys } from "react-hotkeys-hook";
 
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss";
@@ -93,6 +94,21 @@ const MainToolbarContent = ({
 }) => {
   const { isRecording, stopAndTranscribe, startRecording } =
     useVoiceRecorderStore();
+
+  useHotkeys(
+    "meta+shift+v",
+    async (e) => {
+      console.log("Mic hotkey triggered");
+      e.preventDefault();
+      e.stopPropagation();
+      await handleMicToggle();
+    },
+    {
+      enableOnContentEditable: true,
+      preventDefault: true,
+      scopes: ["all"],
+    },
+  );
 
   const handleMicToggle = async () => {
     if (isRecording) {
