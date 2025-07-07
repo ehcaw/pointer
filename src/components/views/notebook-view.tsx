@@ -14,8 +14,13 @@ export const NotebookView = () => {
   const { currentNote, editorRef, isSaving, saveCurrentNote, createEmptyNote } =
     useNoteEditor(); // Imported handleEditorUpdate
 
-  const { currentView, markNoteAsUnsaved, saveDBSavedNote, removeUnsavedNote } =
-    useNotesStore();
+  const {
+    currentView,
+    markNoteAsUnsaved,
+    saveDBSavedNote,
+    removeUnsavedNote,
+    dbSavedNotes,
+  } = useNotesStore();
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {
@@ -139,7 +144,11 @@ export const NotebookView = () => {
               {/* Save button */}
               <Button
                 onClick={saveCurrentNote}
-                disabled={isSaving}
+                disabled={
+                  isSaving ||
+                  noteContent ===
+                    dbSavedNotes.get(mostCurrentNote.quibble_id).content.tiptap
+                }
                 className={cn(
                   "rounded-lg px-4 py-2 font-medium shadow-sm transition-all",
                   isSaving
