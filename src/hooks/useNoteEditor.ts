@@ -49,54 +49,6 @@ export function useNoteEditor() {
   }>({});
 
   /**
-   * Handles updates from the TipTap editor, compares content,
-   * and marks the note as unsaved if changes are detected.
-   */
-  const handleEditorUpdate = () => {
-    if (!editorRef.current || !currentNote) return;
-
-    try {
-      // Get content from TipTap editor
-      const tiptapContent = editorRef.current.getJSON();
-
-      const textContent = editorRef.current.getText();
-
-      // Skip if content hasn't changed
-      if (
-        JSON.stringify(lastContentRef.current.tiptap) ===
-          JSON.stringify(tiptapContent) &&
-        lastContentRef.current.text === textContent
-      ) {
-        return;
-      }
-
-      // Update last known content
-      lastContentRef.current = {
-        tiptap: tiptapContent,
-        text: textContent,
-      };
-
-      // Only proceed if we have a current note
-      if (currentNote.type === "file") {
-        const updatedNote: FileNode = {
-          ...currentNote,
-          content: {
-            tiptap: tiptapContent,
-            text: textContent,
-          },
-          lastEdited: new Date(),
-        };
-
-        // Mark the note as having unsaved changes)
-        setCurrentNote(updatedNote);
-        markNoteAsUnsaved(updatedNote);
-      }
-    } catch (error) {
-      console.error("Error updating note content:", error);
-    }
-  };
-
-  /**
    * Fetch all notes for a tenant from the database
    */
   const fetchAllNotes = async (tenantId: string) => {
@@ -181,9 +133,6 @@ export function useNoteEditor() {
    */
   const saveCurrentNote = async (): Promise<boolean> => {
     if (!currentNote) return false;
-
-    // Ensure content is up-to-date before saving
-    handleEditorUpdate();
 
     setIsSaving(true);
     try {
@@ -330,9 +279,6 @@ export function useNoteEditor() {
     editorRef,
     currentNote,
     isSaving,
-
-    // Editor operations
-    handleEditorUpdate,
 
     // Note CRUD operations
     fetchAllNotes,

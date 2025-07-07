@@ -77,9 +77,6 @@ import "@/components/tiptap-templates/simple/simple-editor.scss";
 import "@/components/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/notes-store";
-import { FileNode } from "@/types/note";
-
-type Snapshot = { json: string; text: string };
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -193,14 +190,9 @@ interface SimpleEditorProps {
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
   } | null>;
-  onUpdate?: (json: Record<string, unknown>, text: string) => void;
 }
 
-export function SimpleEditor({
-  content,
-  editorRef,
-  onUpdate,
-}: SimpleEditorProps) {
+export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
@@ -208,11 +200,16 @@ export function SimpleEditor({
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
 
-  const { currentNote, markNoteAsUnsaved } = useNotesStore();
+  // Get currentNote and state setters from the notes store
+  const {
+    currentNote,
+    markNoteAsUnsaved,
+    unsavedNotes,
+    removeUnsavedNote,
+    dbSavedNotes,
+  } = useNotesStore();
 
-  const [mostCurrentNote, setMostCurrentNote] = React.useState(
-    useNotesStore.getState().currentNote,
-  );
+  // This ref will store the "saved" state of each note, mirroring the DB
 
   // Parse content appropriately based on input type
   const initialContent = React.useMemo(() => {
@@ -291,8 +288,46 @@ export function SimpleEditor({
     ],
     content: initialContent,
     onUpdate: ({ editor }) => {
-      if (onUpdate) {
-        onUpdate(editor.getJSON(), editor.getText());
+      // 2. Logic for marking unsaved status (THIS IS WHERE THE CHANGE GOES)
+      if (!currentNote) {
+        // If there's no current note, we can't determine unsaved status
+        return;
+      }
+
+      const noteId = currentNote.quibble_id;
+      const currentEditorJson = JSON.stringify(editor.getJSON());
+      const currentEditorText = editor.getText();
+      const dbSavedMirror = dbSavedNotes.get(noteId);
+
+      let changed = false;
+      console.log(currentEditorText);
+
+      if (dbSavedMirror) {
+        // Note exists in our DB mirror cache, compare current editor content with it
+        // Ensure the tiptap content from the mirror is also stringified for consistent comparison
+        const lastSavedJson = JSON.stringify(dbSavedMirror.content.tiptap);
+        const lastSavedText = dbSavedMirror.content.text;
+
+        // Use OR (||) so if either JSON or plain text differs, it's marked as changed
+        changed =
+          currentEditorJson != lastSavedJson ||
+          currentEditorText != lastSavedText;
+      } else {
+        // This case occurs if:
+        // a) It's a brand new note that has never been saved to the DB.
+        // b) An existing note was loaded, but dbSavedNotes.current hasn't been primed yet.
+        // In both scenarios, we should generally consider it "unsaved" relative to the DB.
+        changed = true;
+      }
+
+      if (changed) {
+        console.log("YEA DIFF");
+        markNoteAsUnsaved(currentNote);
+        currentNote.content.tiptap = currentEditorJson;
+        currentNote.content.text = currentEditorText;
+      } else if (!changed && unsavedNotes.has(currentNote.quibble_id)) {
+        console.log("BRUH");
+        removeUnsavedNote(currentNote.quibble_id); // Ensure it's unmarked if content matches DB mirror
       }
     },
   });
@@ -317,47 +352,23 @@ export function SimpleEditor({
     }
   }, [isMobile, mobileView, editor, editorRef]);
 
-  // Update editor content when switching notes
+  // **NEW useEffect**: Prime dbSavedNotes.current when the active note changes.
+  // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   React.useEffect(() => {
-    if (editor && initialContent) {
-      const currentContent = editor.getJSON();
-      // Only update if content has actually changed to avoid cursor position issues
-      if (JSON.stringify(currentContent) !== JSON.stringify(initialContent)) {
-        editor.commands.setContent(initialContent);
-      }
+    if (currentNote) {
+      // Store the *initial* content of the currentNote as the saved state
+      // This assumes `currentNote.content.tiptap` and `currentNote.content.text`
+      // accurately reflect the content from the database when the note is loaded/selected.
+      dbSavedNotes.set(
+        currentNote.quibble_id,
+        JSON.parse(JSON.stringify(currentNote)),
+      );
     }
-  }, [editor, initialContent]);
+  }, [currentNote, dbSavedNotes]); // Only re-run when the currentNote object reference changes
 
-  const snapshots = React.useRef<Map<string, Snapshot>>(new Map());
-
-  React.useEffect(() => {
-    if (!editor || !mostCurrentNote) return;
-
-    const id = mostCurrentNote.quibble_id; // or path / UID—whatever uniquely identifies the file
-    const current: Snapshot = {
-      json: JSON.stringify(editor.getJSON()),
-      text: editor.getText(),
-    };
-
-    // Pull (or prime) the snapshot for *this* note
-    const last = snapshots.current.get(id) ?? {
-      json: mostCurrentNote.content.tiptap,
-      text: mostCurrentNote.content.text,
-    };
-
-    // Only flag unsaved if THIS note’s content actually diverged
-    const changed = current.json !== last.json && current.text !== last.text;
-    if (changed) {
-      markNoteAsUnsaved(mostCurrentNote);
-
-      // update the on-disk cache inside your model
-      mostCurrentNote.content.tiptap = current.json;
-      mostCurrentNote.content.text = current.text;
-
-      // update the snapshot so future comparisons are correct
-      snapshots.current.set(id, current);
-    }
-  }, [editor, mostCurrentNote, markNoteAsUnsaved]);
+  // Remove the old useEffect that was trying to manage unsaved state based on `mostCurrentNote` and `snapshots`.
+  // It's no longer needed as the `onUpdate` callback now handles the primary logic,
+  // and the new useEffect handles priming `dbSavedNotes`.
 
   return (
     <EditorContext.Provider value={{ editor }}>

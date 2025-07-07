@@ -20,18 +20,19 @@ import React, { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/notebook-view";
 import { FileNode, Node } from "@/types/note";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useNoteEditor } from "@/hooks/useNoteEditor";
 import { api } from "../../convex/_generated/api";
 import { useQuery } from "convex/react";
 import { FileText, Home, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { invoke } from "@tauri-apps/api";
 
 export default function Page() {
-  const { currentView, currentNote, setUserNotes, unsavedNotes } =
-    useNotesStore();
-  const { saveCurrentNote } = useNoteEditor();
+  const {
+    currentView,
+    currentNote,
+    setUserNotes,
+    unsavedNotes,
+    setDBSavedNotes,
+  } = useNotesStore();
 
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb, {
     user_id: "12345678",
@@ -40,8 +41,9 @@ export default function Page() {
   useEffect(() => {
     if (notes && notes.length > 0) {
       setUserNotes(notes);
+      setDBSavedNotes(notes);
     }
-  }, [notes, setUserNotes]);
+  }, [notes, setUserNotes, setDBSavedNotes]);
 
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
 

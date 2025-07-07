@@ -11,16 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { useHotkeys } from "react-hotkeys-hook";
 
 export const NotebookView = () => {
-  const {
-    currentNote,
-    editorRef,
-    isSaving,
-    saveCurrentNote,
-    createEmptyNote,
-    handleEditorUpdate,
-  } = useNoteEditor(); // Imported handleEditorUpdate
+  const { currentNote, editorRef, isSaving, saveCurrentNote, createEmptyNote } =
+    useNoteEditor(); // Imported handleEditorUpdate
 
-  const { currentView, markNoteAsUnsaved } = useNotesStore();
+  const { currentView, markNoteAsUnsaved, saveDBSavedNote, removeUnsavedNote } =
+    useNotesStore();
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {
@@ -34,11 +29,15 @@ export const NotebookView = () => {
 
   useHotkeys(
     "meta+s",
-    (e) => {
+    async (e) => {
       console.log("Save hotkey triggered");
       e.preventDefault();
       e.stopPropagation();
-      saveCurrentNote();
+      const successful = await saveCurrentNote();
+      if (successful && mostCurrentNote) {
+        saveDBSavedNote(mostCurrentNote);
+        removeUnsavedNote(mostCurrentNote.quibble_id);
+      }
     },
     {
       enableOnContentEditable: true,
@@ -165,7 +164,6 @@ export const NotebookView = () => {
                 key={currentNote?.quibble_id || "new-note"}
                 content={noteContent}
                 editorRef={editorRef}
-                onUpdate={handleEditorUpdate}
               />
             </div>
           </div>

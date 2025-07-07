@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { FileNode, Node } from "@/types/note";
+import type { Node } from "@/types/note";
 
 interface NotesStore {
   // Core note collections
@@ -15,6 +15,7 @@ interface NotesStore {
   // Unsaved changes tracking
   unsavedNotes: Map<string, Node>; // Key: stringified _id, Value: modified note
   newUnsavedNotes: Node[]; // New notes that haven't been saved to DB yet
+  dbSavedNotes: Map<string, Node>; // keeping track of how notes are currently saved in db
 
   // Basic state setters
   setUserNotes: (notes: Node[]) => void;
@@ -23,6 +24,8 @@ interface NotesStore {
   setCurrentView: (view: "home" | "note") => void;
   setCurrentNote: (note: Node | null) => void;
   setIsLoading: (isLoading: boolean) => void;
+  setDBSavedNotes: (notes: Node[]) => void;
+  saveDBSavedNote: (note: Node) => void; // update store with note as stored in database
 
   // Note UI management
   addOpenUserNote: (note: Node) => void;
@@ -36,6 +39,7 @@ interface NotesStore {
   discardChanges: (noteId: string) => void;
   clearUnsavedNote: (noteId: string) => void;
   addNewUnsavedNote: (note: Node) => void;
+  removeUnsavedNote: (noteId: string) => void;
   removeNewUnsavedNote: (noteId: string) => void;
   saveAllUnsavedNotes: () => Promise<boolean>;
 
@@ -58,6 +62,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   // Unsaved changes tracking
   unsavedNotes: new Map([]),
   newUnsavedNotes: [],
+  dbSavedNotes: new Map([]),
 
   // Basic state setters
   setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
@@ -68,7 +73,18 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     set({ currentNote: note });
   },
   setIsLoading: (isLoading: boolean) => set({ isLoading }),
-
+  setDBSavedNotes: (notes: Node[]) => {
+    const dbSavedNotes = new Map<string, Node>([]);
+    notes.forEach((note) =>
+      dbSavedNotes.set(note.quibble_id, JSON.parse(JSON.stringify(note))),
+    );
+    set({ dbSavedNotes });
+  },
+  saveDBSavedNote: (note: Node) => {
+    const dbSavedNotes = get().dbSavedNotes;
+    dbSavedNotes.set(note.quibble_id, JSON.parse(JSON.stringify(note)));
+    set({ dbSavedNotes });
+  },
   // Note UI management
   addOpenUserNote: (note: Node) => {
     const state = get();
@@ -293,6 +309,13 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     set({ newUnsavedNotes });
   },
 
+  removeUnsavedNote: (noteId: string) => {
+    const state = get();
+    const unsavedNotes = state.unsavedNotes;
+    unsavedNotes.delete(noteId);
+    set({ unsavedNotes: unsavedNotes });
+  },
+
   removeNewUnsavedNote: (noteId: string) => {
     const state = get();
     const newUnsavedNotes = state.newUnsavedNotes.filter(
@@ -391,9 +414,9 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     if (unsavedChanges.length === 0) return true;
 
     try {
-      let updatedUserNotes = [...state.userNotes];
-      let updatedOpenUserNotes = [...state.openUserNotes];
-      let updatedTreeStructure = [...state.treeStructure];
+      const updatedUserNotes = [...state.userNotes];
+      const updatedOpenUserNotes = [...state.openUserNotes];
+      const updatedTreeStructure = [...state.treeStructure];
       let updatedCurrentNote = state.currentNote;
 
       for (const note of unsavedChanges) {
