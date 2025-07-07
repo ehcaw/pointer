@@ -1,5 +1,5 @@
-import * as React from "react";
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { EditorContent, EditorContext, useEditor, Editor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -60,6 +60,7 @@ import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
 import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon";
 import { HighlighterIcon } from "@/components/tiptap-icons/highlighter-icon";
 import { LinkIcon } from "@/components/tiptap-icons/link-icon";
+import { Mic, MicOff } from "lucide-react";
 
 // --- Hooks ---
 import { useMobile } from "@/hooks/use-tiptap-mobile";
@@ -71,6 +72,7 @@ import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle";
 
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
+import { useVoiceRecorderStore } from "@/hooks/useVoiceRecorder";
 
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss";
@@ -82,11 +84,30 @@ const MainToolbarContent = ({
   onHighlighterClick,
   onLinkClick,
   isMobile,
+  editor,
 }: {
   onHighlighterClick: () => void;
   onLinkClick: () => void;
   isMobile: boolean;
+  editor?: Editor;
 }) => {
+  const { isRecording, stopAndTranscribe, startRecording } =
+    useVoiceRecorderStore();
+
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      const transcription = await stopAndTranscribe();
+      if (transcription) {
+        console.log("Transcription:", transcription);
+        if (editor) {
+          editor.commands.insertContent(transcription + " ");
+        }
+      }
+    } else {
+      await startRecording();
+    }
+  };
+
   return (
     <>
       <Spacer />
@@ -150,6 +171,12 @@ const MainToolbarContent = ({
       <ToolbarGroup>
         <ThemeToggle />
       </ToolbarGroup>
+
+      <ToolbarGroup>
+        <Button onClick={handleMicToggle}>
+          {isRecording ? <Mic /> : <MicOff />}
+        </Button>
+      </ToolbarGroup>
     </>
   );
 };
@@ -195,10 +222,10 @@ interface SimpleEditorProps {
 export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
-  const [mobileView, setMobileView] = React.useState<
-    "main" | "highlighter" | "link"
-  >("main");
-  const toolbarRef = React.useRef<HTMLDivElement>(null);
+  const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
+    "main",
+  );
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Get currentNote and state setters from the notes store
   const {
@@ -212,7 +239,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   // This ref will store the "saved" state of each note, mirroring the DB
 
   // Parse content appropriately based on input type
-  const initialContent = React.useMemo(() => {
+  const initialContent = useMemo(() => {
     if (content === null || content === undefined) {
       return "";
     }
@@ -337,7 +364,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isMobile && mobileView !== "main") {
       setMobileView("main");
     }
@@ -354,7 +381,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
   // **NEW useEffect**: Prime dbSavedNotes.current when the active note changes.
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentNote) {
       // Store the *initial* content of the currentNote as the saved state
       // This assumes `currentNote.content.tiptap` and `currentNote.content.text`
@@ -387,6 +414,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
             onHighlighterClick={() => setMobileView("highlighter")}
             onLinkClick={() => setMobileView("link")}
             isMobile={isMobile}
+            editor={editor}
           />
         ) : (
           <MobileToolbarContent

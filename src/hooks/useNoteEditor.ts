@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useConvex } from "convex/react";
 import { useNotesStore } from "@/lib/notes-store";
 import { FileNode, Node } from "@/types/note";
-import { useUnsavedChanges } from "./useUnsavedChanges";
 import { api } from "../../convex/_generated/api";
 /**
  * Custom hook to connect TipTap editor with our notes store system.
@@ -28,9 +27,6 @@ export function useNoteEditor() {
     addOpenUserNote,
     setTreeStructure,
   } = useNotesStore();
-
-  // Get methods for managing unsaved changes
-  const { promptForUnsavedChanges } = useUnsavedChanges();
 
   // Local state for save operations
   const [isSaving, setIsSaving] = useState(false);
@@ -237,24 +233,7 @@ export function useNoteEditor() {
   /**
    * Handle navigation away from the editor with unsaved changes check
    */
-  const handleNavigateAway = async (
-    onContinue: () => void = () => {},
-  ): Promise<boolean> => {
-    const result = await promptForUnsavedChanges();
-
-    if (result === "save") {
-      const saveResult = await saveCurrentNote();
-      if (saveResult) {
-        onContinue();
-        return true;
-      }
-      return false;
-    } else if (result === "discard") {
-      onContinue();
-      return true;
-    }
-
-    // User chose cancel
+  const handleNavigateAway = (onContinue: () => void = () => {}): boolean => {
     return false;
   };
 
