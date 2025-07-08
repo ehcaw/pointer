@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { HomeView } from "@/components/views/home-view";
+import GraphView from "@/components/views/graph-view";
 import React, { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/notebook-view";
@@ -120,6 +121,7 @@ export default function Page() {
           >
             {currentView === "home" && <HomeView />}
             {currentView === "note" && <NotebookView />}
+            {currentView === "graph" && <GraphView />}
           </div>
         </SidebarInset>
       </SidebarProvider>

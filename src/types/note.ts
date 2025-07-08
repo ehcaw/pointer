@@ -15,19 +15,6 @@ export interface BaseNode {
   /** Name of the folder or file (e.g. "app", "route.ts"). */
   name: string;
 
-  /**
-   * The parent folder's ObjectId.
-   * - `null` if this node is a top‐level item in the bucket.
-   */
-  parentId: string | null;
-
-  /**
-   * Materialized path of ancestor folder IDs.
-   * - Example: If this node lives at `/app/api/hello/route.ts`, then
-   *   path = [ appFolderId, apiFolderId, helloFolderId ].
-   */
-  path: string[];
-
   /** Timestamp when this node was first created. */
   createdAt: Date;
 
@@ -53,8 +40,6 @@ export interface FolderNode extends BaseNode {
  * A file node (holds JSON content).
  */
 export interface FileNode extends BaseNode {
-  type: "file";
-
   /**
    * JSON object representing the file's contents.
    * For TipTap notes, this will contain the editor's JSON structure.
@@ -76,3 +61,36 @@ export interface FileNode extends BaseNode {
  * Discriminated union: either a folder or a file.
  */
 export type Node = FolderNode | FileNode;
+
+// Graph Stuff
+export type GraphBaseNode = {
+  id: string;
+  createdAt: string;
+  tags: string[];
+} & (Thought | Bookmark | MediaPost);
+
+export type Thought = {
+  type: "thought";
+  text: string;
+};
+
+export type Bookmark = {
+  type: "bookmark";
+  url: string;
+  title: string;
+  description?: string;
+};
+
+export type MediaPost = {
+  type: "media";
+  platform: "twitter" | "instagram";
+  url: string;
+  caption: string;
+};
+
+export type Edge = {
+  id: string;
+  from: string;
+  to: string;
+  kind: "SIMILAR_TO" | "TAGGED_AS" | "LINKS_TO" | "MENTIONS";
+};

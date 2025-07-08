@@ -8,7 +8,7 @@ interface NotesStore {
 
   // UI state
   openUserNotes: Node[];
-  currentView: "home" | "note";
+  currentView: "home" | "note" | "graph";
   currentNote: Node | null;
   isLoading: boolean;
 
@@ -21,7 +21,7 @@ interface NotesStore {
   setUserNotes: (notes: Node[]) => void;
   setOpenUserNotes: (notes: Node[]) => void;
   setTreeStructure: (structure: Node[]) => void;
-  setCurrentView: (view: "home" | "note") => void;
+  setCurrentView: (view: "home" | "note" | "graph") => void;
   setCurrentNote: (note: Node | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   setDBSavedNotes: (notes: Node[]) => void;
@@ -68,7 +68,8 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
-  setCurrentView: (view: "home" | "note") => set({ currentView: view }),
+  setCurrentView: (view: "home" | "note" | "graph") =>
+    set({ currentView: view }),
   setCurrentNote: (note: Node | null) => {
     set({ currentNote: note });
   },

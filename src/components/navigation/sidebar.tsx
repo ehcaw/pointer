@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Home, FileText, Clock, Edit3 } from "lucide-react";
+import { Plus, Home, FileText, Clock, Edit3, GitGraph } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -41,8 +41,8 @@ export function AppSidebar() {
     createNewNote(title, null, []);
   };
 
-  const handleHomeClick = () => {
-    setCurrentView("home");
+  const handleNavClick = (view: "home" | "graph") => {
+    setCurrentView(view);
   };
 
   const handleNoteClick = async (note: Node) => {
@@ -94,7 +94,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={handleHomeClick}
+                  onClick={() => handleNavClick("home")}
                   data-active={currentView === "home"}
                   className={cn(
                     "rounded-lg transition-all",
@@ -105,6 +105,19 @@ export function AppSidebar() {
                 >
                   <Home className="h-4 w-4" />
                   <span>Home</span>
+                </SidebarMenuButton>
+                <SidebarMenuButton
+                  onClick={() => handleNavClick("graph")}
+                  data-active={currentView == "graph"}
+                  className={cn(
+                    "rounded-lg transition-all",
+                    currentView === "home"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <GitGraph className="h-4 w-4" />
+                  <span>Jots</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

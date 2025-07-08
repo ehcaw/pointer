@@ -88,7 +88,6 @@ export function useNoteEditor() {
    */
   const createNewNote = async (
     name: string,
-    parentId: string | null = null,
     path: string[] = [],
   ): Promise<FileNode> => {
     const tempId = `${Date.now()}-${Math.random()}`;
@@ -97,8 +96,6 @@ export function useNoteEditor() {
       quibble_id: tempId,
       tenantId: process.env.TEMP_TENANT_ID || "12345678",
       name,
-      type: "file",
-      parentId,
       path,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -156,8 +153,6 @@ export function useNoteEditor() {
         quibble_id: noteData.quibble_id,
         name: noteData.name,
         tenantId: noteData.tenantId,
-        parentId: noteData.parentId || "",
-        path: noteData.path || [],
         createdAt: String(noteData.createdAt),
         updatedAt: String(noteData.updatedAt),
         lastAccessed: String(new Date()),
@@ -242,11 +237,7 @@ export function useNoteEditor() {
 
   // Load initial note content when currentNote changes
   useEffect(() => {
-    if (
-      currentNote &&
-      currentNote.type === "file" &&
-      currentNote.content?.tiptap
-    ) {
+    if (currentNote && currentNote.content?.tiptap) {
       lastContentRef.current = {
         tiptap: currentNote.content.tiptap,
         text: currentNote.content.text,
