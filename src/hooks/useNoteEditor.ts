@@ -26,6 +26,7 @@ export function useNoteEditor() {
     removeNoteFromCollections,
     addOpenUserNote,
     setTreeStructure,
+    dbSavedNotes,
   } = useNotesStore();
 
   // Local state for save operations
@@ -176,6 +177,8 @@ export function useNoteEditor() {
       const savedNote = { ...note, _id: note.quibble_id };
       updateNoteInCollections(savedNote);
       clearUnsavedNote(note.quibble_id.toString());
+      dbSavedNotes.set(note.quibble_id, savedNote);
+
       console.log("note saved");
       return true;
     } catch (error) {

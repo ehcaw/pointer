@@ -30,9 +30,10 @@ export function AppSidebar() {
     openUserNotes,
     setCurrentNote,
     currentNote,
+    dbSavedNotes,
   } = useNotesStore();
 
-  const { createNewNote } = useNoteEditor();
+  const { createNewNote, saveCurrentNote } = useNoteEditor();
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
@@ -44,7 +45,15 @@ export function AppSidebar() {
     setCurrentView("home");
   };
 
-  const handleNoteClick = (note: Node) => {
+  const handleNoteClick = async (note: Node) => {
+    if (
+      currentNote &&
+      currentNote.content.text !=
+        dbSavedNotes.get(currentNote.quibble_id).content.text
+    ) {
+      saveCurrentNote();
+    }
+
     setCurrentNote(note);
     setCurrentView("note");
   };

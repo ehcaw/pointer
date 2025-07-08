@@ -343,7 +343,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       const dbSavedMirror = dbSavedNotes.get(noteId);
 
       let changed = false;
-      console.log(currentEditorText);
 
       if (dbSavedMirror) {
         // Note exists in our DB mirror cache, compare current editor content with it
@@ -364,12 +363,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       }
 
       if (changed) {
-        console.log("YEA DIFF");
         markNoteAsUnsaved(currentNote);
         currentNote.content.tiptap = currentEditorJson;
         currentNote.content.text = currentEditorText;
       } else if (!changed && unsavedNotes.has(currentNote.quibble_id)) {
-        console.log("BRUH");
         removeUnsavedNote(currentNote.quibble_id); // Ensure it's unmarked if content matches DB mirror
       }
     },
