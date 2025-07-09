@@ -19,7 +19,15 @@ export default defineSchema({
     filterFields: ["name"],
   }),
   jots: defineTable({
+    tenantId: v.string(),
+    type: v.string(),
     content: v.optional(v.string()),
+    title: v.optional(v.string()),
     link: v.optional(v.string()),
+    description: v.optional(v.string()),
+  }),
+  tags: defineTable({
+    tenantId: v.string(),
+    name: v.string(),
   }),
 });
