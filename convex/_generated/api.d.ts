@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as graph from "../graph.js";
 import type * as notes from "../notes.js";
 
 /**
@@ -24,6 +25,7 @@ import type * as notes from "../notes.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  graph: typeof graph;
   notes: typeof notes;
 }>;
 export declare const api: FilterApi<
