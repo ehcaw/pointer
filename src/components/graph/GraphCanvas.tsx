@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import ReactFlow, {
   type Node,
   type Edge,
@@ -16,15 +16,15 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { motion } from "framer-motion";
 import { Type, LinkIcon, ImageIcon, Hash } from "lucide-react";
-import type { BaseNode, Edge as GraphEdge } from "@/lib/types";
+import type { GraphBaseNode, Edge as GraphEdge } from "@/types/note";
 
 interface GraphCanvasProps {
-  nodes: BaseNode[];
+  nodes: GraphBaseNode[];
   edges: GraphEdge[];
-  onNodeClick: (node: BaseNode) => void;
+  onNodeClick: (node: GraphBaseNode) => void;
 }
 
-// Custom node component
+// Custom node component - moved outside of the main component
 function CustomNode({ data }: { data: any }) {
   const getIcon = () => {
     switch (data.type) {
@@ -69,7 +69,7 @@ function CustomNode({ data }: { data: any }) {
             ? data.originalNode.title
             : data.originalNode.caption}
       </div>
-      {data.originalNode.tags.length > 0 && (
+      {data.originalNode.tags && data.originalNode.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
           {data.originalNode.tags.slice(0, 2).map((tag: string) => (
             <span
@@ -90,6 +90,7 @@ function CustomNode({ data }: { data: any }) {
   );
 }
 
+// Define nodeTypes outside the component
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
 };
@@ -103,9 +104,10 @@ export function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
     const flowNodes: Node[] = nodes.map((node, index) => ({
       id: node.id,
       type: "custom",
+      // Better initial positioning - spiral layout with more spacing
       position: {
-        x: Math.cos(index * 0.5) * 200 + Math.random() * 100,
-        y: Math.sin(index * 0.5) * 200 + Math.random() * 100,
+        x: Math.cos(index * (Math.PI * 0.5)) * 300 + Math.random() * 50,
+        y: Math.sin(index * (Math.PI * 0.5)) * 300 + Math.random() * 50,
       },
       data: {
         ...node,
@@ -120,6 +122,9 @@ export function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
       target: edge.to,
       type: "smoothstep",
       animated: true,
+      // Ensure source and target handles are defined (fixes edge creation warning)
+      sourceHandle: null, // Use null instead of undefined
+      targetHandle: null, // Use null instead of undefined
       style: { stroke: "#8b5cf6", strokeWidth: 2 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
@@ -141,7 +146,10 @@ export function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
 
   if (nodes.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900">
+      <div
+        className="flex-1 flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900"
+        style={{ width: "100%", height: "100%", minHeight: "500px" }}
+      >
         <div className="text-center space-y-4">
           <div className="h-24 w-24 mx-auto rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
             <Hash className="h-12 w-12 text-white" />
@@ -161,7 +169,10 @@ export function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
   }
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900">
+    <div
+      className="flex-1 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-900"
+      style={{ width: "100%", height: "100%", minHeight: "500px" }}
+    >
       <ReactFlow
         nodes={reactFlowNodes}
         edges={reactFlowEdges}

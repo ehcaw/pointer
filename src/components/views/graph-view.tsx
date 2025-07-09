@@ -80,13 +80,13 @@ export default function GraphView() {
   const allTags = Array.from(new Set(nodes.flatMap((node) => node.tags)));
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="bg-background">
       {/* Top Bar */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Neural Graph
+              Your Neural Network
             </h1>
             <div className="hidden md:flex items-center gap-2">
               <Button

@@ -114,8 +114,6 @@ export default function Page() {
               </div>
             </header>
           )}
-
-          {/* Main content area - Fixed for Tauri */}
           <div
             className={`overflow-y-auto ${currentView === "note" ? "h-[calc(100vh-4rem)]" : "h-screen"}`}
           >
