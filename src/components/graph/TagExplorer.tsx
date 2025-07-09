@@ -40,7 +40,7 @@ export function TagExplorer({
   });
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-y-auto">
       <div className="p-4 border-b">
         <div className="flex items-center gap-2 mb-3">
           <Hash className="h-5 w-5 text-muted-foreground" />

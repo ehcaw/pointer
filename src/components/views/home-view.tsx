@@ -124,8 +124,7 @@ export function HomeView() {
               </h1>
 
               <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
-                Capture, organize, and develop your thoughts with our intuitive
-                note-taking experience.
+                Capture, organize, and develop your thoughts with no B.S.
               </p>
 
               {/* Quick Stats */}
