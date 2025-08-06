@@ -10,7 +10,7 @@ export const generateAutocomplete = async (
   currLine: string,
 ) => {
   const { text } = await generateText({
-    model: groq("llama-3.1-8b-instant"),
+    model: groq("llama-3.3-70b-versatile"),
     system: `<task>
 You are an autocompletion system that suggests text completions.
 Your name is quibble.

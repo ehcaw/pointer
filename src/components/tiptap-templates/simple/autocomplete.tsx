@@ -29,7 +29,15 @@ interface InlineAutocompleteState {
   suggestion: string | null;
   triggerPos: number | null;
   isLoading: boolean;
+  lastTypingTime: number | null;
+  typingTimer: NodeJS.Timeout | null;
 }
+
+const TYPING_PAUSE_THRESHOLD = 1000; // Milliseconds to wait after typing stops before suggesting
+const MIN_CONTENT_LENGTH = 10; // Minimum text length before we start suggesting on pauses
+const MIN_TOKENS_FOR_SUGGESTION = 3; // Minimum number of words to trigger automatic suggestion
+const MAX_SUGGESTION_FREQUENCY = 5000; // Minimum milliseconds between automatic suggestions
+const LAST_AUTO_SUGGESTION_TIME_KEY = "lastAutoSuggestionTime";
 
 const inlineAutocompleteKey = new PluginKey("inline-autocomplete");
 
@@ -167,7 +175,6 @@ export const InlineAutocompleteExtension = Extension.create({
 
   addProseMirrorPlugins() {
     const editor = this.editor;
-
     return [
       new Plugin({
         key: inlineAutocompleteKey,
@@ -178,6 +185,8 @@ export const InlineAutocompleteExtension = Extension.create({
               suggestion: null,
               triggerPos: null,
               isLoading: false,
+              lastTypingTime: null,
+              typingTimer: null,
             };
           },
 
@@ -185,9 +194,8 @@ export const InlineAutocompleteExtension = Extension.create({
             // If there's a selection change or text change, potentially trigger autocomplete
             if (tr.docChanged || tr.selectionSet) {
               const newState = { ...oldState };
-
-              // Check if we should trigger autocomplete
               const selection = tr.selection;
+
               if (selection.empty) {
                 const pos = selection.from;
                 const textBefore = tr.doc.textBetween(
@@ -196,7 +204,13 @@ export const InlineAutocompleteExtension = Extension.create({
                 );
                 const fullTextBefore = tr.doc.textBetween(0, pos);
 
-                // Trigger on @ character
+                // Clear any existing typing timer
+                if (newState.typingTimer) {
+                  clearTimeout(newState.typingTimer);
+                  newState.typingTimer = null;
+                }
+
+                // Trigger on @ character immediately
                 if (textBefore === "@" && !oldState.isLoading) {
                   newState.triggerPos = pos;
                   newState.isLoading = true;
@@ -207,16 +221,77 @@ export const InlineAutocompleteExtension = Extension.create({
                       updateSuggestion(editor, suggestion);
                     },
                   );
-                } else if (
-                  oldState.suggestion &&
-                  oldState.triggerPos !== null
+                }
+                // For pause detection, we only proceed if there's enough content
+                else if (
+                  tr.docChanged &&
+                  fullTextBefore.length > MIN_CONTENT_LENGTH
                 ) {
-                  // Check if cursor moved away from trigger position
+                  // Update the last typing time
+                  newState.lastTypingTime = Date.now();
+
+                  // Count tokens (words) to ensure there's enough context
+                  const wordCount = fullTextBefore.trim().split(/\s+/).length;
+
+                  // Set a timer for pause detection
+                  if (wordCount >= MIN_TOKENS_FOR_SUGGESTION) {
+                    const lastSuggestionTime = parseInt(
+                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) ||
+                        "0",
+                    );
+                    const timeSinceLastSuggestion =
+                      Date.now() - lastSuggestionTime;
+
+                    // Only set up the typing timer if enough time has passed since the last suggestion
+                    if (timeSinceLastSuggestion > MAX_SUGGESTION_FREQUENCY) {
+                      newState.typingTimer = setTimeout(() => {
+                        // This executes after the user stops typing
+                        if (!editor.isDestroyed) {
+                          const currentSelection = editor.state.selection;
+                          const currentPos = currentSelection.from;
+                          const currentTextBefore =
+                            editor.state.doc.textBetween(0, currentPos);
+
+                          // Store the time of this auto-suggestion
+                          localStorage.setItem(
+                            LAST_AUTO_SUGGESTION_TIME_KEY,
+                            Date.now().toString(),
+                          );
+
+                          // Update state to show we're fetching
+                          const pluginState = inlineAutocompleteKey.getState(
+                            editor.state,
+                          );
+                          if (pluginState) {
+                            pluginState.isLoading = true;
+                            pluginState.triggerPos = currentPos;
+                            editor.view.dispatch(editor.state.tr);
+
+                            // Fetch the suggestion
+                            fetchSuggestion(
+                              editor.state.doc.textContent,
+                              currentTextBefore,
+                            ).then((suggestion) => {
+                              updateSuggestion(editor, suggestion);
+                            });
+                          }
+                        }
+                      }, TYPING_PAUSE_THRESHOLD);
+                    }
+                  }
+                }
+
+                // Check if cursor moved away from trigger position
+                if (oldState.suggestion && oldState.triggerPos !== null) {
                   const distanceFromTrigger = pos - oldState.triggerPos;
                   if (distanceFromTrigger < 0 || distanceFromTrigger > 50) {
                     newState.suggestion = null;
                     newState.triggerPos = null;
                     newState.isLoading = false;
+                    if (newState.typingTimer) {
+                      clearTimeout(newState.typingTimer);
+                      newState.typingTimer = null;
+                    }
                   }
                 }
               } else {
@@ -224,6 +299,10 @@ export const InlineAutocompleteExtension = Extension.create({
                 newState.suggestion = null;
                 newState.triggerPos = null;
                 newState.isLoading = false;
+                if (newState.typingTimer) {
+                  clearTimeout(newState.typingTimer);
+                  newState.typingTimer = null;
+                }
               }
 
               return newState;
@@ -281,7 +360,14 @@ export const InlineAutocompleteExtension = Extension.create({
       }),
     ];
   },
-
+  onDestroy() {
+    // Clean up any timers when the plugin is destroyed
+    const state = inlineAutocompleteKey.getState(this.editor.state);
+    if (state && state.typingTimer) {
+      clearTimeout(state.typingTimer);
+      state.typingTimer = null;
+    }
+  },
   addCommands() {
     return {
       acceptSuggestion:
