@@ -146,8 +146,10 @@ export const NotebookView = () => {
                 onClick={saveCurrentNote}
                 disabled={
                   isSaving ||
-                  noteContent ===
-                    dbSavedNotes.get(mostCurrentNote.quibble_id).content.tiptap
+                  noteContent === dbSavedNotes.get(mostCurrentNote?.quibble_id)
+                    ? dbSavedNotes.get(mostCurrentNote.quibble_id).content
+                        .tiptap
+                    : "{}"
                 }
                 className={cn(
                   "rounded-lg px-4 py-2 font-medium shadow-sm transition-all",
