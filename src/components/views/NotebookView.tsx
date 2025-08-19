@@ -1,6 +1,6 @@
 "use client";
 import { SimpleEditor } from "../tiptap-templates/simple/simple-editor";
-import { useNoteEditor } from "@/hooks/useNoteEditor";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect, useState } from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { Button } from "@/components/tiptap-ui-primitive/button";

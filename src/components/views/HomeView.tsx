@@ -22,12 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Store
 import { useNotesStore } from "@/lib/notes-store";
 import { FileNode, type Node } from "@/types/note";
-import { useNoteEditor } from "@/hooks/useNoteEditor";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 
 export function HomeView() {
   const { userNotes, setCurrentNote, setCurrentView } = useNotesStore();

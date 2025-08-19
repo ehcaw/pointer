@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "@/lib/services/dev-convex";
-import { CommandMenuProvider } from "@/components/CommandMenuProvider";
-import { ThemeProvider } from "@/components/graph/ThemeProvider";
+import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,12 +27,30 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('theme') || 'system';
+                if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.add('light');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConvexClientProvider>
-          <CommandMenuProvider>{children}</CommandMenuProvider>
-        </ConvexClientProvider>
+        <ThemeProvider defaultTheme="system" storageKey="theme">
+          <ConvexClientProvider>
+            <CommandMenuProvider>{children}</CommandMenuProvider>
+          </ConvexClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

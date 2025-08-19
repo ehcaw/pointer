@@ -17,8 +17,7 @@ import { Underline } from "@tiptap/extension-underline";
 import { Link } from "@/components/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap-extension/trailing-node-extension";
-import { AutocompleteExtension } from "./autocomplete";
-// import { AutocompleteExtension } from "./autocomplete-2";
+import { AutocompleteExtension } from "../../../providers/AutocompleteProvider";
 
 // --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button";
@@ -68,11 +67,11 @@ import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
-import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
-import { useVoiceRecorderStore } from "@/hooks/useVoiceRecorder";
+import { useVoiceRecorderStore } from "@/hooks/use-voice-recorder";
 import { useHotkeys } from "react-hotkeys-hook";
 
 // --- Styles ---

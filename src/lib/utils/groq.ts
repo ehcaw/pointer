@@ -9,10 +9,12 @@ export const generateAutocomplete = async (
   fullText: string,
   currLine: string,
 ) => {
+  console.log("FULL TEXT", fullText);
   const { text } = await generateText({
     model: groq("llama-3.3-70b-versatile"),
     system: `<task>
 You are an autocompletion system that suggests text completions.
+Think about what the user will want to say next.
 Your name is quibble.
 
 Rules:

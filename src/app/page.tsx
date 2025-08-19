@@ -1,5 +1,5 @@
 "use client";
-import { AppSidebar } from "@/components/navigation/sidebar";
+import { AppSidebar } from "@/components/navigation/Sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,11 +15,11 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { HomeView } from "@/components/views/home-view";
-import GraphView from "@/components/views/graph-view";
+import { HomeView } from "@/components/views/HomeView";
+import GraphView from "@/components/views/GraphView";
 import React, { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
-import { NotebookView } from "@/components/views/notebook-view";
+import { NotebookView } from "@/components/views/NotebookView";
 import { FileNode, Node } from "@/types/note";
 import { api } from "../../convex/_generated/api";
 import { useQuery } from "convex/react";

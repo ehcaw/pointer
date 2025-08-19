@@ -12,8 +12,8 @@ import { TimelineView } from "../graph/TimelineView";
 import { SearchOverlay } from "../graph/SearchOverlay";
 import { TagExplorer } from "../graph/TagExplorer";
 import { mockNodes, mockEdges } from "@/lib/mock-data";
-import { useTheme } from "../graph/ThemeProvider";
 import { GraphBaseNode } from "@/types/note";
+import { ThemeToggle } from "../theme-toggle";
 
 export default function GraphView() {
   const [view, setView] = useState<"graph" | "timeline">("graph");
@@ -24,13 +24,12 @@ export default function GraphView() {
   const [nodes, setNodes] = useState(mockNodes);
   const [edges, setEdges] = useState(mockEdges);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   // Filter nodes based on selected tags
   const filteredNodes =
     selectedTags.length > 0
       ? nodes.filter((node) =>
-          selectedTags.some((tag) => node.tags.includes(tag)),
+          selectedTags.some((tag) => node.tags.includes(tag))
         )
       : nodes;
 
@@ -59,21 +58,21 @@ export default function GraphView() {
 
   const handleUpdateNode = (updatedNode: BaseNode) => {
     setNodes((prev) =>
-      prev.map((node) => (node.id === updatedNode.id ? updatedNode : node)),
+      prev.map((node) => (node.id === updatedNode.id ? updatedNode : node))
     );
   };
 
   const handleDeleteNode = (nodeId: string) => {
     setNodes((prev) => prev.filter((node) => node.id !== nodeId));
     setEdges((prev) =>
-      prev.filter((edge) => edge.from !== nodeId && edge.to !== nodeId),
+      prev.filter((edge) => edge.from !== nodeId && edge.to !== nodeId)
     );
     setSelectedNode(null);
   };
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
@@ -117,17 +116,7 @@ export default function GraphView() {
               <span className="text-sm text-muted-foreground">⌘K</span>
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
+            <ThemeToggle />
 
             <Button
               variant="ghost"

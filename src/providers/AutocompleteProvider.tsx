@@ -47,6 +47,7 @@ const fetchSuggestion = async (
   textBefore: string,
 ): Promise<string | null> => {
   try {
+    console.log("SKDFJKLSDJFLSD");
     const response = await fetch("/api/suggestion", {
       method: "POST",
       headers: {

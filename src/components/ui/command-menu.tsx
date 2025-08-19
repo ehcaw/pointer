@@ -7,13 +7,12 @@ import {
   Plus,
   Search,
   FileDown,
-  FileUp,
   Moon,
   Sun,
   FolderIcon,
 } from "lucide-react";
-import { Node, FileNode } from "@/types/note";
-import { cn } from "@/lib/utils";
+import { Node } from "@/types/note";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface CommandMenuProps {
   isOpen: boolean;
@@ -66,18 +65,10 @@ export function CommandMenu({
     setSearch(""); // Reset search
   };
 
+  const { theme, setTheme } = useTheme();
+
   const toggleTheme = () => {
-    const html = document.documentElement;
-    const isDark = html.classList.contains("dark");
-
-    if (isDark) {
-      html.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    } else {
-      html.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    }
-
+    setTheme(theme === "dark" ? "light" : "dark");
     setIsOpen(false);
   };
 

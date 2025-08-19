@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/notes-store";
 import { Node } from "@/types/note";
-import { useNoteEditor } from "@/hooks/useNoteEditor";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
