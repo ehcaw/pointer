@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CommandMenu } from "@/components/ui/command-menu";
 import { useNotesStore } from "@/lib/notes-store";
+import { Node } from "@/types/note";
 
 export function CommandMenuProvider({
   children,
@@ -24,7 +25,7 @@ export function CommandMenuProvider({
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  const handleSelectNote = (note: any) => {
+  const handleSelectNote = (note: Node) => {
     setCurrentNote(note);
     setCurrentView("note");
   };

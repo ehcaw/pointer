@@ -13,17 +13,22 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { BaseNode } from "@/lib/types";
+import type {
+  NodeType,
+  ThoughtNode,
+  BookmarkNode,
+  MediaNode,
+} from "@/lib/types";
 
 interface TimelineViewProps {
-  nodes: BaseNode[];
-  onNodeClick: (node: BaseNode) => void;
+  nodes: NodeType[];
+  onNodeClick: (node: NodeType) => void;
 }
 
 export function TimelineView({ nodes, onNodeClick }: TimelineViewProps) {
   // Group nodes by date
   const groupedNodes = useMemo(() => {
-    const groups: Record<string, BaseNode[]> = {};
+    const groups: Record<string, NodeType[]> = {};
 
     nodes.forEach((node) => {
       const date = new Date(node.createdAt).toDateString();
@@ -35,7 +40,7 @@ export function TimelineView({ nodes, onNodeClick }: TimelineViewProps) {
 
     // Sort groups by date (newest first)
     const sortedGroups = Object.entries(groups).sort(
-      ([a], [b]) => new Date(b).getTime() - new Date(a).getTime(),
+      ([a], [b]) => new Date(b).getTime() - new Date(a).getTime()
     );
 
     return sortedGroups;
@@ -120,7 +125,7 @@ export function TimelineView({ nodes, onNodeClick }: TimelineViewProps) {
                 .sort(
                   (a, b) =>
                     new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime(),
+                    new Date(a.createdAt).getTime()
                 )
                 .map((node, index) => (
                   <motion.div
@@ -153,7 +158,10 @@ export function TimelineView({ nodes, onNodeClick }: TimelineViewProps) {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (node.type === "bookmark") {
-                                      window.open(node.url, "_blank");
+                                      window.open(
+                                        (node as BookmarkNode).url,
+                                        "_blank"
+                                      );
                                     }
                                   }}
                                   className="h-6 w-6 p-0"
@@ -169,31 +177,33 @@ export function TimelineView({ nodes, onNodeClick }: TimelineViewProps) {
                             >
                               {node.type === "thought" && (
                                 <p className="text-sm leading-relaxed">
-                                  {node.text}
+                                  {(node as ThoughtNode).text}
                                 </p>
                               )}
 
                               {node.type === "bookmark" && (
                                 <div className="space-y-1">
                                   <h4 className="font-medium text-sm">
-                                    {node.title}
+                                    {(node as BookmarkNode).title}
                                   </h4>
-                                  {node.description && (
+                                  {(node as BookmarkNode).description && (
                                     <p className="text-sm text-muted-foreground">
-                                      {node.description}
+                                      {(node as BookmarkNode).description}
                                     </p>
                                   )}
                                   <p className="text-xs text-muted-foreground truncate">
-                                    {node.url}
+                                    {(node as BookmarkNode).url}
                                   </p>
                                 </div>
                               )}
 
                               {node.type === "media" && (
                                 <div className="space-y-1">
-                                  <p className="text-sm">{node.caption}</p>
+                                  <p className="text-sm">
+                                    {(node as MediaNode).caption}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {node.platform} • {node.url}
+                                    {(node as MediaNode).url}
                                   </p>
                                 </div>
                               )}

@@ -5,6 +5,7 @@ import { EditorContent, EditorContext, useEditor, Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Image } from "@tiptap/extension-image";
 import { TaskItem } from "@tiptap/extension-task-item";
+import { UndoRedo } from "@tiptap/extensions/undo-redo";
 import { TaskList } from "@tiptap/extension-task-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
@@ -79,6 +80,7 @@ import "@/components/tiptap-templates/simple/simple-editor.scss";
 import "@/components/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/notes-store";
+import { ensureJSONString } from "@/lib/utils";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -106,7 +108,7 @@ const MainToolbarContent = ({
       enableOnContentEditable: true,
       preventDefault: true,
       scopes: ["all"],
-    },
+    }
   );
 
   const handleMicToggle = async () => {
@@ -238,7 +240,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
-    "main",
+    "main"
   );
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -315,7 +317,9 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       Typography,
       Superscript,
       Subscript,
-
+      UndoRedo.configure({
+        depth: 15,
+      }),
       Selection,
       ImageUploadNode.configure({
         accept: "image/*",
@@ -336,8 +340,8 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         return;
       }
 
-      const noteId = currentNote.quibble_id;
-      const currentEditorJson = JSON.stringify(editor.getJSON());
+      const noteId = currentNote.pointer_id;
+      const currentEditorJson = editor.getJSON();
       const currentEditorText = editor.getText();
       const dbSavedMirror = dbSavedNotes.get(noteId);
 
@@ -351,7 +355,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
         // Use OR (||) so if either JSON or plain text differs, it's marked as changed
         changed =
-          currentEditorJson != lastSavedJson ||
+          JSON.stringify(currentEditorJson) != lastSavedJson ||
           currentEditorText != lastSavedText;
       } else {
         // This case occurs if:
@@ -363,10 +367,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
       if (changed) {
         markNoteAsUnsaved(currentNote);
-        currentNote.content.tiptap = currentEditorJson;
+        currentNote.content.tiptap = ensureJSONString(currentEditorJson);
         currentNote.content.text = currentEditorText;
-      } else if (!changed && unsavedNotes.has(currentNote.quibble_id)) {
-        removeUnsavedNote(currentNote.quibble_id); // Ensure it's unmarked if content matches DB mirror
+      } else if (!changed && unsavedNotes.has(currentNote.pointer_id)) {
+        removeUnsavedNote(currentNote.pointer_id); // Ensure it's unmarked if content matches DB mirror
       }
     },
   });
@@ -399,8 +403,8 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       // This assumes `currentNote.content.tiptap` and `currentNote.content.text`
       // accurately reflect the content from the database when the note is loaded/selected.
       dbSavedNotes.set(
-        currentNote.quibble_id,
-        JSON.parse(JSON.stringify(currentNote)),
+        currentNote.pointer_id,
+        JSON.parse(JSON.stringify(currentNote))
       );
     }
   }, [currentNote, dbSavedNotes]); // Only re-run when the currentNote object reference changes
@@ -426,7 +430,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
             onHighlighterClick={() => setMobileView("highlighter")}
             onLinkClick={() => setMobileView("link")}
             isMobile={isMobile}
-            editor={editor}
+            editor={editor ?? undefined}
           />
         ) : (
           <MobileToolbarContent

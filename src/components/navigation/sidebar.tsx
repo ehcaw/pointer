@@ -1,6 +1,15 @@
 "use client";
 
-import { Plus, Home, FileText, Clock, Edit3, GitGraph } from "lucide-react";
+import { useState } from "react";
+import {
+  Plus,
+  Home,
+  FileText,
+  Clock,
+  Edit3,
+  GitGraph,
+  Trash,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,14 +23,27 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/notes-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { Button } from "../ui/button";
+import { ThemeToggle } from "../theme-toggle";
 
 export function AppSidebar() {
+  const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
+
   const {
     userNotes,
     setCurrentView,
@@ -33,12 +55,12 @@ export function AppSidebar() {
     dbSavedNotes,
   } = useNotesStore();
 
-  const { createNewNote, saveCurrentNote } = useNoteEditor();
+  const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
     setCurrentView("note");
-    createNewNote(title, null, []);
+    createNewNote(title);
   };
 
   const handleNavClick = (view: "home" | "graph") => {
@@ -48,8 +70,9 @@ export function AppSidebar() {
   const handleNoteClick = async (note: Node) => {
     if (
       currentNote &&
+      dbSavedNotes.get(currentNote.pointer_id) != undefined &&
       currentNote.content.text !=
-        dbSavedNotes.get(currentNote.quibble_id).content.text
+        dbSavedNotes.get(currentNote.pointer_id)!.content.text
     ) {
       saveCurrentNote();
     }
@@ -58,10 +81,26 @@ export function AppSidebar() {
     setCurrentView("note");
   };
 
+  const handleOpenDeleteDialog = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    note: Node
+  ) => {
+    e.stopPropagation();
+    setNoteToDelete(note);
+  };
+
+  const confirmDelete = () => {
+    if (noteToDelete) {
+      deleteNote(noteToDelete.pointer_id || "");
+      console.log("Confirmed deletion for:", noteToDelete.name);
+      setNoteToDelete(null); // Close the dialog
+    }
+  };
+
   const recentNotes = userNotes
     .sort(
       (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     )
     .slice(0, 5);
 
@@ -75,7 +114,7 @@ export function AppSidebar() {
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Quibble
+              Pointer
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Your digital workspace
@@ -100,7 +139,7 @@ export function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   )}
                 >
                   <Home className="h-4 w-4" />
@@ -113,7 +152,7 @@ export function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   )}
                 >
                   <GitGraph className="h-4 w-4" />
@@ -140,7 +179,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {Array.from(unsavedNotes.values()).map((note) => (
-                  <SidebarMenuItem key={String(note.quibble_id)}>
+                  <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
                       className="rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-700 dark:text-slate-300"
@@ -162,9 +201,6 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
             Recent Notes
-            <Badge variant="outline" className="ml-auto text-xs">
-              {recentNotes.length}
-            </Badge>
           </SidebarGroupLabel>
           <SidebarGroupAction
             onClick={handleCreateNote}
@@ -176,21 +212,21 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {recentNotes.map((note) => {
-                const isActive = currentNote?.quibble_id === note.quibble_id;
-                const timeAgo = formatDistanceToNow(new Date(note.updatedAt), {
-                  addSuffix: true,
-                });
+                const isActive = currentNote?.pointer_id === note.pointer_id;
 
                 return (
-                  <SidebarMenuItem key={String(note.quibble_id)}>
+                  <SidebarMenuItem
+                    key={String(note.pointer_id)}
+                    className="relative group"
+                  >
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
                       data-active={isActive}
                       className={cn(
-                        "rounded-lg transition-all group my-1.5",
+                        "rounded-lg transition-all my-1.5 w-full", // Use full width
                         isActive
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                       )}
                     >
                       <div
@@ -198,7 +234,7 @@ export function AppSidebar() {
                           "flex h-6 w-6 items-center justify-center rounded",
                           isActive
                             ? "bg-primary/20"
-                            : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700",
+                            : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
                         )}
                       >
                         <FileText
@@ -206,17 +242,23 @@ export function AppSidebar() {
                             "h-3 w-3",
                             isActive
                               ? "text-primary"
-                              : "text-slate-500 dark:text-slate-400",
+                              : "text-slate-500 dark:text-slate-400"
                           )}
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-6">
                         <div className="truncate font-medium">{note.name}</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:hidden">
-                          {timeAgo}
-                        </div>
                       </div>
                     </SidebarMenuButton>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => handleOpenDeleteDialog(e, note)}
+                      className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10"
+                    >
+                      <Trash className="h-3 w-3 text-slate-500 group-hover:text-red-500" />
+                      <span className="sr-only">Delete note</span>
+                    </Button>
                   </SidebarMenuItem>
                 );
               })}
@@ -233,10 +275,10 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {userNotes.slice(5).map((note) => {
-                  const isActive = currentNote?.quibble_id === note.quibble_id;
+                  const isActive = currentNote?.pointer_id === note.pointer_id;
 
                   return (
-                    <SidebarMenuItem key={String(note.quibble_id)}>
+                    <SidebarMenuItem key={String(note.pointer_id)}>
                       <SidebarMenuButton
                         onClick={() => handleNoteClick(note)}
                         size="sm"
@@ -244,7 +286,7 @@ export function AppSidebar() {
                           "rounded-lg transition-all",
                           isActive
                             ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400",
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                         )}
                       >
                         <FileText className="h-3 w-3" />
@@ -261,15 +303,38 @@ export function AppSidebar() {
 
       {/* Footer */}
       <SidebarFooter className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
           <div className="group-data-[collapsible=icon]:hidden">
             <div className="flex items-center gap-2">
               <FileText className="h-3 w-3" />
               <span>{userNotes.length} notes total</span>
             </div>
           </div>
+          <ThemeToggle size="sm" />
         </div>
       </SidebarFooter>
+      {noteToDelete && (
+        <AlertDialog
+          open={!!noteToDelete}
+          onOpenChange={(isOpen) => !isOpen && setNoteToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                note titled &quot;{noteToDelete.name}&quot;.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </Sidebar>
   );
 }

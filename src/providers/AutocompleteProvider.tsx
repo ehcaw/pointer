@@ -1,4 +1,4 @@
-import { Extension } from "@tiptap/react";
+import { Extension, Editor, CommandProps, RawCommands } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import React from "react";
@@ -7,6 +7,10 @@ import ReactDOM from "react-dom/client";
 // Define the props interface for your component
 interface InlineProps {
   ghost: string;
+}
+
+interface SpanWithReactRoot extends HTMLSpanElement {
+  __reactRoot: ReactDOM.Root;
 }
 
 // Your InlineGhost component
@@ -33,7 +37,7 @@ interface InlineAutocompleteState {
   typingTimer: NodeJS.Timeout | null;
 }
 
-const TYPING_PAUSE_THRESHOLD = 1000; // Milliseconds to wait after typing stops before suggesting
+const TYPING_PAUSE_THRESHOLD = 500; // Milliseconds to wait after typing stops before suggesting
 const MIN_CONTENT_LENGTH = 10; // Minimum text length before we start suggesting on pauses
 const MIN_TOKENS_FOR_SUGGESTION = 3; // Minimum number of words to trigger automatic suggestion
 const MAX_SUGGESTION_FREQUENCY = 5000; // Minimum milliseconds between automatic suggestions
@@ -44,10 +48,9 @@ const inlineAutocompleteKey = new PluginKey("inline-autocomplete");
 // Helper functions outside the extension
 const fetchSuggestion = async (
   fullText: string,
-  textBefore: string,
+  textBefore: string
 ): Promise<string | null> => {
   try {
-    console.log("SKDFJKLSDJFLSD");
     const response = await fetch("/api/suggestion", {
       method: "POST",
       headers: {
@@ -89,7 +92,7 @@ const fetchSuggestion = async (
   }
 };
 
-const updateSuggestion = (editor: any, suggestion: string | null) => {
+const updateSuggestion = (editor: Editor, suggestion: string | null) => {
   if (editor) {
     const tr = editor.state.tr;
     const pluginState = inlineAutocompleteKey.getState(editor.state);
@@ -102,7 +105,7 @@ const updateSuggestion = (editor: any, suggestion: string | null) => {
   }
 };
 
-const acceptSuggestion = (editor: any) => {
+const acceptSuggestion = (editor: Editor) => {
   const plugin = inlineAutocompleteKey.getState(editor.state);
   if (plugin && plugin.suggestion) {
     const selection = editor.state.selection;
@@ -118,7 +121,7 @@ const acceptSuggestion = (editor: any) => {
   }
 };
 
-const dismissSuggestion = (editor: any) => {
+const dismissSuggestion = (editor: Editor) => {
   const tr = editor.state.tr;
   const newState = inlineAutocompleteKey.getState(editor.state);
   if (newState) {
@@ -130,7 +133,7 @@ const dismissSuggestion = (editor: any) => {
 };
 
 export const InlineAutocompleteExtension = Extension.create({
-  name: "quibble-inline-autocomplete",
+  name: "pointer-inline-autocomplete",
 
   addGlobalAttributes() {
     return [
@@ -201,7 +204,7 @@ export const InlineAutocompleteExtension = Extension.create({
                 const pos = selection.from;
                 const textBefore = tr.doc.textBetween(
                   Math.max(0, pos - 1),
-                  pos,
+                  pos
                 );
                 const fullTextBefore = tr.doc.textBetween(0, pos);
 
@@ -220,7 +223,7 @@ export const InlineAutocompleteExtension = Extension.create({
                   fetchSuggestion(tr.doc.textContent, fullTextBefore).then(
                     (suggestion) => {
                       updateSuggestion(editor, suggestion);
-                    },
+                    }
                   );
                 }
                 // For pause detection, we only proceed if there's enough content
@@ -237,8 +240,7 @@ export const InlineAutocompleteExtension = Extension.create({
                   // Set a timer for pause detection
                   if (wordCount >= MIN_TOKENS_FOR_SUGGESTION) {
                     const lastSuggestionTime = parseInt(
-                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) ||
-                        "0",
+                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) || "0"
                     );
                     const timeSinceLastSuggestion =
                       Date.now() - lastSuggestionTime;
@@ -256,12 +258,12 @@ export const InlineAutocompleteExtension = Extension.create({
                           // Store the time of this auto-suggestion
                           localStorage.setItem(
                             LAST_AUTO_SUGGESTION_TIME_KEY,
-                            Date.now().toString(),
+                            Date.now().toString()
                           );
 
                           // Update state to show we're fetching
                           const pluginState = inlineAutocompleteKey.getState(
-                            editor.state,
+                            editor.state
                           );
                           if (pluginState) {
                             pluginState.isLoading = true;
@@ -271,7 +273,7 @@ export const InlineAutocompleteExtension = Extension.create({
                             // Fetch the suggestion
                             fetchSuggestion(
                               editor.state.doc.textContent,
-                              currentTextBefore,
+                              currentTextBefore
                             ).then((suggestion) => {
                               updateSuggestion(editor, suggestion);
                             });
@@ -330,14 +332,14 @@ export const InlineAutocompleteExtension = Extension.create({
             // Render the React component as a widget decoration
             const decoration = Decoration.widget(
               pos,
-              (view) => {
+              () => {
                 const wrapper = document.createElement("span");
                 // Create a React root and render the InlineGhost component
                 const root = ReactDOM.createRoot(wrapper);
                 root.render(<InlineGhost ghost={pluginState.suggestion!} />);
 
                 // Store the root on the wrapper for later unmounting
-                (wrapper as any).__reactRoot = root;
+                (wrapper as SpanWithReactRoot).__reactRoot = root;
 
                 return wrapper;
               },
@@ -345,14 +347,14 @@ export const InlineAutocompleteExtension = Extension.create({
                 side: 1, // Place the widget after the cursor
                 destroy(dom) {
                   // Defer the unmount to avoid race conditions
-                  const reactRoot = (dom as any).__reactRoot;
+                  const reactRoot = (dom as SpanWithReactRoot).__reactRoot;
                   if (reactRoot) {
                     setTimeout(() => {
                       reactRoot.unmount();
                     }, 0);
                   }
                 },
-              },
+              }
             );
 
             return DecorationSet.create(state.doc, [decoration]);
@@ -373,18 +375,18 @@ export const InlineAutocompleteExtension = Extension.create({
     return {
       acceptSuggestion:
         () =>
-        ({ editor }) => {
+        ({ editor }: CommandProps) => {
           acceptSuggestion(editor);
           return true;
         },
 
       dismissSuggestion:
         () =>
-        ({ editor }) => {
+        ({ editor }: CommandProps) => {
           dismissSuggestion(editor);
           return true;
         },
-    };
+    } as Partial<RawCommands>;
   },
 });
 

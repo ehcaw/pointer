@@ -18,13 +18,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { BaseNode } from "@/lib/types";
+
+import type { NodeType, ThoughtNode, BookmarkNode } from "@/lib/types";
+
+// MediaNode is now included in NodeType from @/lib/types
 
 interface SidePanelProps {
-  node: BaseNode;
-  relatedNodes: BaseNode[];
+  node: NodeType;
+  relatedNodes: NodeType[];
   onClose: () => void;
-  onUpdate: (node: BaseNode) => void;
+  onUpdate: (node: NodeType) => void;
   onDelete: (nodeId: string) => void;
 }
 
@@ -36,7 +39,7 @@ export function SidePanel({
   onDelete,
 }: SidePanelProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedNode, setEditedNode] = useState(node);
+  const [editedNode, setEditedNode] = useState<NodeType>(node);
 
   const handleSave = () => {
     onUpdate(editedNode);
@@ -146,7 +149,7 @@ export function SidePanel({
                         ({
                           ...prev,
                           text: e.target.value,
-                        }) as any,
+                        }) as ThoughtNode
                     )
                   }
                   className="min-h-[100px]"
@@ -174,7 +177,7 @@ export function SidePanel({
                           ({
                             ...prev,
                             title: e.target.value,
-                          }) as any,
+                          }) as BookmarkNode
                       )
                     }
                   />
@@ -199,7 +202,7 @@ export function SidePanel({
                                 ({
                                   ...prev,
                                   url: e.target.value,
-                                }) as any,
+                                }) as BookmarkNode
                             )
                         : undefined
                     }
@@ -212,7 +215,7 @@ export function SidePanel({
                       onClick={() =>
                         window.open(
                           node.type === "bookmark" ? node.url : "",
-                          "_blank",
+                          "_blank"
                         )
                       }
                     >
@@ -241,7 +244,7 @@ export function SidePanel({
                             ({
                               ...prev,
                               description: e.target.value,
-                            }) as any,
+                            }) as BookmarkNode
                         )
                       }
                       placeholder="Add a description..."

@@ -7,13 +7,13 @@ export default defineSchema({
   notes: defineTable({
     content: v.object({
       text: v.string(),
-      tiptap: v.string(),
+      tiptap: v.optional(v.string()),
     }),
     createdAt: v.string(),
     lastAccessed: v.string(),
     lastEdited: v.string(),
     name: v.string(),
-    quibble_id: v.string(),
+    pointer_id: v.string(),
     tenantId: v.string(),
     updatedAt: v.string(),
   }).searchIndex("notes_full_text_search_index", {

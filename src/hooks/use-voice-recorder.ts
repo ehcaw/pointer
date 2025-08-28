@@ -33,9 +33,9 @@ export function useVoiceRecorder(): UseVoiceRecorderResult {
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (err: any) {
+    } catch (err) {
       setError(
-        "Microphone access denied. Please enable it in your browser settings.",
+        `Microphone access denied. Please enable it in your browser settings: ${err}`,
       );
       setIsRecording(false);
     }
@@ -74,7 +74,7 @@ export function useVoiceRecorder(): UseVoiceRecorderResult {
             });
             setIsRecording(false);
             resolve(transcription);
-          } catch (err: any) {
+          } catch (err) {
             setError("Failed to transcribe audio: " + err);
             setIsRecording(false);
             reject(err);
@@ -100,7 +100,7 @@ interface VoiceRecorderState {
   stopAndTranscribe: () => Promise<string | null>;
 }
 
-export const useVoiceRecorderStore = create<VoiceRecorderState>((set, get) => ({
+export const useVoiceRecorderStore = create<VoiceRecorderState>((set) => ({
   isRecording: false,
   setIsRecording: (value: boolean) => set({ isRecording: value }),
   error: null,
@@ -122,10 +122,9 @@ export const useVoiceRecorderStore = create<VoiceRecorderState>((set, get) => ({
       });
       mediaRecorder.start();
       set({ isRecording: true });
-    } catch (err: any) {
+    } catch (err) {
       set({
-        error:
-          "Microphone access denied. Please enable it in your browser settings.",
+        error: `Microphone access denied. Please enable it in your browser settings: ${err}`,
         isRecording: false,
       });
     }
@@ -162,7 +161,7 @@ export const useVoiceRecorderStore = create<VoiceRecorderState>((set, get) => ({
             });
             set({ isRecording: false });
             resolve(transcription);
-          } catch (err: any) {
+          } catch (err) {
             set({
               error: "Failed to transcribe audio: " + err,
               isRecording: false,

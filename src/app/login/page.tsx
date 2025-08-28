@@ -36,7 +36,7 @@ export default function LoginPage() {
       // Route to main app on successful login
       router.push("/");
     } catch (err) {
-      setError("Invalid email or password. Please try again.");
+      setError(`Invalid email or password. Please try again: ${err}`);
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +48,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Quibble
+            Pointer
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">
             Your intelligent note-taking companion
@@ -149,7 +149,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex justify-center border-t border-slate-200 dark:border-slate-800 pt-4">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
                 className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"

@@ -7,7 +7,7 @@ export interface BaseNode {
   /** Unique identifier for this node (folder or file). */
   _id?: string;
 
-  quibble_id: string;
+  pointer_id: string;
 
   /** ID of the user (tenant) who owns this node. */
   tenantId: string;
@@ -15,25 +15,17 @@ export interface BaseNode {
   /** Name of the folder or file (e.g. "app", "route.ts"). */
   name: string;
 
-  /** Timestamp when this node was first created. */
-  createdAt: Date;
+  /** Timestamp when this node was first created as a string*/
+  createdAt: string;
 
-  /** Timestamp when this node was last updated. */
-  updatedAt: Date;
+  /** Timestamp when this node was last updated as a string */
+  updatedAt: string;
 
   /** Last time this note was accessed by the user */
-  lastAccessed?: Date;
+  lastAccessed?: string;
 
   /** Last time this note was edited (differs from updatedAt which includes metadata changes) */
-  lastEdited?: Date;
-}
-
-/**
- * A folder node (no `content` field).
- */
-export interface FolderNode extends BaseNode {
-  type: "folder";
-  // No `content` property here
+  lastEdited?: string;
 }
 
 /**
@@ -48,7 +40,8 @@ export interface FileNode extends BaseNode {
     /**
      * Raw TipTap JSON content
      */
-    tiptap?: Record<string, any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tiptap?: string;
 
     /**
      * Plain text representation of the content
@@ -60,7 +53,7 @@ export interface FileNode extends BaseNode {
 /**
  * Discriminated union: either a folder or a file.
  */
-export type Node = FolderNode | FileNode;
+export type Node = FileNode;
 
 // Graph Stuff
 export type GraphBaseNode = {

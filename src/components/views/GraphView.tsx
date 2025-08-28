@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Moon, Sun, Menu, X } from "lucide-react";
+import { Plus, Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CaptureModal } from "../graph/CaptureModal";
@@ -12,12 +12,12 @@ import { TimelineView } from "../graph/TimelineView";
 import { SearchOverlay } from "../graph/SearchOverlay";
 import { TagExplorer } from "../graph/TagExplorer";
 import { mockNodes, mockEdges } from "@/lib/mock-data";
-import { GraphBaseNode } from "@/types/note";
 import { ThemeToggle } from "../theme-toggle";
+import type { NodeType } from "@/lib/types";
 
 export default function GraphView() {
   const [view, setView] = useState<"graph" | "timeline">("graph");
-  const [selectedNode, setSelectedNode] = useState<BaseNode | null>(null);
+  const [selectedNode, setSelectedNode] = useState<NodeType | null>(null);
   const [showCapture, setShowCapture] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -51,12 +51,12 @@ export default function GraphView() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleAddNode = (newNode: BaseNode) => {
+  const handleAddNode = (newNode: NodeType) => {
     setNodes((prev) => [newNode, ...prev]);
     setShowCapture(false);
   };
 
-  const handleUpdateNode = (updatedNode: BaseNode) => {
+  const handleUpdateNode = (updatedNode: NodeType) => {
     setNodes((prev) =>
       prev.map((node) => (node.id === updatedNode.id ? updatedNode : node))
     );

@@ -3,6 +3,7 @@ import { useConvex } from "convex/react";
 import { useNotesStore } from "@/lib/notes-store";
 import { FileNode, Node } from "@/types/note";
 import { api } from "../../convex/_generated/api";
+import { ensureJSONString } from "@/lib/utils";
 /**
  * Custom hook to connect TipTap editor with our notes store system.
  * Manages content syncing, saving, and unsaved changes tracking.
@@ -17,7 +18,6 @@ export function useNoteEditor() {
   const {
     currentNote,
     setCurrentNote,
-    markNoteAsUnsaved,
     setUserNotes,
     setIsLoading,
     clearUnsavedNote,
@@ -41,7 +41,7 @@ export function useNoteEditor() {
 
   // Keep track of last known content to avoid unnecessary updates
   const lastContentRef = useRef<{
-    tiptap?: Record<string, unknown>;
+    tiptap?: string;
     text?: string;
   }>({});
 
@@ -57,8 +57,7 @@ export function useNoteEditor() {
 
       console.log("USE NOTES API ", notes);
 
-      // Build tree structure from flat notes lista
-      const treeStructure = notes.filter((note) => note.parentId === null);
+      const treeStructure = notes;
 
       setUserNotes(notes);
       setTreeStructure(treeStructure);
@@ -71,8 +70,8 @@ export function useNoteEditor() {
 
   const fetchNoteById = async (noteId: string) => {
     try {
-      const note = await convex.query(api.notes.findNoteByQuibbleId, {
-        quibble_id: noteId,
+      const note = await convex.query(api.notes.findNoteByPointerId, {
+        pointer_id: noteId,
       });
       if (!note) {
         return false;
@@ -86,30 +85,19 @@ export function useNoteEditor() {
   /**
    * Create a new note in the database
    */
-  const createNewNote = async (
-    name: string,
-    path: string[] = [],
-  ): Promise<FileNode> => {
+  const createNewNote = async (name: string): Promise<FileNode> => {
     const tempId = `${Date.now()}-${Math.random()}`;
 
     const newNote: FileNode = {
-      quibble_id: tempId,
+      pointer_id: tempId,
       tenantId: process.env.TEMP_TENANT_ID || "12345678",
       name,
-      path,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastEdited: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastEdited: new Date().toISOString(),
       content: {
-        tiptap: {
-          type: "doc",
-          content: [
-            {
-              type: "paragraph",
-              content: [{ type: "text", text: "" }],
-            },
-          ],
-        },
+        tiptap:
+          '{\n          type: "doc",\n          content: [\n            {\n              type: "paragraph",\n              content: [{ type: "text", text: "" }],\n            },\n          ],\n        }',
         text: "",
       },
     };
@@ -149,8 +137,10 @@ export function useNoteEditor() {
   const saveNote = async (note: Node): Promise<boolean> => {
     try {
       const noteData = note;
+      const rawTiptapContent = (noteData as FileNode).content.tiptap;
+      const serializedTiptapContent = ensureJSONString(rawTiptapContent);
       const mutationData = {
-        quibble_id: noteData.quibble_id,
+        pointer_id: noteData.pointer_id,
         name: noteData.name,
         tenantId: noteData.tenantId,
         createdAt: String(noteData.createdAt),
@@ -158,21 +148,21 @@ export function useNoteEditor() {
         lastAccessed: String(new Date()),
         lastEdited: String(noteData.lastEdited || new Date()),
         content: {
-          tiptap: (noteData as FileNode).content.tiptap,
+          tiptap: serializedTiptapContent,
           text: (noteData as FileNode).content.text,
         },
       };
 
-      const doesNoteExist = await fetchNoteById(note.quibble_id);
+      const doesNoteExist = await fetchNoteById(note.pointer_id);
       if (doesNoteExist) {
         await convex.mutation(api.notes.updateNoteInDb, mutationData);
       } else {
         await convex.mutation(api.notes.createNoteInDb, mutationData);
       }
-      const savedNote = { ...note, _id: note.quibble_id };
+      const savedNote = { ...note, _id: note.pointer_id };
       updateNoteInCollections(savedNote);
-      clearUnsavedNote(note.quibble_id.toString());
-      dbSavedNotes.set(note.quibble_id, savedNote);
+      clearUnsavedNote(note.pointer_id.toString());
+      dbSavedNotes.set(note.pointer_id, savedNote);
 
       console.log("note saved");
       return true;
@@ -190,8 +180,8 @@ export function useNoteEditor() {
     try {
       // Only try to delete from DB if it's not a temp note
       if (!noteId.startsWith("temp-")) {
-        await convex.mutation(api.notes.deleteNoteByQuibbleId, {
-          quibble_id: noteId,
+        await convex.mutation(api.notes.deleteNoteByPointerId, {
+          pointer_id: noteId,
         });
       }
 
@@ -211,7 +201,7 @@ export function useNoteEditor() {
    * Create a new empty note and open it
    */
   const createEmptyNote = async (name: string = "Untitled Note") => {
-    const newNote = await createNewNote(name, null, []);
+    const newNote = await createNewNote(name);
     setCurrentNote(newNote);
 
     // Reset the last content tracking
@@ -232,6 +222,7 @@ export function useNoteEditor() {
    * Handle navigation away from the editor with unsaved changes check
    */
   const handleNavigateAway = (onContinue: () => void = () => {}): boolean => {
+    onContinue();
     return false;
   };
 
@@ -239,7 +230,7 @@ export function useNoteEditor() {
   useEffect(() => {
     if (currentNote && currentNote.content?.tiptap) {
       lastContentRef.current = {
-        tiptap: currentNote.content.tiptap,
+        tiptap: ensureJSONString(currentNote.content.tiptap),
         text: currentNote.content.text,
       };
     } else {

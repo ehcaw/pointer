@@ -7,7 +7,7 @@ const groq = createGroq({
 
 export const generateAutocomplete = async (
   fullText: string,
-  currLine: string,
+  currLine: string
 ) => {
   console.log("FULL TEXT", fullText);
   const { text } = await generateText({
@@ -15,7 +15,7 @@ export const generateAutocomplete = async (
     system: `<task>
 You are an autocompletion system that suggests text completions.
 Think about what the user will want to say next.
-Your name is quibble.
+Your name is pointer.
 
 Rules:
 - USE the provided context in <context> tags
