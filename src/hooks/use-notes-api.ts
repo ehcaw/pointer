@@ -2,9 +2,10 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotesStore } from "@/lib/notes-store";
 import { Node } from "@/types/note";
+import { ensureJSONString } from "@/lib/utils";
 
 interface MutationType {
-  quibble_id: string;
+  pointer_id: string;
   name: string;
   tenantId: string;
   createdAt: string;
@@ -12,7 +13,7 @@ interface MutationType {
   lastAccessed: string;
   lastEdited: string;
   content: {
-    tiptap?: Record<string, string> | undefined;
+    tiptap?: string;
     text?: string | undefined;
   };
 }
@@ -37,11 +38,12 @@ export function useNotesApi() {
 
   const saveNote = async (note: Node): Promise<Node> => {
     try {
-      if (note.quibble_id.toString().startsWith("temp-")) {
+      if (note.pointer_id.toString().startsWith("temp-")) {
         // Create new note
-        const { quibble_id, ...noteData } = note;
+        const { pointer_id, ...noteData } = note;
+        note.content.tiptap = ensureJSONString(note.content.tiptap);
         const mutationData: MutationType = {
-          quibble_id: quibble_id,
+          pointer_id: pointer_id,
           name: noteData.name,
           tenantId: noteData.tenantId!,
           createdAt: String(noteData.createdAt),
@@ -56,7 +58,7 @@ export function useNotesApi() {
       } else {
         // Update existing note
         const updateData: MutationType = {
-          quibble_id: note.quibble_id,
+          pointer_id: note.pointer_id,
           name: note.name,
           tenantId: note.tenantId,
           createdAt: note.createdAt,

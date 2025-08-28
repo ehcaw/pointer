@@ -7,7 +7,7 @@ export interface BaseNode {
   /** Unique identifier for this node (folder or file). */
   _id?: string;
 
-  quibble_id: string;
+  pointer_id: string;
 
   /** ID of the user (tenant) who owns this node. */
   tenantId: string;
@@ -41,7 +41,7 @@ export interface FileNode extends BaseNode {
      * Raw TipTap JSON content
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tiptap?: Record<string, any>;
+    tiptap?: string;
 
     /**
      * Plain text representation of the content

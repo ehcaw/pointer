@@ -77,13 +77,13 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setDBSavedNotes: (notes: Node[]) => {
     const dbSavedNotes = new Map<string, Node>([]);
     notes.forEach((note) =>
-      dbSavedNotes.set(note.quibble_id, JSON.parse(JSON.stringify(note))),
+      dbSavedNotes.set(note.pointer_id, JSON.parse(JSON.stringify(note)))
     );
     set({ dbSavedNotes });
   },
   saveDBSavedNote: (note: Node) => {
     const dbSavedNotes = get().dbSavedNotes;
-    dbSavedNotes.set(note.quibble_id, JSON.parse(JSON.stringify(note)));
+    dbSavedNotes.set(note.pointer_id, JSON.parse(JSON.stringify(note)));
     set({ dbSavedNotes });
   },
   // Note UI management
@@ -91,7 +91,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const state = get();
     if (
       !state.openUserNotes.some(
-        (n) => n.quibble_id.toString() === note.quibble_id.toString(),
+        (n) => n.pointer_id.toString() === note.pointer_id.toString()
       )
     ) {
       set({
@@ -114,7 +114,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Check if note has unsaved changes
     const isUnsaved =
       state.unsavedNotes.has(noteId) ||
-      state.newUnsavedNotes.some((n) => n.quibble_id.toString() === noteId);
+      state.newUnsavedNotes.some((n) => n.pointer_id.toString() === noteId);
 
     if (isUnsaved) {
       console.warn("Closing a note with unsaved changes!");
@@ -122,7 +122,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Remove from open notes
     const openUserNotes = state.openUserNotes.filter(
-      (n) => n.quibble_id.toString() !== noteId,
+      (n) => n.pointer_id.toString() !== noteId
     );
 
     // Set new current note (if any)
@@ -139,10 +139,10 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const unsavedNotes = new Map(state.unsavedNotes);
 
     // If it's a temporary note (hasn't been saved to DB yet), update in newUnsavedNotes
-    if (!note.quibble_id || note.quibble_id.toString().startsWith("temp-")) {
+    if (!note.pointer_id || note.pointer_id.toString().startsWith("temp-")) {
       const newUnsavedNotes = [...state.newUnsavedNotes];
       const index = newUnsavedNotes.findIndex(
-        (n) => n.quibble_id === note.quibble_id,
+        (n) => n.pointer_id === note.pointer_id
       );
 
       if (index !== -1) {
@@ -155,14 +155,14 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     }
     // Otherwise, it's an existing note - track changes in unsavedNotes Map
     else {
-      unsavedNotes.set(note.quibble_id.toString(), note);
+      unsavedNotes.set(note.pointer_id.toString(), note);
       set({ unsavedNotes });
     }
 
     // Also update in the open notes list
     const openUserNotes = [...state.openUserNotes];
     const index = openUserNotes.findIndex(
-      (n) => n.quibble_id.toString() === note.quibble_id.toString(),
+      (n) => n.pointer_id.toString() === note.pointer_id.toString()
     );
 
     if (index !== -1) {
@@ -190,11 +190,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Replace open notes with their original versions
     const openUserNotes = state.openUserNotes
       .map((note) => {
-        if (state.unsavedNotes.has(note.quibble_id.toString())) {
+        if (state.unsavedNotes.has(note.pointer_id.toString())) {
           // Find original note
           return (
             state.userNotes.find(
-              (n) => n.quibble_id.toString() === note.quibble_id.toString(),
+              (n) => n.pointer_id.toString() === note.pointer_id.toString()
             ) || note
           );
         }
@@ -202,15 +202,15 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       })
       .filter((note) => {
         // Filter out any notes that were newly created but not saved
-        return !note.quibble_id.toString().startsWith("temp-");
+        return !note.pointer_id.toString().startsWith("temp-");
       });
 
     // Update current note if needed
     let currentNote = state.currentNote;
     if (
       currentNote &&
-      (state.unsavedNotes.has(currentNote.quibble_id.toString()) ||
-        currentNote.quibble_id.toString().startsWith("temp-"))
+      (state.unsavedNotes.has(currentNote.pointer_id.toString()) ||
+        currentNote.pointer_id.toString().startsWith("temp-"))
     ) {
       // If current note was unsaved
       currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
@@ -233,23 +233,23 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Check if it's a new note or an existing one with unsaved changes
     const isNewNote = state.newUnsavedNotes.some(
-      (n) => n.quibble_id.toString() === noteId,
+      (n) => n.pointer_id.toString() === noteId
     );
 
     if (isNewNote) {
       // Remove from new notes
       const newUnsavedNotes = state.newUnsavedNotes.filter(
-        (n) => n.quibble_id.toString() !== noteId,
+        (n) => n.pointer_id.toString() !== noteId
       );
 
       // Remove from open notes
       const openUserNotes = state.openUserNotes.filter(
-        (n) => n.quibble_id.toString() !== noteId,
+        (n) => n.pointer_id.toString() !== noteId
       );
 
       // Update current note if needed
       let currentNote = state.currentNote;
-      if (currentNote && currentNote.quibble_id.toString() === noteId) {
+      if (currentNote && currentNote.pointer_id.toString() === noteId) {
         currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
       }
 
@@ -268,13 +268,13 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       // Replace with original in open notes
       const openUserNotes = [...state.openUserNotes];
       const index = openUserNotes.findIndex(
-        (n) => n.quibble_id.toString() === noteId,
+        (n) => n.pointer_id.toString() === noteId
       );
 
       if (index !== -1) {
         // Find original note
         const originalNote = state.userNotes.find(
-          (n) => n.quibble_id.toString() === noteId,
+          (n) => n.pointer_id.toString() === noteId
         );
 
         if (originalNote) {
@@ -284,9 +284,9 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
       // Update current note if needed
       let currentNote = state.currentNote;
-      if (currentNote && currentNote.quibble_id.toString() === noteId) {
+      if (currentNote && currentNote.pointer_id.toString() === noteId) {
         currentNote =
-          openUserNotes.find((n) => n.quibble_id.toString() === noteId) || null;
+          openUserNotes.find((n) => n.pointer_id.toString() === noteId) || null;
       }
 
       set({
@@ -320,7 +320,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   removeNewUnsavedNote: (noteId: string) => {
     const state = get();
     const newUnsavedNotes = state.newUnsavedNotes.filter(
-      (n) => n.quibble_id.toString() !== noteId,
+      (n) => n.pointer_id.toString() !== noteId
     );
     set({ newUnsavedNotes });
   },
@@ -331,26 +331,26 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update in userNotes
     const userNotes = state.userNotes.map((n) =>
-      n.quibble_id.toString() === note.quibble_id.toString() ? note : n,
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n
     );
 
     // Update in open notes
     const openUserNotes = state.openUserNotes.map((n) =>
-      n.quibble_id.toString() === note.quibble_id.toString() ? note : n,
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n
     );
 
     // Update current note if needed
     let currentNote = state.currentNote;
     if (
       currentNote &&
-      currentNote.quibble_id.toString() === note.quibble_id.toString()
+      currentNote.pointer_id.toString() === note.pointer_id.toString()
     ) {
       currentNote = note;
     }
 
     // Update tree structure if needed
     const treeStructure = state.treeStructure.map((n) =>
-      n.quibble_id.toString() === note.quibble_id.toString() ? note : n,
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n
     );
 
     set({
@@ -366,17 +366,17 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Remove from userNotes
     const userNotes = state.userNotes.filter(
-      (n) => n.quibble_id.toString() !== noteId,
+      (n) => n.pointer_id.toString() !== noteId
     );
 
     // Remove from open notes
     const openUserNotes = state.openUserNotes.filter(
-      (n) => n.quibble_id.toString() !== noteId,
+      (n) => n.pointer_id.toString() !== noteId
     );
 
     // Remove from tree structure
     const treeStructure = state.treeStructure.filter(
-      (n) => n.quibble_id.toString() !== noteId,
+      (n) => n.pointer_id.toString() !== noteId
     );
 
     // Remove from unsaved changes if present
@@ -384,12 +384,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     unsavedNotes.delete(noteId);
 
     const newUnsavedNotes = state.newUnsavedNotes.filter(
-      (n) => n.quibble_id.toString() !== noteId,
+      (n) => n.pointer_id.toString() !== noteId
     );
 
     // Update current note if needed
     let currentNote = state.currentNote;
-    if (currentNote && currentNote.quibble_id.toString() === noteId) {
+    if (currentNote && currentNote.pointer_id.toString() === noteId) {
       currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
     }
 
@@ -421,11 +421,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       let updatedCurrentNote = state.currentNote;
 
       for (const note of unsavedChanges) {
-        const noteId = note.quibble_id.toString();
+        const noteId = note.pointer_id.toString();
 
         // Update or add to userNotes
         const userNoteIndex = updatedUserNotes.findIndex(
-          (n) => n.quibble_id.toString() === noteId,
+          (n) => n.pointer_id.toString() === noteId
         );
         if (userNoteIndex !== -1) {
           updatedUserNotes[userNoteIndex] = note;
@@ -435,7 +435,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
         // Update open notes
         const openNoteIndex = updatedOpenUserNotes.findIndex(
-          (n) => n.quibble_id.toString() === noteId,
+          (n) => n.pointer_id.toString() === noteId
         );
         if (openNoteIndex !== -1) {
           updatedOpenUserNotes[openNoteIndex] = note;
@@ -444,14 +444,14 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
         // Update current note if it's the one being saved
         if (
           updatedCurrentNote &&
-          updatedCurrentNote.quibble_id.toString() === noteId
+          updatedCurrentNote.pointer_id.toString() === noteId
         ) {
           updatedCurrentNote = note;
         }
 
         // Update or add to tree structure
         const treeNoteIndex = updatedTreeStructure.findIndex(
-          (n) => n.quibble_id.toString() === noteId,
+          (n) => n.pointer_id.toString() === noteId
         );
         if (treeNoteIndex !== -1) {
           updatedTreeStructure[treeNoteIndex] = note;

@@ -41,14 +41,14 @@ export const NotebookView = () => {
       const successful = await saveCurrentNote();
       if (successful && mostCurrentNote) {
         saveDBSavedNote(mostCurrentNote);
-        removeUnsavedNote(mostCurrentNote.quibble_id);
+        removeUnsavedNote(mostCurrentNote.pointer_id);
       }
     },
     {
       enableOnContentEditable: true,
       preventDefault: true,
       scopes: ["all"],
-    },
+    }
   );
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +113,7 @@ export const NotebookView = () => {
                     "focus:outline-none focus-visible:ring-0",
                     isTitleFocused
                       ? "border-b-2 border-primary"
-                      : "hover:border-b-2 hover:border-slate-300 dark:hover:border-slate-600",
+                      : "hover:border-b-2 hover:border-slate-300 dark:hover:border-slate-600"
                   )}
                 />
               </div>
@@ -144,12 +144,23 @@ export const NotebookView = () => {
               {/* Save button */}
               <Button
                 onClick={saveCurrentNote}
-                                disabled={!!(isSaving || (mostCurrentNote && dbSavedNotes.has(mostCurrentNote.quibble_id) && JSON.stringify(noteContent) === JSON.stringify(dbSavedNotes.get(mostCurrentNote.quibble_id)?.content.tiptap)))}
+                disabled={
+                  !!(
+                    isSaving ||
+                    (mostCurrentNote &&
+                      dbSavedNotes.has(mostCurrentNote.pointer_id) &&
+                      JSON.stringify(noteContent) ===
+                        JSON.stringify(
+                          dbSavedNotes.get(mostCurrentNote.pointer_id)?.content
+                            .tiptap
+                        ))
+                  )
+                }
                 className={cn(
                   "rounded-lg px-4 py-2 font-medium shadow-sm transition-all",
                   isSaving
                     ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
-                    : "bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl",
+                    : "bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl"
                 )}
               >
                 <Save className="h-4 w-4 mr-2" />
@@ -166,7 +177,7 @@ export const NotebookView = () => {
           <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="w-full min-h-[calc(100vh-200px)]">
               <SimpleEditor
-                key={currentNote?.quibble_id || "new-note"}
+                key={currentNote?.pointer_id || "new-note"}
                 content={noteContent}
                 editorRef={editorRef}
               />
@@ -181,7 +192,7 @@ export const NotebookView = () => {
           <div className="px-6 py-3">
             <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-4">
-                <span>ID: {currentNote.quibble_id.slice(-8)}</span>
+                <span>ID: {currentNote.pointer_id.slice(-8)}</span>
               </div>
 
               <div className="flex items-center gap-2">

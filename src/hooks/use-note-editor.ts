@@ -3,6 +3,7 @@ import { useConvex } from "convex/react";
 import { useNotesStore } from "@/lib/notes-store";
 import { FileNode, Node } from "@/types/note";
 import { api } from "../../convex/_generated/api";
+import { ensureJSONString } from "@/lib/utils";
 /**
  * Custom hook to connect TipTap editor with our notes store system.
  * Manages content syncing, saving, and unsaved changes tracking.
@@ -40,7 +41,7 @@ export function useNoteEditor() {
 
   // Keep track of last known content to avoid unnecessary updates
   const lastContentRef = useRef<{
-    tiptap?: Record<string, unknown>;
+    tiptap?: string;
     text?: string;
   }>({});
 
@@ -69,8 +70,8 @@ export function useNoteEditor() {
 
   const fetchNoteById = async (noteId: string) => {
     try {
-      const note = await convex.query(api.notes.findNoteByQuibbleId, {
-        quibble_id: noteId,
+      const note = await convex.query(api.notes.findNoteByPointerId, {
+        pointer_id: noteId,
       });
       if (!note) {
         return false;
@@ -88,22 +89,15 @@ export function useNoteEditor() {
     const tempId = `${Date.now()}-${Math.random()}`;
 
     const newNote: FileNode = {
-      quibble_id: tempId,
+      pointer_id: tempId,
       tenantId: process.env.TEMP_TENANT_ID || "12345678",
       name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       lastEdited: new Date().toISOString(),
       content: {
-        tiptap: {
-          type: "doc",
-          content: [
-            {
-              type: "paragraph",
-              content: [{ type: "text", text: "" }],
-            },
-          ],
-        },
+        tiptap:
+          '{\n          type: "doc",\n          content: [\n            {\n              type: "paragraph",\n              content: [{ type: "text", text: "" }],\n            },\n          ],\n        }',
         text: "",
       },
     };
@@ -137,19 +131,6 @@ export function useNoteEditor() {
     }
   };
 
-  function ensureJSONString(value: unknown): string {
-    if (typeof value === "string") {
-      // keep as-is if it already looks like JSON
-      try {
-        JSON.parse(value);
-        return value;
-      } catch {
-        /* not JSON, fall through */
-      }
-    }
-    return JSON.stringify(value); // proper JSON serialization (NOT String(value))
-  }
-
   /**
    * Save a specific note to the database
    */
@@ -159,7 +140,7 @@ export function useNoteEditor() {
       const rawTiptapContent = (noteData as FileNode).content.tiptap;
       const serializedTiptapContent = ensureJSONString(rawTiptapContent);
       const mutationData = {
-        quibble_id: noteData.quibble_id,
+        pointer_id: noteData.pointer_id,
         name: noteData.name,
         tenantId: noteData.tenantId,
         createdAt: String(noteData.createdAt),
@@ -172,16 +153,16 @@ export function useNoteEditor() {
         },
       };
 
-      const doesNoteExist = await fetchNoteById(note.quibble_id);
+      const doesNoteExist = await fetchNoteById(note.pointer_id);
       if (doesNoteExist) {
         await convex.mutation(api.notes.updateNoteInDb, mutationData);
       } else {
         await convex.mutation(api.notes.createNoteInDb, mutationData);
       }
-      const savedNote = { ...note, _id: note.quibble_id };
+      const savedNote = { ...note, _id: note.pointer_id };
       updateNoteInCollections(savedNote);
-      clearUnsavedNote(note.quibble_id.toString());
-      dbSavedNotes.set(note.quibble_id, savedNote);
+      clearUnsavedNote(note.pointer_id.toString());
+      dbSavedNotes.set(note.pointer_id, savedNote);
 
       console.log("note saved");
       return true;
@@ -199,8 +180,8 @@ export function useNoteEditor() {
     try {
       // Only try to delete from DB if it's not a temp note
       if (!noteId.startsWith("temp-")) {
-        await convex.mutation(api.notes.deleteNoteByQuibbleId, {
-          quibble_id: noteId,
+        await convex.mutation(api.notes.deleteNoteByPointerId, {
+          pointer_id: noteId,
         });
       }
 
@@ -249,7 +230,7 @@ export function useNoteEditor() {
   useEffect(() => {
     if (currentNote && currentNote.content?.tiptap) {
       lastContentRef.current = {
-        tiptap: currentNote.content.tiptap,
+        tiptap: ensureJSONString(currentNote.content.tiptap),
         text: currentNote.content.text,
       };
     } else {

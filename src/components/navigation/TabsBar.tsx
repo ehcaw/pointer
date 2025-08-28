@@ -32,7 +32,7 @@ export function TabsBar({
             "group flex items-center gap-2 px-3 py-1.5 border-r border-border/50 cursor-pointer select-none min-w-0 max-w-[200px] relative",
             "hover:bg-muted/50 transition-colors",
             activeTabId === tab.id &&
-              "bg-background border-b-2 border-b-primary",
+              "bg-background border-b-2 border-b-primary"
           )}
           onClick={() => onTabClick(tab.id)}
         >
@@ -45,7 +45,7 @@ export function TabsBar({
           <button
             className={cn(
               "opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 rounded-sm p-0.5 transition-opacity",
-              activeTabId === tab.id && "opacity-100",
+              activeTabId === tab.id && "opacity-100"
             )}
             onClick={(e) => {
               e.stopPropagation();

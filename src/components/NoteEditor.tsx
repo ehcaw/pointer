@@ -62,7 +62,7 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
       <div className="flex justify-between items-center">
         <Input
           type="text"
-          value="OOGABOOGA"
+          value=""
           onChange={handleTitleChange}
           placeholder="Note Title"
           className="text-xl font-semibold w-2/3"

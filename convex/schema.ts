@@ -13,7 +13,7 @@ export default defineSchema({
     lastAccessed: v.string(),
     lastEdited: v.string(),
     name: v.string(),
-    quibble_id: v.string(),
+    pointer_id: v.string(),
     tenantId: v.string(),
     updatedAt: v.string(),
   }).searchIndex("notes_full_text_search_index", {

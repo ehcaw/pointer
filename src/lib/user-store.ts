@@ -122,13 +122,13 @@ export const useUserStore = create<UserStore>()(
         })),
     }),
     {
-      name: "quibble-user-storage", // localStorage key
+      name: "pointer-user-storage", // localStorage key
       partialize: (state) => ({
         // Only persist these fields to localStorage
         currentUser: state.currentUser,
         isAuthenticated: state.isAuthenticated,
         enableBetaFeatures: state.enableBetaFeatures,
       }),
-    },
-  ),
+    }
+  )
 );

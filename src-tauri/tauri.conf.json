@@ -40,10 +40,10 @@
       }
     }
   },
-  "productName": "quibble",
-  "mainBinaryName": "quibble",
+  "productName": "pointer",
+  "mainBinaryName": "pointer",
   "version": "0.1.0",
-  "identifier": "com.quibble.dev",
+  "identifier": "com.pointer.dev",
   "plugins": {},
   "app": {
     "windows": [
@@ -51,7 +51,7 @@
         "fullscreen": false,
         "height": 1200,
         "resizable": true,
-        "title": "quibble",
+        "title": "pointer",
         "width": 1600,
         "useHttpsScheme": true
       }

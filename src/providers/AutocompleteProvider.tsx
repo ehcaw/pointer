@@ -48,7 +48,7 @@ const inlineAutocompleteKey = new PluginKey("inline-autocomplete");
 // Helper functions outside the extension
 const fetchSuggestion = async (
   fullText: string,
-  textBefore: string,
+  textBefore: string
 ): Promise<string | null> => {
   try {
     const response = await fetch("/api/suggestion", {
@@ -133,7 +133,7 @@ const dismissSuggestion = (editor: Editor) => {
 };
 
 export const InlineAutocompleteExtension = Extension.create({
-  name: "quibble-inline-autocomplete",
+  name: "pointer-inline-autocomplete",
 
   addGlobalAttributes() {
     return [
@@ -204,7 +204,7 @@ export const InlineAutocompleteExtension = Extension.create({
                 const pos = selection.from;
                 const textBefore = tr.doc.textBetween(
                   Math.max(0, pos - 1),
-                  pos,
+                  pos
                 );
                 const fullTextBefore = tr.doc.textBetween(0, pos);
 
@@ -223,7 +223,7 @@ export const InlineAutocompleteExtension = Extension.create({
                   fetchSuggestion(tr.doc.textContent, fullTextBefore).then(
                     (suggestion) => {
                       updateSuggestion(editor, suggestion);
-                    },
+                    }
                   );
                 }
                 // For pause detection, we only proceed if there's enough content
@@ -240,8 +240,7 @@ export const InlineAutocompleteExtension = Extension.create({
                   // Set a timer for pause detection
                   if (wordCount >= MIN_TOKENS_FOR_SUGGESTION) {
                     const lastSuggestionTime = parseInt(
-                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) ||
-                        "0",
+                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) || "0"
                     );
                     const timeSinceLastSuggestion =
                       Date.now() - lastSuggestionTime;
@@ -259,12 +258,12 @@ export const InlineAutocompleteExtension = Extension.create({
                           // Store the time of this auto-suggestion
                           localStorage.setItem(
                             LAST_AUTO_SUGGESTION_TIME_KEY,
-                            Date.now().toString(),
+                            Date.now().toString()
                           );
 
                           // Update state to show we're fetching
                           const pluginState = inlineAutocompleteKey.getState(
-                            editor.state,
+                            editor.state
                           );
                           if (pluginState) {
                             pluginState.isLoading = true;
@@ -274,7 +273,7 @@ export const InlineAutocompleteExtension = Extension.create({
                             // Fetch the suggestion
                             fetchSuggestion(
                               editor.state.doc.textContent,
-                              currentTextBefore,
+                              currentTextBefore
                             ).then((suggestion) => {
                               updateSuggestion(editor, suggestion);
                             });
@@ -355,7 +354,7 @@ export const InlineAutocompleteExtension = Extension.create({
                     }, 0);
                   }
                 },
-              },
+              }
             );
 
             return DecorationSet.create(state.doc, [decoration]);

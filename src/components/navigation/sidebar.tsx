@@ -70,9 +70,9 @@ export function AppSidebar() {
   const handleNoteClick = async (note: Node) => {
     if (
       currentNote &&
-      dbSavedNotes.get(currentNote.quibble_id) != undefined &&
+      dbSavedNotes.get(currentNote.pointer_id) != undefined &&
       currentNote.content.text !=
-        dbSavedNotes.get(currentNote.quibble_id)!.content.text
+        dbSavedNotes.get(currentNote.pointer_id)!.content.text
     ) {
       saveCurrentNote();
     }
@@ -91,7 +91,7 @@ export function AppSidebar() {
 
   const confirmDelete = () => {
     if (noteToDelete) {
-      deleteNote(noteToDelete.quibble_id || "");
+      deleteNote(noteToDelete.pointer_id || "");
       console.log("Confirmed deletion for:", noteToDelete.name);
       setNoteToDelete(null); // Close the dialog
     }
@@ -114,7 +114,7 @@ export function AppSidebar() {
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Quibble
+              Pointer
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Your digital workspace
@@ -179,7 +179,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {Array.from(unsavedNotes.values()).map((note) => (
-                  <SidebarMenuItem key={String(note.quibble_id)}>
+                  <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
                       className="rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-700 dark:text-slate-300"
@@ -212,11 +212,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {recentNotes.map((note) => {
-                const isActive = currentNote?.quibble_id === note.quibble_id;
+                const isActive = currentNote?.pointer_id === note.pointer_id;
 
                 return (
                   <SidebarMenuItem
-                    key={String(note.quibble_id)}
+                    key={String(note.pointer_id)}
                     className="relative group"
                   >
                     <SidebarMenuButton
@@ -275,10 +275,10 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {userNotes.slice(5).map((note) => {
-                  const isActive = currentNote?.quibble_id === note.quibble_id;
+                  const isActive = currentNote?.pointer_id === note.pointer_id;
 
                   return (
-                    <SidebarMenuItem key={String(note.quibble_id)}>
+                    <SidebarMenuItem key={String(note.pointer_id)}>
                       <SidebarMenuButton
                         onClick={() => handleNoteClick(note)}
                         size="sm"

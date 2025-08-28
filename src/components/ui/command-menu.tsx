@@ -2,14 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Command } from "cmdk";
-import {
-  FileText,
-  Plus,
-  Search,
-  FileDown,
-  Moon,
-  Sun,
-} from "lucide-react";
+import { FileText, Plus, Search, FileDown, Moon, Sun } from "lucide-react";
 import { Node } from "@/types/note";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -48,7 +41,7 @@ export function CommandMenu({
   const filteredNotes = useMemo(() => {
     if (!search.trim()) return notes;
     return notes.filter((note) =>
-      note.name.toLowerCase().includes(search.toLowerCase()),
+      note.name.toLowerCase().includes(search.toLowerCase())
     );
   }, [notes, search]);
 
@@ -75,7 +68,7 @@ export function CommandMenu({
     try {
       const dataStr = JSON.stringify(notes, null, 2);
       const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
-      const exportFileDefaultName = `quibble-notes-export-${new Date().toISOString().slice(0, 10)}.json`;
+      const exportFileDefaultName = `pointer-notes-export-${new Date().toISOString().slice(0, 10)}.json`;
 
       const linkElement = document.createElement("a");
       linkElement.setAttribute("href", dataUri);
@@ -118,8 +111,8 @@ export function CommandMenu({
               <Command.Group heading="Notes">
                 {filteredNotes.map((note) => (
                   <Command.Item
-                    key={note.quibble_id}
-                    value={`note-${note.quibble_id}`}
+                    key={note.pointer_id}
+                    value={`note-${note.pointer_id}`}
                     onSelect={() => handleSelectNote(note)}
                     className="flex items-center gap-2 px-2 py-1.5 text-sm"
                   >

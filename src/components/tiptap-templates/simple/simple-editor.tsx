@@ -80,6 +80,7 @@ import "@/components/tiptap-templates/simple/simple-editor.scss";
 import "@/components/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/notes-store";
+import { ensureJSONString } from "@/lib/utils";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -107,7 +108,7 @@ const MainToolbarContent = ({
       enableOnContentEditable: true,
       preventDefault: true,
       scopes: ["all"],
-    },
+    }
   );
 
   const handleMicToggle = async () => {
@@ -239,7 +240,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
-    "main",
+    "main"
   );
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -339,7 +340,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         return;
       }
 
-      const noteId = currentNote.quibble_id;
+      const noteId = currentNote.pointer_id;
       const currentEditorJson = editor.getJSON();
       const currentEditorText = editor.getText();
       const dbSavedMirror = dbSavedNotes.get(noteId);
@@ -366,10 +367,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
       if (changed) {
         markNoteAsUnsaved(currentNote);
-        currentNote.content.tiptap = currentEditorJson;
+        currentNote.content.tiptap = ensureJSONString(currentEditorJson);
         currentNote.content.text = currentEditorText;
-      } else if (!changed && unsavedNotes.has(currentNote.quibble_id)) {
-        removeUnsavedNote(currentNote.quibble_id); // Ensure it's unmarked if content matches DB mirror
+      } else if (!changed && unsavedNotes.has(currentNote.pointer_id)) {
+        removeUnsavedNote(currentNote.pointer_id); // Ensure it's unmarked if content matches DB mirror
       }
     },
   });
@@ -402,8 +403,8 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       // This assumes `currentNote.content.tiptap` and `currentNote.content.text`
       // accurately reflect the content from the database when the note is loaded/selected.
       dbSavedNotes.set(
-        currentNote.quibble_id,
-        JSON.parse(JSON.stringify(currentNote)),
+        currentNote.pointer_id,
+        JSON.parse(JSON.stringify(currentNote))
       );
     }
   }, [currentNote, dbSavedNotes]); // Only re-run when the currentNote object reference changes

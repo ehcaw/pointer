@@ -8,11 +8,11 @@ interface NoteContent {
 }
 
 export const readNoteFromDb = query({
-  args: { quibble_id: v.string() },
+  args: { pointer_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("quibble_id"), args.quibble_id))
+      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
       .first();
   },
 });
@@ -35,17 +35,17 @@ export const createNoteInDb = mutation({
       text: v.optional(v.string()),
     }),
     tenantId: v.string(),
-    quibble_id: v.string(), // Add quibble_id for client-side reference
+    pointer_id: v.string(), // Add pointer_id for client-side reference
     createdAt: v.string(),
     updatedAt: v.string(),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Store the quibble_id along with other fields
+    // Store the pointer_id along with other fields
     const existingNote = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("quibble_id"), args.quibble_id))
+      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
       .first();
     if (existingNote !== null) {
       return existingNote._id;
@@ -60,7 +60,7 @@ export const createNoteInDb = mutation({
       name: args.name,
       content: content,
       tenantId: args.tenantId,
-      quibble_id: args.quibble_id,
+      pointer_id: args.pointer_id,
       lastAccessed: args.lastAccessed || new Date().toISOString(),
       lastEdited: args.lastEdited || new Date().toISOString(),
       createdAt: args.createdAt,
@@ -73,7 +73,7 @@ export const createNoteInDb = mutation({
 export const updateNoteInDb = mutation({
   args: {
     // Required fields for both update and create
-    quibble_id: v.string(),
+    pointer_id: v.string(),
     name: v.string(),
 
     // Fields that are required for creation but optional for updates
@@ -82,7 +82,7 @@ export const updateNoteInDb = mutation({
 
     // Optional fields for both operations
     content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
+      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) })
     ),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
@@ -90,12 +90,12 @@ export const updateNoteInDb = mutation({
     updatedAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { quibble_id, ...fields } = args;
+    const { pointer_id, ...fields } = args;
 
     // First check if the note exists
     const existingNote = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("quibble_id"), quibble_id))
+      .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
       .first();
 
     if (existingNote) {
@@ -128,7 +128,7 @@ export const updateNoteInDb = mutation({
 
       // Prepare document for insertion with all required fields
       const doc = {
-        quibble_id,
+        pointer_id,
         name: fields.name,
         tenantId: fields.tenantId || "12345678", // Use default if not provided
         content: content,
@@ -145,39 +145,39 @@ export const updateNoteInDb = mutation({
   },
 });
 
-// Add a query to find a note by quibble_id
-export const findNoteByQuibbleId = query({
-  args: { quibble_id: v.string() },
+// Add a query to find a note by pointer_id
+export const findNoteByPointerId = query({
+  args: { pointer_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("quibble_id"), args.quibble_id))
+      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
       .first();
   },
 });
 
-// Add a mutation to update a note by quibble_id
-export const updateNoteByQuibbleId = mutation({
+// Add a mutation to update a note by pointer_id
+export const updateNoteByPointerId = mutation({
   args: {
-    quibble_id: v.string(),
+    pointer_id: v.string(),
     name: v.optional(v.string()),
     content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
+      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) })
     ),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { quibble_id, ...fields } = args;
+    const { pointer_id, ...fields } = args;
 
-    // Find the note by quibble_id
+    // Find the note by pointer_id
     const note = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("quibble_id"), quibble_id))
+      .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
       .first();
 
     if (!note) {
-      throw new Error(`Note with quibble_id ${quibble_id} not found`);
+      throw new Error(`Note with pointer_id ${pointer_id} not found`);
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: Record<string, any> = {};
@@ -193,20 +193,20 @@ export const updateNoteByQuibbleId = mutation({
   },
 });
 
-// Add a mutation to delete a note by quibble_id
-export const deleteNoteByQuibbleId = mutation({
+// Add a mutation to delete a note by pointer_id
+export const deleteNoteByPointerId = mutation({
   args: {
-    quibble_id: v.string(),
+    pointer_id: v.string(),
   },
   handler: async (ctx, args) => {
-    // Find the note by quibble_id
+    // Find the note by pointer_id
     const note = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("quibble_id"), args.quibble_id))
+      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
       .first();
 
     if (!note) {
-      throw new Error(`Note with quibble_id ${args.quibble_id} not found`);
+      throw new Error(`Note with pointer_id ${args.pointer_id} not found`);
     }
 
     // Delete using the Convex ID
