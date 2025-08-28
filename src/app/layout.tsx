@@ -4,6 +4,8 @@ import "./globals.css";
 import { ConvexClientProvider } from "@/lib/services/dev-convex";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import DebugPanel from "@/components/DebugPanel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,11 +46,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider defaultTheme="system" storageKey="theme">
-          <ConvexClientProvider>
-            <CommandMenuProvider>{children}</CommandMenuProvider>
-          </ConvexClientProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider defaultTheme="system" storageKey="theme">
+            <ConvexClientProvider>
+              <CommandMenuProvider>{children}</CommandMenuProvider>
+            </ConvexClientProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
+        <DebugPanel />
       </body>
     </html>
   );

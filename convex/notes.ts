@@ -1,9 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { Node } from "@/types/note";
 
 interface NoteContent {
   text: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tiptap: any; // Using 'any' as requested
 }
 

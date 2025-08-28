@@ -378,7 +378,7 @@ function NoteCard({
       return fileNote.content.text.slice(0, 120);
     }
     return "";
-  }, [note, fileNote]);
+  }, [fileNote]);
 
   const timeAgo = formatDistanceToNow(new Date(note.updatedAt), {
     addSuffix: true,
@@ -473,7 +473,7 @@ function SearchResultCard({
       text.slice(start, end) +
       (end < text.length ? "..." : "")
     );
-  }, [note, query, fileNote]);
+  }, [query, fileNote]);
 
   return (
     <Card

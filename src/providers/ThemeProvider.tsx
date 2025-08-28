@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import logger from "@/lib/logger";
 
 type Theme = "dark" | "light" | "system";
 
@@ -33,30 +34,46 @@ export function ThemeProvider({
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem(storageKey) as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
+    logger.info('ThemeProvider mounting');
+    
+    try {
+      const savedTheme = localStorage.getItem(storageKey) as Theme;
+      logger.info('Retrieved saved theme from localStorage', { savedTheme });
+      
+      if (savedTheme) {
+        setTheme(savedTheme);
+      }
+    } catch (error) {
+      logger.error('Error accessing localStorage in ThemeProvider', error);
     }
   }, [storageKey]);
 
   useEffect(() => {
     if (!mounted) return;
 
-    const root = window.document.documentElement;
+    logger.info('Applying theme to document', { theme, mounted });
 
-    root.classList.remove("light", "dark");
+    try {
+      const root = window.document.documentElement;
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
+      root.classList.remove("light", "dark");
 
-      root.classList.add(systemTheme);
-      return;
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light";
+
+        logger.info('Using system theme', { systemTheme });
+        root.classList.add(systemTheme);
+        return;
+      }
+
+      root.classList.add(theme);
+      logger.info('Applied theme class', { theme });
+    } catch (error) {
+      logger.error('Error applying theme', error);
     }
-
-    root.classList.add(theme);
   }, [theme, mounted]);
 
   const value = {
