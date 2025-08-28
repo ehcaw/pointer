@@ -84,9 +84,7 @@ export function useNoteEditor() {
   /**
    * Create a new note in the database
    */
-  const createNewNote = async (
-    name: string,
-  ): Promise<FileNode> => {
+  const createNewNote = async (name: string): Promise<FileNode> => {
     const tempId = `${Date.now()}-${Math.random()}`;
 
     const newNote: FileNode = {
@@ -139,12 +137,27 @@ export function useNoteEditor() {
     }
   };
 
+  function ensureJSONString(value: unknown): string {
+    if (typeof value === "string") {
+      // keep as-is if it already looks like JSON
+      try {
+        JSON.parse(value);
+        return value;
+      } catch {
+        /* not JSON, fall through */
+      }
+    }
+    return JSON.stringify(value); // proper JSON serialization (NOT String(value))
+  }
+
   /**
    * Save a specific note to the database
    */
   const saveNote = async (note: Node): Promise<boolean> => {
     try {
       const noteData = note;
+      const rawTiptapContent = (noteData as FileNode).content.tiptap;
+      const serializedTiptapContent = ensureJSONString(rawTiptapContent);
       const mutationData = {
         quibble_id: noteData.quibble_id,
         name: noteData.name,
@@ -154,7 +167,7 @@ export function useNoteEditor() {
         lastAccessed: String(new Date()),
         lastEdited: String(noteData.lastEdited || new Date()),
         content: {
-          tiptap: (noteData as FileNode).content.tiptap,
+          tiptap: serializedTiptapContent,
           text: (noteData as FileNode).content.text,
         },
       };

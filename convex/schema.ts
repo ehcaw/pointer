@@ -7,7 +7,7 @@ export default defineSchema({
   notes: defineTable({
     content: v.object({
       text: v.string(),
-      tiptap: v.any(),
+      tiptap: v.optional(v.string()),
     }),
     createdAt: v.string(),
     lastAccessed: v.string(),
