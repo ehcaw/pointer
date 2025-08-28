@@ -83,7 +83,7 @@ export function AppSidebar() {
 
   const handleOpenDeleteDialog = (
     e: React.MouseEvent<HTMLButtonElement>,
-    note: Node
+    note: Node,
   ) => {
     e.stopPropagation();
     setNoteToDelete(note);
@@ -100,7 +100,7 @@ export function AppSidebar() {
   const recentNotes = userNotes
     .sort(
       (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     )
     .slice(0, 5);
 
@@ -114,7 +114,7 @@ export function AppSidebar() {
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Pointer
+              pointer
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Your digital workspace
@@ -139,7 +139,7 @@ export function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
                   )}
                 >
                   <Home className="h-4 w-4" />
@@ -152,7 +152,7 @@ export function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
                   )}
                 >
                   <GitGraph className="h-4 w-4" />
@@ -226,7 +226,7 @@ export function AppSidebar() {
                         "rounded-lg transition-all my-1.5 w-full", // Use full width
                         isActive
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
                       )}
                     >
                       <div
@@ -234,7 +234,7 @@ export function AppSidebar() {
                           "flex h-6 w-6 items-center justify-center rounded",
                           isActive
                             ? "bg-primary/20"
-                            : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700"
+                            : "bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700",
                         )}
                       >
                         <FileText
@@ -242,7 +242,7 @@ export function AppSidebar() {
                             "h-3 w-3",
                             isActive
                               ? "text-primary"
-                              : "text-slate-500 dark:text-slate-400"
+                              : "text-slate-500 dark:text-slate-400",
                           )}
                         />
                       </div>
@@ -286,7 +286,7 @@ export function AppSidebar() {
                           "rounded-lg transition-all",
                           isActive
                             ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400",
                         )}
                       >
                         <FileText className="h-3 w-3" />

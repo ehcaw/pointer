@@ -59,7 +59,7 @@ export function HomeView() {
 
     const sortedNotes = [...userNotes].sort(
       (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
 
     sortedNotes.forEach((note) => {
@@ -85,10 +85,10 @@ export function HomeView() {
       todayCount: organizedNotes.today.length,
       recentlyModified: userNotes.filter(
         (note) =>
-          Date.now() - new Date(note.updatedAt).getTime() < 24 * 60 * 60 * 1000
+          Date.now() - new Date(note.updatedAt).getTime() < 24 * 60 * 60 * 1000,
       ).length,
     }),
-    [userNotes, organizedNotes]
+    [userNotes, organizedNotes],
   );
 
   const handleCreateNote = async () => {
@@ -115,7 +115,7 @@ export function HomeView() {
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
                 <Zap className="h-4 w-4" />
-                Welcome back to Pointer
+                Welcome back to pointer
               </div>
 
               <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-4">
@@ -341,7 +341,7 @@ function NotesTimeline({
                 className={cn(
                   viewMode === "grid"
                     ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    : "space-y-3"
+                    : "space-y-3",
                 )}
               >
                 {section.notes.map((note) => (
@@ -512,7 +512,7 @@ function SearchResultCard({
                   </span>
                 ) : (
                   <span key={i}>{part}</span>
-                )
+                ),
               )}
           </div>
         )}

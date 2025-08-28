@@ -13,6 +13,7 @@ export default defineSchema({
     lastAccessed: v.string(),
     lastEdited: v.string(),
     name: v.string(),
+    quibble_id: v.optional(v.string()),
     pointer_id: v.string(),
     tenantId: v.string(),
     updatedAt: v.string(),

@@ -5,7 +5,6 @@ import { EditorContent, EditorContext, useEditor, Editor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Image } from "@tiptap/extension-image";
 import { TaskItem } from "@tiptap/extension-task-item";
-import { UndoRedo } from "@tiptap/extensions/undo-redo";
 import { TaskList } from "@tiptap/extension-task-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
@@ -307,7 +306,11 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       },
     },
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        history: {
+          depth: 15,
+        },
+      }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Underline,
       TaskList,
@@ -317,9 +320,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       Typography,
       Superscript,
       Subscript,
-      UndoRedo.configure({
-        depth: 15,
-      }),
       Selection,
       ImageUploadNode.configure({
         accept: "image/*",
