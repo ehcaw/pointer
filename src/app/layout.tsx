@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="light">
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -34,9 +34,7 @@ export default function RootLayout({
               try {
                 const theme = localStorage.getItem('theme') || 'system';
                 if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.add('light');
+                  document.documentElement.className = document.documentElement.className.replace('light', 'dark');
                 }
               } catch (e) {}
             `,
