@@ -86,7 +86,8 @@ export function useNoteEditor() {
    * Create a new note in the database
    */
   const createNewNote = async (name: string): Promise<FileNode> => {
-    const tempId = `${Date.now()}-${Math.random()}`;
+    // Use a more predictable temp ID that won't cause hydration issues
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const newNote: FileNode = {
       pointer_id: tempId,

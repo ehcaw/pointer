@@ -82,7 +82,7 @@ export const updateNoteInDb = mutation({
 
     // Optional fields for both operations
     content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) })
+      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
     ),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
@@ -162,7 +162,7 @@ export const updateNoteByPointerId = mutation({
     pointer_id: v.string(),
     name: v.optional(v.string()),
     content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) })
+      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
     ),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
