@@ -9,7 +9,6 @@ import {
   FileDown,
   Moon,
   Sun,
-  FolderIcon,
 } from "lucide-react";
 import { Node } from "@/types/note";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -124,11 +123,7 @@ export function CommandMenu({
                     onSelect={() => handleSelectNote(note)}
                     className="flex items-center gap-2 px-2 py-1.5 text-sm"
                   >
-                    {note.type === "file" ? (
-                      <FileText className="h-4 w-4" />
-                    ) : (
-                      <FolderIcon className="h-4 w-4" />
-                    )}
+                    <FileText className="h-4 w-4" />
                     <span className="truncate">{note.name || "Untitled"}</span>
                   </Command.Item>
                 ))}

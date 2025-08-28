@@ -1,5 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { Node } from "@/types/note";
+
+interface NoteContent {
+  text: string;
+  tiptap: any; // Using 'any' as requested
+}
 
 export const readNoteFromDb = query({
   args: { quibble_id: v.string() },
@@ -30,8 +36,6 @@ export const createNoteInDb = mutation({
     }),
     tenantId: v.string(),
     quibble_id: v.string(), // Add quibble_id for client-side reference
-    parentId: v.optional(v.string()),
-    path: v.optional(v.array(v.string())),
     createdAt: v.string(),
     updatedAt: v.string(),
     lastAccessed: v.optional(v.string()),
@@ -44,17 +48,21 @@ export const createNoteInDb = mutation({
       .filter((q) => q.eq(q.field("quibble_id"), args.quibble_id))
       .first();
     if (existingNote !== null) {
-      return existingNote.id;
+      return existingNote._id;
     }
+
+    const content = {
+      // This is to satisfy type requirements
+      text: args.content.text || "",
+      tiptap: args.content.tiptap || "",
+    };
     const noteId = await ctx.db.insert("notes", {
       name: args.name,
-      content: args.content,
+      content: content,
       tenantId: args.tenantId,
       quibble_id: args.quibble_id,
-      parentId: args.parentId,
-      path: args.path,
-      lastAccessed: args.lastAccessed,
-      lastEdited: args.lastEdited,
+      lastAccessed: args.lastAccessed || new Date().toISOString(),
+      lastEdited: args.lastEdited || new Date().toISOString(),
       createdAt: args.createdAt,
       updatedAt: args.updatedAt,
     });
@@ -74,10 +82,8 @@ export const updateNoteInDb = mutation({
 
     // Optional fields for both operations
     content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
+      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) })
     ),
-    parentId: v.optional(v.string()),
-    path: v.optional(v.array(v.string())),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
     createdAt: v.optional(v.string()),
@@ -114,26 +120,23 @@ export const updateNoteInDb = mutation({
       // CREATE: Note doesn't exist, create a new one
       const now = String(new Date());
 
-      // Prepare document for insertion
-      const doc: Record<string, any> = {
+      // Add content
+      const content: NoteContent = {
+        tiptap: fields.content?.tiptap || {}, // Default to empty object
+        text: fields.content?.text || "", // Default to empty string
+      };
+
+      // Prepare document for insertion with all required fields
+      const doc = {
         quibble_id,
         name: fields.name,
         tenantId: fields.tenantId || "12345678", // Use default if not provided
-        type: fields.type || "file", // Default to file if not specified
-        parentId: fields.parentId || null,
-        path: fields.path || [],
+        content: content,
         createdAt: fields.createdAt || now,
         updatedAt: fields.updatedAt || now,
+        lastAccessed: fields.lastAccessed || now,
+        lastEdited: fields.lastEdited || now,
       };
-
-      // Add optional fields if they exist
-      if (fields.lastAccessed) doc.lastAccessed = fields.lastAccessed;
-      if (fields.lastEdited) doc.lastEdited = fields.lastEdited;
-
-      // Add content if this is a file
-      if (doc.type === "file") {
-        doc.content = fields.content || { tiptap: {}, text: "" };
-      }
 
       // Insert the new document
       const newId = await ctx.db.insert("notes", doc);
@@ -159,7 +162,7 @@ export const updateNoteByQuibbleId = mutation({
     quibble_id: v.string(),
     name: v.optional(v.string()),
     content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
+      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) })
     ),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
@@ -176,7 +179,7 @@ export const updateNoteByQuibbleId = mutation({
     if (!note) {
       throw new Error(`Note with quibble_id ${quibble_id} not found`);
     }
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: Record<string, any> = {};
     Object.entries(fields).forEach(([key, value]) => {
       if (value !== undefined) {

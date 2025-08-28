@@ -1,17 +1,30 @@
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotesStore } from "@/lib/notes-store";
-import { Node, FileNode } from "@/types/note";
-import { Id } from "../../convex/_generated/dataModel";
+import { Node } from "@/types/note";
+
+interface MutationType {
+  quibble_id: string;
+  name: string;
+  tenantId: string;
+  createdAt: string;
+  updatedAt: string;
+  lastAccessed: string;
+  lastEdited: string;
+  content: {
+    tiptap?: Record<string, string> | undefined;
+    text?: string | undefined;
+  };
+}
 
 export function useNotesApi() {
   const convex = useConvex();
-  const { setUserNotes, setIsLoading, markNoteAsUnsaved } = useNotesStore();
+  const { setUserNotes, setIsLoading } = useNotesStore();
 
   const fetchAllNotes = async (tenantId: string) => {
     setIsLoading(true);
     try {
-      const notes = await convex.query(api.notes.readNotesFromDb, {
+      const notes: Node[] = await convex.query(api.notes.readNotesFromDb, {
         user_id: tenantId,
       });
       setUserNotes(notes);
@@ -22,65 +35,36 @@ export function useNotesApi() {
     }
   };
 
-  const createNoteInDb = async (note: Node): Promise<Node> => {
-    try {
-      const { quibble_id, ...noteData } = note;
-      const newNote: any = {
-        quibble_id: quibble_id,
-        name: noteData.name,
-        tenantId: noteData.tenantId,
-        content: (note as FileNode).content,
-        parentId: noteData.parentId,
-        path: noteData.path,
-        createdAt: String(noteData.createdAt),
-        updatedAt: String(noteData.updatedAt),
-        lastAccessed: String(new Date()),
-        lastEdited: String(noteData.lastEdited || new Date()),
-      };
-      await convex.mutation(api.notes.createNoteInDb, newNote);
-      return note;
-    } catch (error) {
-      console.error("Error creating a note: ", error);
-      throw error;
-    }
-  };
-
   const saveNote = async (note: Node): Promise<Node> => {
     try {
       if (note.quibble_id.toString().startsWith("temp-")) {
         // Create new note
         const { quibble_id, ...noteData } = note;
-        const mutationData: any = {
+        const mutationData: MutationType = {
           quibble_id: quibble_id,
           name: noteData.name,
-          tenantId: noteData.tenantId,
-          parentId: noteData.parentId,
-          path: noteData.path,
+          tenantId: noteData.tenantId!,
           createdAt: String(noteData.createdAt),
           updatedAt: String(noteData.updatedAt),
           lastAccessed: String(new Date()),
           lastEdited: String(noteData.lastEdited || new Date()),
+          content: note.content,
         };
-
-        // Only add content if this is a FileNode
-        if (note.type === "file") {
-          mutationData.content = note.content;
-        }
 
         await convex.mutation(api.notes.createNoteInDb, mutationData);
         return note; // Return the original note or fetch the saved version
       } else {
         // Update existing note
-        const updateData: any = {
+        const updateData: MutationType = {
           quibble_id: note.quibble_id,
           name: note.name,
+          tenantId: note.tenantId,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+          lastAccessed: String(note.lastAccessed),
           lastEdited: String(new Date()),
+          content: note.content,
         };
-
-        if (note.type === "file") {
-          updateData.content = note.content;
-        }
-
         await convex.mutation(api.notes.updateNoteInDb, updateData);
         return note;
       }

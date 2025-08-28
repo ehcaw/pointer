@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 import ReactFlow, {
   type Node,
   type Edge,
@@ -16,16 +16,29 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { motion } from "framer-motion";
 import { Type, LinkIcon, ImageIcon, Hash } from "lucide-react";
-import type { GraphBaseNode, Edge as GraphEdge } from "@/types/note";
+import type { NodeType } from "@/lib/types";
+import type { Edge as GraphEdge } from "@/types/note";
 
 interface GraphCanvasProps {
-  nodes: GraphBaseNode[];
+  nodes: NodeType[];
   edges: GraphEdge[];
-  onNodeClick: (node: GraphBaseNode) => void;
+  onNodeClick: (node: NodeType) => void;
+}
+
+interface CustomNodeData {
+  type: "thought" | "bookmark" | "media" | string;
+  originalNode: NodeType;
+  onClick: (node: NodeType) => void;
+  // Add any other properties that might be passed in the data object
+  id?: string;
+  text?: string;
+  title?: string;
+  caption?: string;
+  tags?: string[];
 }
 
 // Custom node component - moved outside of the main component
-function CustomNode({ data }: { data: any }) {
+function CustomNode({ data }: { data: CustomNodeData }) {
   const getIcon = () => {
     switch (data.type) {
       case "thought":
@@ -64,10 +77,12 @@ function CustomNode({ data }: { data: any }) {
       </div>
       <div className="text-sm font-medium truncate">
         {data.type === "thought"
-          ? data.originalNode.text
+          ? (data.originalNode as import("@/lib/types").ThoughtNode).text
           : data.type === "bookmark"
-            ? data.originalNode.title
-            : data.originalNode.caption}
+            ? (data.originalNode as import("@/lib/types").BookmarkNode).title
+            : data.type === "media"
+              ? (data.originalNode as import("@/lib/types").MediaNode).caption
+              : "Unknown"}
       </div>
       {data.originalNode.tags && data.originalNode.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
@@ -141,7 +156,7 @@ export function GraphCanvas({ nodes, edges, onNodeClick }: GraphCanvasProps) {
 
   const onConnect = useCallback(
     (params: Connection) => setReactFlowEdges((eds) => addEdge(params, eds)),
-    [setReactFlowEdges],
+    [setReactFlowEdges]
   );
 
   if (nodes.length === 0) {

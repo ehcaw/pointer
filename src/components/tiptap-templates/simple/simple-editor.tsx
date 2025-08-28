@@ -337,7 +337,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       }
 
       const noteId = currentNote.quibble_id;
-      const currentEditorJson = JSON.stringify(editor.getJSON());
+      const currentEditorJson = editor.getJSON();
       const currentEditorText = editor.getText();
       const dbSavedMirror = dbSavedNotes.get(noteId);
 
@@ -351,7 +351,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
         // Use OR (||) so if either JSON or plain text differs, it's marked as changed
         changed =
-          currentEditorJson != lastSavedJson ||
+          JSON.stringify(currentEditorJson) != lastSavedJson ||
           currentEditorText != lastSavedText;
       } else {
         // This case occurs if:
@@ -426,7 +426,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
             onHighlighterClick={() => setMobileView("highlighter")}
             onLinkClick={() => setMobileView("link")}
             isMobile={isMobile}
-            editor={editor}
+            editor={editor ?? undefined}
           />
         ) : (
           <MobileToolbarContent

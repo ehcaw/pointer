@@ -7,13 +7,18 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { BaseNode } from "@/lib/types";
+import type {
+  NodeType,
+  ThoughtNode,
+  BookmarkNode,
+  MediaNode,
+} from "@/lib/types";
 
 interface SearchOverlayProps {
   isOpen: boolean;
   onClose: () => void;
-  nodes: BaseNode[];
-  onNodeSelect: (node: BaseNode) => void;
+  nodes: NodeType[];
+  onNodeSelect: (node: NodeType) => void;
 }
 
 export function SearchOverlay({
@@ -42,18 +47,20 @@ export function SearchOverlay({
       // Search in content
       const contentMatch =
         (node.type === "thought" &&
-          node.text.toLowerCase().includes(searchTerm)) ||
+          (node as ThoughtNode).text.toLowerCase().includes(searchTerm)) ||
         (node.type === "bookmark" &&
-          (node.title.toLowerCase().includes(searchTerm) ||
-            node.url.toLowerCase().includes(searchTerm) ||
-            (node.description &&
-              node.description.toLowerCase().includes(searchTerm)))) ||
+          ((node as BookmarkNode).title.toLowerCase().includes(searchTerm) ||
+            (node as BookmarkNode).url.toLowerCase().includes(searchTerm) ||
+            ((node as BookmarkNode).description &&
+              (node as BookmarkNode)
+                .description!.toLowerCase()
+                .includes(searchTerm)))) ||
         (node.type === "media" &&
-          node.caption.toLowerCase().includes(searchTerm));
+          (node as MediaNode).caption.toLowerCase().includes(searchTerm));
 
       // Search in tags
       const tagMatch = node.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm),
+        tag.toLowerCase().includes(searchTerm)
       );
 
       return contentMatch || tagMatch;
@@ -66,14 +73,14 @@ export function SearchOverlay({
 
     // Sort by relevance (exact matches first, then partial matches)
     return filteredNodes.sort((a, b) => {
-      const getRelevanceScore = (node: BaseNode) => {
+      const getRelevanceScore = (node: NodeType) => {
         let score = 0;
         const content =
           node.type === "thought"
-            ? node.text
+            ? (node as ThoughtNode).text
             : node.type === "bookmark"
-              ? `${node.title} ${node.description || ""}`
-              : node.caption;
+              ? `${(node as BookmarkNode).title} ${(node as BookmarkNode).description || ""}`
+              : (node as MediaNode).caption;
 
         // Exact match in content
         if (content.toLowerCase() === searchTerm) score += 100;
@@ -109,7 +116,7 @@ export function SearchOverlay({
     }
   };
 
-  const handleNodeSelect = (node: BaseNode) => {
+  const handleNodeSelect = (node: NodeType) => {
     onNodeSelect(node);
     onClose();
   };
@@ -119,7 +126,7 @@ export function SearchOverlay({
 
     const regex = new RegExp(
       `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-      "gi",
+      "gi"
     );
     const parts = text.split(regex);
 
@@ -133,7 +140,7 @@ export function SearchOverlay({
         </mark>
       ) : (
         part
-      ),
+      )
     );
   };
 
@@ -198,7 +205,7 @@ export function SearchOverlay({
               ) : searchResults.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
                   <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No results found for "{query}"</p>
+                  <p>No results found for &quot;{query}&quot;</p>
                   <p className="text-sm mt-1">
                     Try different keywords or check your spelling
                   </p>
@@ -229,18 +236,27 @@ export function SearchOverlay({
                           <div className="space-y-1">
                             {node.type === "thought" && (
                               <p className="text-sm leading-relaxed">
-                                {highlightMatch(node.text, query)}
+                                {highlightMatch(
+                                  (node as ThoughtNode).text,
+                                  query
+                                )}
                               </p>
                             )}
 
                             {node.type === "bookmark" && (
                               <div className="space-y-1">
                                 <h4 className="font-medium text-sm">
-                                  {highlightMatch(node.title, query)}
+                                  {highlightMatch(
+                                    (node as BookmarkNode).title,
+                                    query
+                                  )}
                                 </h4>
-                                {node.description && (
+                                {(node as BookmarkNode).description && (
                                   <p className="text-sm text-muted-foreground">
-                                    {highlightMatch(node.description, query)}
+                                    {highlightMatch(
+                                      (node as BookmarkNode).description!,
+                                      query
+                                    )}
                                   </p>
                                 )}
                               </div>
@@ -248,7 +264,10 @@ export function SearchOverlay({
 
                             {node.type === "media" && (
                               <p className="text-sm">
-                                {highlightMatch(node.caption, query)}
+                                {highlightMatch(
+                                  (node as MediaNode).caption,
+                                  query
+                                )}
                               </p>
                             )}
 

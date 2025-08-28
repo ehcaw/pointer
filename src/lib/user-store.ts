@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ObjectId } from "mongodb";
 
 // Define user theme preferences
 export type ThemePreference = "light" | "dark" | "system";

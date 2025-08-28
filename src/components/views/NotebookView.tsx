@@ -6,7 +6,7 @@ import { useNotesStore } from "@/lib/notes-store";
 import { Button } from "@/components/tiptap-ui-primitive/button";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
-import { Save, FileText, Clock, ArrowLeft } from "lucide-react";
+import { Save, FileText, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -144,13 +144,7 @@ export const NotebookView = () => {
               {/* Save button */}
               <Button
                 onClick={saveCurrentNote}
-                disabled={
-                  isSaving ||
-                  noteContent === dbSavedNotes.get(mostCurrentNote?.quibble_id)
-                    ? dbSavedNotes.get(mostCurrentNote.quibble_id).content
-                        .tiptap
-                    : "{}"
-                }
+                                disabled={!!(isSaving || (mostCurrentNote && dbSavedNotes.has(mostCurrentNote.quibble_id) && JSON.stringify(noteContent) === JSON.stringify(dbSavedNotes.get(mostCurrentNote.quibble_id)?.content.tiptap)))}
                 className={cn(
                   "rounded-lg px-4 py-2 font-medium shadow-sm transition-all",
                   isSaving
@@ -188,8 +182,6 @@ export const NotebookView = () => {
             <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-4">
                 <span>ID: {currentNote.quibble_id.slice(-8)}</span>
-                <span>•</span>
-                <span>Type: {currentNote.type}</span>
               </div>
 
               <div className="flex items-center gap-2">

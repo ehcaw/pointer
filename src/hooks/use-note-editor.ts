@@ -17,7 +17,6 @@ export function useNoteEditor() {
   const {
     currentNote,
     setCurrentNote,
-    markNoteAsUnsaved,
     setUserNotes,
     setIsLoading,
     clearUnsavedNote,
@@ -57,8 +56,7 @@ export function useNoteEditor() {
 
       console.log("USE NOTES API ", notes);
 
-      // Build tree structure from flat notes lista
-      const treeStructure = notes.filter((note) => note.parentId === null);
+      const treeStructure = notes;
 
       setUserNotes(notes);
       setTreeStructure(treeStructure);
@@ -88,7 +86,6 @@ export function useNoteEditor() {
    */
   const createNewNote = async (
     name: string,
-    path: string[] = [],
   ): Promise<FileNode> => {
     const tempId = `${Date.now()}-${Math.random()}`;
 
@@ -96,10 +93,9 @@ export function useNoteEditor() {
       quibble_id: tempId,
       tenantId: process.env.TEMP_TENANT_ID || "12345678",
       name,
-      path,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastEdited: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastEdited: new Date().toISOString(),
       content: {
         tiptap: {
           type: "doc",
@@ -211,7 +207,7 @@ export function useNoteEditor() {
    * Create a new empty note and open it
    */
   const createEmptyNote = async (name: string = "Untitled Note") => {
-    const newNote = await createNewNote(name, null, []);
+    const newNote = await createNewNote(name);
     setCurrentNote(newNote);
 
     // Reset the last content tracking
@@ -232,6 +228,7 @@ export function useNoteEditor() {
    * Handle navigation away from the editor with unsaved changes check
    */
   const handleNavigateAway = (onContinue: () => void = () => {}): boolean => {
+    onContinue();
     return false;
   };
 

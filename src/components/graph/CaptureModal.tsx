@@ -13,12 +13,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { BaseNode, Thought, Bookmark } from "@/lib/types";
+import { NodeType, BookmarkNode, ThoughtNode } from "@/lib/types";
 
 interface CaptureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (node: BaseNode) => void;
+  onSubmit: (node: NodeType) => void;
   availableTags: string[];
 }
 
@@ -46,13 +46,13 @@ export function CaptureModal({
       tags,
     };
 
-    let node: BaseNode;
+    let node: NodeType;
     if (activeTab === "thought") {
       node = {
         ...baseNode,
         type: "thought",
         text: text.trim(),
-      } as Thought;
+      } as ThoughtNode;
     } else {
       node = {
         ...baseNode,
@@ -60,7 +60,7 @@ export function CaptureModal({
         url: url.trim(),
         title: title.trim() || new URL(url).hostname,
         description: description.trim(),
-      } as Bookmark;
+      } as BookmarkNode;
     }
 
     onSubmit(node);
@@ -90,7 +90,7 @@ export function CaptureModal({
 
   const filteredAvailableTags = availableTags.filter(
     (tag) =>
-      !tags.includes(tag) && tag.toLowerCase().includes(newTag.toLowerCase()),
+      !tags.includes(tag) && tag.toLowerCase().includes(newTag.toLowerCase())
   );
 
   return (

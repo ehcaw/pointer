@@ -1,6 +1,6 @@
-import type { BaseNode, Edge } from "./types";
+import type { NodeType, Edge } from "./types";
 
-export const mockNodes: BaseNode[] = [
+export const mockNodes: NodeType[] = [
   {
     id: "1",
     type: "thought",

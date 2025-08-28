@@ -374,7 +374,6 @@ function NoteCard({
 }) {
   const fileNote = note as FileNode;
   const preview = React.useMemo(() => {
-    if (note.type === "folder") return "";
     if (typeof fileNote.content?.text === "string") {
       return fileNote.content.text.slice(0, 120);
     }
@@ -459,7 +458,6 @@ function SearchResultCard({
 }) {
   const fileNote = note as FileNode;
   const highlightedContent = React.useMemo(() => {
-    if (note.type === "folder") return "";
 
     const text = fileNote.content?.text || "";
     const lowerText = text.toLowerCase();

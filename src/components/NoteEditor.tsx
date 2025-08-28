@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNotesStore } from "../lib/notes-store";
-import { useNoteEditor } from "../hooks/useNoteEditor";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 import { Input } from "./ui/input";
 
-import type { FileNode } from "../types/note";
 import { SimpleEditor } from "./tiptap-templates/simple/simple-editor";
 
 interface NoteEditorProps {
@@ -20,7 +19,7 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
     handleNavigateAway,
   } = useNoteEditor();
 
-  const [title, setTitle] = useState("");
+  const [, setTitle] = useState("");
 
   useEffect(() => {
     if (currentNote) setTitle(currentNote.name);
@@ -32,16 +31,6 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
     setTitle(e.target.value);
     if (currentNote) {
       markNoteAsUnsaved({ ...currentNote, name: e.target.value });
-    }
-  };
-
-  const handleContentUpdate = (json: object, text: string) => {
-    if (currentNote?.type === "file") {
-      markNoteAsUnsaved({
-        ...currentNote,
-        content: { ...currentNote.content, tiptap: json, text },
-        lastEdited: new Date(),
-      } as FileNode);
     }
   };
 
@@ -88,18 +77,10 @@ const NoteEditor: React.FC<NoteEditorProps> = () => {
       </div>
 
       <div>
-        {currentNote.type === "file" && (
-          <SimpleEditor
-            content={currentNote.content.tiptap || {}}
-            editorRef={editorRef}
-            onUpdate={handleContentUpdate}
-          />
-        )}
-        {currentNote.type === "folder" && (
-          <div className="folder-view">
-            <p>This is a folder. You cannot edit its content directly.</p>
-          </div>
-        )}
+        <SimpleEditor
+          content={currentNote.content.tiptap || {}}
+          editorRef={editorRef}
+        />
       </div>
     </div>
   );
