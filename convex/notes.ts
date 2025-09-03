@@ -213,3 +213,9 @@ export const deleteNoteByPointerId = mutation({
     await ctx.db.delete(note._id);
   },
 });
+
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});

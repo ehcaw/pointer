@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "",
     "beforeDevCommand": "",
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000"

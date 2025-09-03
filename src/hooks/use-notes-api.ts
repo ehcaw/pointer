@@ -38,6 +38,7 @@ export function useNotesApi() {
 
   const saveNote = async (note: Node): Promise<Node> => {
     try {
+      console.log(note.content);
       if (note.pointer_id.toString().startsWith("temp-")) {
         // Create new note
         const { pointer_id, ...noteData } = note;

@@ -55,8 +55,6 @@ export function useNoteEditor() {
         user_id: tenantId,
       });
 
-      console.log("USE NOTES API ", notes);
-
       const treeStructure = notes;
 
       setUserNotes(notes);
