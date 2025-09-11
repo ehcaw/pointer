@@ -1,6 +1,5 @@
 import { Extension } from '@tiptap/core'
 import { registerSlashCommand } from '@/components/tiptap-ui/slash-command-registry'
-import { Editor } from '@tiptap/react'
 
 /**
  * Example of how to make your extension add commands to the slash command menu
@@ -36,29 +35,21 @@ export const TableExtension = Extension.create({
   
   onCreate() {
     // Register table commands
-    registerSlashCommand({
-      title: 'Table',
-      description: 'Insert a table',
-      icon: 'table',
-      keywords: ['table', 'grid', 'spreadsheet', 'data'],
-      category: 'advanced',
-      priority: 8,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-      },
-    })
-    
-    registerSlashCommand({
-      title: 'Table Row',
-      description: 'Add a table row',
-      icon: 'tableRow',
-      keywords: ['table', 'row', 'add'],
-      category: 'advanced',
-      priority: 3,
-      command: ({ editor, range }) => {
-        editor.chain().focus().deleteRange(range).addTableRow().run()
-      },
-    })
+     registerSlashCommand({
+       title: 'Table',
+       description: 'Insert a table (requires Table extension)',
+       icon: 'table',
+       keywords: ['table', 'grid', 'spreadsheet', 'data'],
+       category: 'advanced',
+       priority: 8,
+       command: ({ editor, range }) => {
+         // This would require the Table extension to be installed
+         // For now, show a placeholder message
+         editor.chain().focus().deleteRange(range).insertContent('📝 Table feature - install Table extension to enable').run()
+       },
+     })
+     
+     // Table row command removed as it requires the Table extension
   },
 })
 
@@ -100,35 +91,39 @@ export const EmbedExtension = Extension.create({
   name: 'embed',
   
   onCreate() {
-    registerSlashCommand({
-      title: 'YouTube',
-      description: 'Embed a YouTube video',
-      icon: 'youtube',
-      keywords: ['youtube', 'video', 'embed', 'media'],
-      category: 'media',
-      priority: 7,
-      command: ({ editor, range }) => {
-        const url = window.prompt('Enter YouTube URL:')
-        if (url) {
-          editor.chain().focus().deleteRange(range).setEmbed({ url, type: 'youtube' }).run()
-        }
-      },
-    })
-    
-    registerSlashCommand({
-      title: 'Twitter',
-      description: 'Embed a tweet',
-      icon: 'twitter',
-      keywords: ['twitter', 'tweet', 'embed', 'social'],
-      category: 'media',
-      priority: 6,
-      command: ({ editor, range }) => {
-        const url = window.prompt('Enter Twitter URL:')
-        if (url) {
-          editor.chain().focus().deleteRange(range).setEmbed({ url, type: 'twitter' }).run()
-        }
-      },
-    })
+     registerSlashCommand({
+       title: 'YouTube',
+       description: 'Embed a YouTube video (requires Embed extension)',
+       icon: 'youtube',
+       keywords: ['youtube', 'video', 'embed', 'media'],
+       category: 'media',
+       priority: 7,
+       command: ({ editor, range }) => {
+         const url = window.prompt('Enter YouTube URL:')
+         if (url) {
+           // This would require an Embed extension
+           // For now, insert as a simple link
+           editor.chain().focus().deleteRange(range).insertContent(`[YouTube Video: ${url}](${url})`).run()
+         }
+       },
+     })
+     
+     registerSlashCommand({
+       title: 'Twitter',
+       description: 'Embed a tweet (requires Embed extension)',
+       icon: 'twitter',
+       keywords: ['twitter', 'tweet', 'embed', 'social'],
+       category: 'media',
+       priority: 6,
+       command: ({ editor, range }) => {
+         const url = window.prompt('Enter Twitter URL:')
+         if (url) {
+           // This would require an Embed extension
+           // For now, insert as a simple link
+           editor.chain().focus().deleteRange(range).insertContent(`[Twitter Post: ${url}](${url})`).run()
+         }
+       },
+     })
   },
 })
 
