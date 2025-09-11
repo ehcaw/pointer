@@ -134,6 +134,7 @@ export function useNoteEditor() {
    * Save a specific note to the database
    */
   const saveNote = async (note: Node): Promise<boolean> => {
+    console.log(note.content);
     try {
       const noteData = note;
       const rawTiptapContent = (noteData as FileNode).content.tiptap;
