@@ -46,5 +46,5 @@ package-lock.json
 # clerk configuration (can include secrets)
 /.clerk/
 
-*/bun.lock
-*/package-lock.json
+bun.lock
+package-lock.json

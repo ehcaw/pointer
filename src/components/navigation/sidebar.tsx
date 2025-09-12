@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ThemeToggle } from "../theme-toggle";
 
-export function AppSidebar() {
+export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
 
   const {

@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { AppSidebar } from "@/components/navigation/Sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -30,6 +29,7 @@ import { useQuery } from "convex/react";
 import { FileText, Home, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { UserButton } from "@clerk/nextjs";
+import AppSidebar from "@/components/navigation/sidebar";
 
 export default function MainPage() {
   const { isSignedIn, isLoaded } = useUser();
