@@ -9,7 +9,6 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-bun.lock
 
 # testing
 /coverage
@@ -46,3 +45,6 @@ package-lock.json
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+*/bun.lock
+*/package-lock.json
