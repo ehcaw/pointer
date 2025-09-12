@@ -1,128 +1,66 @@
 "use client";
-import { AppSidebar } from "@/components/navigation/Sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
-import { HomeView } from "@/components/views/HomeView";
-import GraphView from "@/components/views/GraphView";
-import React, { useEffect } from "react";
-import { useNotesStore } from "@/lib/notes-store";
-import { NotebookView } from "@/components/views/NotebookView";
-import { FileNode, Node } from "@/types/note";
-import { api } from "../../convex/_generated/api";
-import { useQuery } from "convex/react";
-import { FileText, Home, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
-export default function Page() {
-  const {
-    currentView,
-    currentNote,
-    setUserNotes,
-    unsavedNotes,
-    setDBSavedNotes,
-  } = useNotesStore();
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { SignInButton } from "@clerk/nextjs";
 
-  const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb, {
-    user_id: "12345678",
-  });
+export default function LoginPage() {
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
-    if (notes && notes.length > 0) {
-      setUserNotes(notes);
-      setDBSavedNotes(notes);
+    if (isLoaded && isSignedIn) {
+      router.push("/main");
     }
-  }, [notes, setUserNotes, setDBSavedNotes]);
+  }, [isSignedIn, isLoaded, router]);
 
-  const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
+  // Show loading while Clerk is initializing
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // Don't render login if already signed in (prevents flash)
+  if (isSignedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset className="bg-transparent">
-          {/* Header for note view */}
-          {currentView === "note" && (
-            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">
-              <SidebarTrigger className="-ml-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 h-4 bg-slate-200 dark:bg-slate-700"
-              />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4">
+      <div className="max-w-md w-full text-center">
+        {/* Logo */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            Pointer
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">
+            Your intelligent note-taking companion
+          </p>
+        </div>
 
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink
-                      href="#"
-                      className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-                    >
-                      <Home className="h-3 w-3" />
-                      workspace
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink
-                      href="#"
-                      className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-                    >
-                      <FileText className="h-3 w-3" />
-                      notes
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-medium">
-                      {(currentNote as FileNode)?.name || "Untitled"}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+        <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg rounded-lg p-8">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-white">
+            Sign in to your account
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">
+            Access your notes and continue your work
+          </p>
 
-              {/* Status indicators */}
-              <div className="ml-auto flex items-center gap-2">
-                {hasUnsavedChanges && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
-                  >
-                    <Clock className="h-3 w-3 mr-1" />
-                    Unsaved changes
-                  </Badge>
-                )}
-
-                {currentNote && (
-                  <div className="hidden sm:block text-xs text-slate-500 dark:text-slate-400">
-                    {formatDistanceToNow(new Date(currentNote.updatedAt), {
-                      addSuffix: true,
-                    })}
-                  </div>
-                )}
-              </div>
-            </header>
-          )}
-          <div
-            className={`overflow-y-auto ${currentView === "note" ? "h-[calc(100vh-4rem)]" : "h-screen"}`}
-          >
-            {currentView === "home" && <HomeView />}
-            {currentView === "note" && <NotebookView />}
-            {currentView === "graph" && <GraphView />}
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+          <SignInButton mode="modal">
+            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+              Sign In
+            </button>
+          </SignInButton>
+        </div>
+      </div>
     </div>
   );
 }

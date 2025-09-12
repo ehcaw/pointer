@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 interface NoteContent {
@@ -6,6 +6,14 @@ interface NoteContent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tiptap: any; // Using 'any' as requested
 }
+
+export const getUserId = action({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    console.log(identity);
+    return identity ? identity.subject : null;
+  },
+});
 
 export const readNoteFromDb = query({
   args: { pointer_id: v.string() },
@@ -18,11 +26,17 @@ export const readNoteFromDb = query({
 });
 
 export const readNotesFromDb = query({
-  args: { user_id: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+    console.log(identity);
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("tenantId"), args.user_id))
+      // .filter((q) => q.eq(q.field("tenantId"), args.user_id))
+      .filter((q) => q.eq(q.field("tenantId"), identity.subject))
       .collect();
   },
 });

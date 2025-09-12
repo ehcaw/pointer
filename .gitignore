@@ -42,10 +42,7 @@ yarn-error.log*
 next-env.d.ts
 */gen/schemas
 
+package-lock.json
 
-# Added by catdoc
-logs/
-docs/
-.catdoc.cache.json
-*.tree.json
-*.cache.json
+# clerk configuration (can include secrets)
+/.clerk/
