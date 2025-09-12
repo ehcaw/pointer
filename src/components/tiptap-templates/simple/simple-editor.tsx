@@ -18,6 +18,7 @@ import { Link } from "@/components/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap-extension/trailing-node-extension";
 import { AutocompleteExtension } from "../../../providers/AutocompleteProvider";
+import { SlashCommand } from "@/components/tiptap-extension/slash-command-extension";
 
 // --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button";
@@ -29,7 +30,8 @@ import {
 } from "@/components/tiptap-ui-primitive/toolbar";
 
 // --- Tiptap Node ---
-import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension";
+// import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension";
+// import UploadPlugin from "@/components/tiptap-node/image-upload-node/image-upload-custom-node";
 import "@/components/tiptap-node/code-block-node/code-block-node.scss";
 import "@/components/tiptap-node/list-node/list-node.scss";
 import "@/components/tiptap-node/image-node/image-node.scss";
@@ -68,9 +70,10 @@ import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SlashCommandPopup } from "@/components/tiptap-ui/slash-command-popup";
 
 // --- Lib ---
-import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
+// import { handleImageUpload } from "@/lib/tiptap-utils";
 import { useVoiceRecorderStore } from "@/hooks/use-voice-recorder";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -80,6 +83,10 @@ import "@/components/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/notes-store";
 import { ensureJSONString } from "@/lib/utils";
+
+// --- Convex Database ---
+// import { api } from "../../../../convex/_generated/api";
+// import { useMutation } from "convex/react";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -107,7 +114,7 @@ const MainToolbarContent = ({
       enableOnContentEditable: true,
       preventDefault: true,
       scopes: ["all"],
-    }
+    },
   );
 
   const handleMicToggle = async () => {
@@ -239,8 +246,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
-    "main"
+    "main",
   );
+  const [showSlashCommand, setShowSlashCommand] = useState(false);
+  const [slashCommandQuery, setSlashCommandQuery] = useState("");
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Get currentNote and state setters from the notes store
@@ -321,19 +330,49 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       Superscript,
       Subscript,
       Selection,
-      ImageUploadNode.configure({
-        accept: "image/*",
-        maxSize: MAX_FILE_SIZE,
-        limit: 3,
-        upload: handleImageUpload,
-        onError: (error) => console.error("Upload failed:", error),
-      }),
+      Image,
+      // ImageUploadNode.configure({
+      //   accept: "image/*",
+      //   maxSize: MAX_FILE_SIZE,
+      //   limit: 3,
+      //   upload: handleImageUpload,
+      //   onError: (error) => console.error("Upload failed:", error),
+      // }),
       TrailingNode,
       Link.configure({ openOnClick: false }),
       AutocompleteExtension,
+      SlashCommand.configure({
+        suggestion: {
+          char: '/',
+          startOfLine: false,
+        },
+      }),
     ],
     content: initialContent,
     onUpdate: ({ editor }) => {
+      // Check for slash command - more natural detection
+      const { selection } = editor.state
+      const { $from } = selection
+      const textBefore = $from.nodeBefore?.textContent || ''
+      
+      // Look for slash in the text before cursor
+      const slashIndex = textBefore.lastIndexOf('/')
+      if (slashIndex !== -1) {
+        // Check if the slash is the last character or followed by non-space characters
+        const textAfterSlash = textBefore.slice(slashIndex + 1)
+        // Only show if we're right after the slash or typing the command name
+        if (textAfterSlash.length === 0 || (!textAfterSlash.includes(' ') && textAfterSlash.length < 20)) {
+          setShowSlashCommand(true)
+          setSlashCommandQuery(textAfterSlash)
+        } else {
+          setShowSlashCommand(false)
+          setSlashCommandQuery("")
+        }
+      } else {
+        setShowSlashCommand(false)
+        setSlashCommandQuery("")
+      }
+      
       // 2. Logic for marking unsaved status (THIS IS WHERE THE CHANGE GOES)
       if (!currentNote) {
         // If there's no current note, we can't determine unsaved status
@@ -380,6 +419,53 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
   });
 
+  // Calculate position for slash command popup - position relative to viewport
+  const getSlashCommandPosition = () => {
+    if (!editor) return { top: 0, left: 0, position: 'fixed' as const }
+    
+    const { selection } = editor.state
+    const { $from } = selection
+    const coords = editor.view.coordsAtPos($from.pos)
+    
+    // Position relative to viewport (fixed positioning)
+    return {
+      top: coords.bottom + 4, // 4px below the cursor
+      left: coords.left,
+      position: 'fixed' as const
+    }
+  }
+
+  // Handle escape key to close slash command
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showSlashCommand) {
+        e.preventDefault()
+        setShowSlashCommand(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [showSlashCommand])
+
+  // Handle enter key when slash command is open
+  useEffect(() => {
+    const handleEnter = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && showSlashCommand) {
+        e.preventDefault()
+        e.stopPropagation() // Stop the event from reaching the editor
+        // Manually trigger the selection - find the popup and click the selected item
+        const selectedItem = document.querySelector('.slash-command-item.selected') as HTMLElement
+        if (selectedItem) {
+          selectedItem.click()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleEnter, true) // Use capture phase
+    return () => document.removeEventListener('keydown', handleEnter, true)
+  }, [showSlashCommand])
+
   useEffect(() => {
     if (!isMobile && mobileView !== "main") {
       setMobileView("main");
@@ -404,7 +490,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       // accurately reflect the content from the database when the note is loaded/selected.
       dbSavedNotes.set(
         currentNote.pointer_id,
-        JSON.parse(JSON.stringify(currentNote))
+        JSON.parse(JSON.stringify(currentNote)),
       );
     }
   }, [currentNote, dbSavedNotes]); // Only re-run when the currentNote object reference changes
@@ -446,6 +532,20 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
           role="presentation"
           className="simple-editor-content"
         />
+        {showSlashCommand && editor && (
+          <div style={{
+            position: 'fixed',
+            top: getSlashCommandPosition().top,
+            left: getSlashCommandPosition().left,
+            zIndex: 1000, // High z-index to ensure it's above everything
+          }}>
+            <SlashCommandPopup 
+              editor={editor} 
+              onClose={() => setShowSlashCommand(false)}
+              query={slashCommandQuery}
+            />
+          </div>
+        )}
       </div>
     </EditorContext.Provider>
   );

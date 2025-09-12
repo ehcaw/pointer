@@ -22,12 +22,10 @@ export function useNotesApi() {
   const convex = useConvex();
   const { setUserNotes, setIsLoading } = useNotesStore();
 
-  const fetchAllNotes = async (tenantId: string) => {
+  const fetchAllNotes = async () => {
     setIsLoading(true);
     try {
-      const notes: Node[] = await convex.query(api.notes.readNotesFromDb, {
-        user_id: tenantId,
-      });
+      const notes: Node[] = await convex.query(api.notes.readNotesFromDb, {});
       setUserNotes(notes);
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -38,6 +36,7 @@ export function useNotesApi() {
 
   const saveNote = async (note: Node): Promise<Node> => {
     try {
+      console.log(note.content);
       if (note.pointer_id.toString().startsWith("temp-")) {
         // Create new note
         const { pointer_id, ...noteData } = note;

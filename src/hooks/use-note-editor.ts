@@ -48,14 +48,10 @@ export function useNoteEditor() {
   /**
    * Fetch all notes for a tenant from the database
    */
-  const fetchAllNotes = async (tenantId: string) => {
+  const fetchAllNotes = async () => {
     setIsLoading(true);
     try {
-      const notes = await convex.query(api.notes.readNotesFromDb, {
-        user_id: tenantId,
-      });
-
-      console.log("USE NOTES API ", notes);
+      const notes = await convex.query(api.notes.readNotesFromDb, {});
 
       const treeStructure = notes;
 
@@ -87,11 +83,13 @@ export function useNoteEditor() {
    */
   const createNewNote = async (name: string): Promise<FileNode> => {
     // Use a more predictable temp ID that won't cause hydration issues
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const userId = await convex.action(api.notes.getUserId);
 
     const newNote: FileNode = {
       pointer_id: tempId,
-      tenantId: process.env.TEMP_TENANT_ID || "12345678",
+      tenantId: userId?.toString() || "unknown",
       name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -136,6 +134,7 @@ export function useNoteEditor() {
    * Save a specific note to the database
    */
   const saveNote = async (note: Node): Promise<boolean> => {
+    console.log(note.content);
     try {
       const noteData = note;
       const rawTiptapContent = (noteData as FileNode).content.tiptap;

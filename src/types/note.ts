@@ -40,7 +40,6 @@ export interface FileNode extends BaseNode {
     /**
      * Raw TipTap JSON content
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tiptap?: string;
 
     /**

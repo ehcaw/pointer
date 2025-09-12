@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/groq": "^1.2.9",
     "@auth/core": "0.37.0",
+    "@clerk/nextjs": "^6.32.0",
     "@convex-dev/auth": "^0.0.88",
     "@floating-ui/react": "^0.27.10",
     "@hookform/resolvers": "^5.2.1",

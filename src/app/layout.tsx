@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ConvexClientProvider } from "@/lib/services/dev-convex";
+import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
@@ -26,11 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+    <ClerkProvider publishableKey="pk_test_c2hhcmluZy1sbGFtYS0yNi5jbGVyay5hY2NvdW50cy5kZXYk">
+      <html lang="en" className="light">
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
               try {
                 const theme = localStorage.getItem('theme') || 'system';
                 if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -38,18 +40,19 @@ export default function RootLayout({
                 }
               } catch (e) {}
             `,
-          }}
-        />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <ThemeProvider defaultTheme="system" storageKey="theme">
-          <ConvexClientProvider>
-            <CommandMenuProvider>{children}</CommandMenuProvider>
-          </ConvexClientProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+            }}
+          />
+        </head>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <ThemeProvider defaultTheme="system" storageKey="theme">
+            <ConvexClientProvider>
+              <CommandMenuProvider>{children}</CommandMenuProvider>
+            </ConvexClientProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

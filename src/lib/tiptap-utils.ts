@@ -1,6 +1,7 @@
 import type { Attrs, Node } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
-
+// import { useMutation } from "convex/react";
+// import { api } from "../../convex/_generated/api";
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
@@ -150,19 +151,26 @@ export const handleImageUpload = async (
     );
   }
 
+  // const uploadUrl = useMutation(api.notes.generateUploadUrl);
+  // const uploadResult = await fetch(uploadUrl, {
+  //   method: "POST",
+  //   headers: { "Content-Type": file.type },
+  //   body: file,
+  // });
+
   // // For demo/testing: Simulate upload progress
-  // for (let progress = 0; progress <= 100; progress += 10) {
-  //   if (abortSignal?.aborted) {
-  //     throw new Error("Upload cancelled")
-  //   }
-  //   await new Promise((resolve) => setTimeout(resolve, 500))
-  //   onProgress?.({ progress })
-  // }
-  //
+  for (let progress = 0; progress <= 100; progress += 10) {
+    if (abortSignal?.aborted) {
+      throw new Error("Upload cancelled");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    onProgress?.({ progress });
+  }
 
   // return "/images/placeholder-image.png"
 
   // Uncomment for production use:
+
   return convertFileToBase64(file, abortSignal);
 };
 
