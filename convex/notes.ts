@@ -1,5 +1,11 @@
 import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { generateText } from "ai";
+import { createGroq } from "@ai-sdk/groq";
+
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 interface NoteContent {
   text: string;
@@ -231,5 +237,47 @@ export const deleteNoteByPointerId = mutation({
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const generateAutocompleteSuggestion = action({
+  args: {
+    fullText: v.string(),
+    currLine: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { text } = await generateText({
+      model: groq("llama-3.3-70b-versatile"),
+      system: `<task>
+  You are an autocompletion system that suggests text completions.
+  Think about what the user will want to say next.
+  Your name is pointer.
+
+  Rules:
+  - USE the provided context in <context> tags
+  - Read CAREFULLY the input text in <input> tags
+  - Suggest up to 10 words maximum
+  - Ensure suggestions maintain semantic meaning
+  - Wrap completion in <completion> tags
+  - Return only the completion text
+  - Periods at the end of the completion are OPTIONAL, not fully required
+  </task>
+
+  <example>
+  <context>Math Academy is a challenging but rewarding platform for learning math.</context>
+  <input>Math Academy teaches</input>
+  <completion> math in a fun and engaging way.</completion>
+  </example>`,
+      prompt: `<context>
+  ${args.fullText}
+  </context>
+  <input>
+  ${args.currLine}
+  </input>
+  Do not wrap the completion in <completion> tags.
+  Your completion:`,
+    });
+    console.log(text);
+    return text;
   },
 });
