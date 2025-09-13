@@ -3,6 +3,10 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { api } from "../../convex/_generated/api";
+import { ConvexHttpClient } from "convex/browser";
+
+const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // Define the props interface for your component
 interface InlineProps {
@@ -48,19 +52,13 @@ const inlineAutocompleteKey = new PluginKey("inline-autocomplete");
 // Helper functions outside the extension
 const fetchSuggestion = async (
   fullText: string,
-  textBefore: string
+  textBefore: string,
 ): Promise<string | null> => {
   try {
-    const response = await fetch("/api/suggestion", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ fullText, currLine: textBefore }),
-    });
-
-    const result = await response.json();
-    console.log("Suggestion result:", result);
+    const result = await client.action(
+      api.notes.generateAutocompleteSuggestion,
+      { fullText, currLine: textBefore },
+    );
 
     if (result == null) {
       return null;
@@ -71,21 +69,7 @@ const fetchSuggestion = async (
       return result;
     }
 
-    if (Array.isArray(result) && result.length > 0) {
-      const firstItem = result[0];
-      if (typeof firstItem === "string") {
-        return firstItem;
-      }
-      if (typeof firstItem === "object" && firstItem.label) {
-        return firstItem.label;
-      }
-    }
-
-    if (typeof result === "object" && result.label) {
-      return result.label;
-    }
-
-    return null;
+    return "";
   } catch (error) {
     console.error("Error fetching autocomplete suggestion:", error);
     return null;
@@ -204,7 +188,7 @@ export const InlineAutocompleteExtension = Extension.create({
                 const pos = selection.from;
                 const textBefore = tr.doc.textBetween(
                   Math.max(0, pos - 1),
-                  pos
+                  pos,
                 );
                 const fullTextBefore = tr.doc.textBetween(0, pos);
 
@@ -223,7 +207,7 @@ export const InlineAutocompleteExtension = Extension.create({
                   fetchSuggestion(tr.doc.textContent, fullTextBefore).then(
                     (suggestion) => {
                       updateSuggestion(editor, suggestion);
-                    }
+                    },
                   );
                 }
                 // For pause detection, we only proceed if there's enough content
@@ -240,7 +224,8 @@ export const InlineAutocompleteExtension = Extension.create({
                   // Set a timer for pause detection
                   if (wordCount >= MIN_TOKENS_FOR_SUGGESTION) {
                     const lastSuggestionTime = parseInt(
-                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) || "0"
+                      localStorage.getItem(LAST_AUTO_SUGGESTION_TIME_KEY) ||
+                        "0",
                     );
                     const timeSinceLastSuggestion =
                       Date.now() - lastSuggestionTime;
@@ -258,12 +243,12 @@ export const InlineAutocompleteExtension = Extension.create({
                           // Store the time of this auto-suggestion
                           localStorage.setItem(
                             LAST_AUTO_SUGGESTION_TIME_KEY,
-                            Date.now().toString()
+                            Date.now().toString(),
                           );
 
                           // Update state to show we're fetching
                           const pluginState = inlineAutocompleteKey.getState(
-                            editor.state
+                            editor.state,
                           );
                           if (pluginState) {
                             pluginState.isLoading = true;
@@ -273,7 +258,7 @@ export const InlineAutocompleteExtension = Extension.create({
                             // Fetch the suggestion
                             fetchSuggestion(
                               editor.state.doc.textContent,
-                              currentTextBefore
+                              currentTextBefore,
                             ).then((suggestion) => {
                               updateSuggestion(editor, suggestion);
                             });
@@ -354,7 +339,7 @@ export const InlineAutocompleteExtension = Extension.create({
                     }, 0);
                   }
                 },
-              }
+              },
             );
 
             return DecorationSet.create(state.doc, [decoration]);

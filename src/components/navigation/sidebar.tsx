@@ -1,15 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Plus,
-  Home,
-  FileText,
-  Clock,
-  Edit3,
-  GitGraph,
-  Trash,
-} from "lucide-react";
+import { Plus, Home, FileText, Clock, GitGraph, Trash } from "lucide-react";
+import Image from "next/image";
 import {
   Sidebar,
   SidebarContent,
@@ -109,8 +102,14 @@ export default function AppSidebar() {
       {/* Header */}
       <SidebarHeader className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Edit3 className="h-4 w-4" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg">
+            <Image
+              src="/images/pointerlogo-575-transparent.svg"
+              alt="Pen icon"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+            />
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
