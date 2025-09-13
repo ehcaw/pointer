@@ -104,7 +104,7 @@ export default function AppSidebar() {
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg">
             <Image
-              src="/images/pointerlogo-575-transparent.png"
+              src="/images/pointerlogo-575-transparent.svg"
               alt="Pen icon"
               width={32}
               height={32}
