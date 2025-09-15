@@ -23,7 +23,6 @@ export function useNoteEditor() {
     clearUnsavedNote,
     addNewUnsavedNote,
     updateNoteInCollections,
-    removeNoteFromCollections,
     addOpenUserNote,
     setTreeStructure,
     dbSavedNotes,
