@@ -84,7 +84,7 @@ export default function AppSidebar() {
 
   const confirmDelete = () => {
     if (noteToDelete) {
-      deleteNote(noteToDelete.pointer_id || "");
+      deleteNote(noteToDelete.pointer_id || "", noteToDelete.tenantId);
       console.log("Confirmed deletion for:", noteToDelete.name);
       setNoteToDelete(null); // Close the dialog
     }

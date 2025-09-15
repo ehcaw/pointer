@@ -217,6 +217,7 @@ export const updateNoteByPointerId = mutation({
 export const deleteNoteByPointerId = mutation({
   args: {
     pointer_id: v.string(),
+    user_id: v.string(),
   },
   handler: async (ctx, args) => {
     // Find the note by pointer_id
@@ -231,6 +232,12 @@ export const deleteNoteByPointerId = mutation({
 
     // Delete using the Convex ID
     await ctx.db.delete(note._id);
+
+    const notes = await ctx.db
+      .query("notes")
+      .filter((q) => q.eq(q.field("tenantId"), args.user_id))
+      .collect();
+    return notes;
   },
 });
 
