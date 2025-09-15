@@ -1,26 +1,16 @@
 "use client";
 import { SimpleEditor } from "../tiptap-templates/simple/simple-editor";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNotesStore } from "@/lib/notes-store";
-import { Button } from "@/components/tiptap-ui-primitive/button";
-import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
-import { Save, FileText, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 export const NotebookView = () => {
-  const { currentNote, editorRef, isSaving, saveCurrentNote, createEmptyNote } =
+  const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
     useNoteEditor(); // Imported handleEditorUpdate
 
-  const {
-    currentView,
-    markNoteAsUnsaved,
-    saveDBSavedNote,
-    removeUnsavedNote,
-    dbSavedNotes,
-  } = useNotesStore();
+  const { currentView, saveDBSavedNote, removeUnsavedNote } = useNotesStore();
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {
@@ -28,9 +18,6 @@ export const NotebookView = () => {
       createEmptyNote("Untitled Note");
     }
   }, [currentNote, currentView, createEmptyNote]); // Added createEmptyNote to deps
-
-  const [title, setTitle] = useState("");
-  const [isTitleFocused, setIsTitleFocused] = useState(false);
 
   useHotkeys(
     "meta+s",
@@ -50,20 +37,6 @@ export const NotebookView = () => {
       scopes: ["all"],
     },
   );
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation();
-    setTitle(e.target.value);
-    if (currentNote) {
-      markNoteAsUnsaved({ ...currentNote, name: e.target.value });
-      currentNote.name = e.target.value;
-    }
-  };
-
-  useEffect(() => {
-    if (currentNote) setTitle(currentNote.name);
-    else setTitle("");
-  }, [currentNote]);
 
   const mostCurrentNote = useNotesStore.getState().currentNote;
   const noteContent = mostCurrentNote
