@@ -175,18 +175,25 @@ export function useNoteEditor() {
   /**
    * Delete a note from the database
    */
-  const deleteNote = async (noteId: string): Promise<boolean> => {
+  const deleteNote = async (
+    noteId: string,
+    tenantId: string,
+  ): Promise<boolean> => {
     setIsLoading(true);
     try {
       // Only try to delete from DB if it's not a temp note
-      if (!noteId.startsWith("temp-")) {
-        await convex.mutation(api.notes.deleteNoteByPointerId, {
+      const updatedNotes = await convex.mutation(
+        api.notes.deleteNoteByPointerId,
+        {
           pointer_id: noteId,
-        });
-      }
+          user_id: tenantId,
+        },
+      );
 
       // Remove from all collections in store
-      removeNoteFromCollections(noteId);
+      // removeNoteFromCollections(noteId);
+      setUserNotes(updatedNotes);
+      setTreeStructure(updatedNotes);
 
       return true;
     } catch (error) {
