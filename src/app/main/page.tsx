@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
@@ -23,13 +25,14 @@ import GraphView from "@/components/views/GraphView";
 import React from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/NotebookView";
-import { FileNode, Node } from "@/types/note";
+import { Node } from "@/types/note";
 import { api } from "../../../convex/_generated/api";
 import { useQuery } from "convex/react";
-import { FileText, Home, Clock } from "lucide-react";
+import { FileText, Home, Clock, Save } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { UserButton } from "@clerk/nextjs";
 import AppSidebar from "@/components/navigation/sidebar";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 
 export default function MainPage() {
   const { isSignedIn, isLoaded } = useUser();
@@ -37,13 +40,28 @@ export default function MainPage() {
 
   const {
     currentView,
-    currentNote,
     setUserNotes,
     unsavedNotes,
     setDBSavedNotes,
+    markNoteAsUnsaved,
+    dbSavedNotes,
   } = useNotesStore();
+  const { saveCurrentNote, isSaving, currentNote } = useNoteEditor();
+  const mostCurrentNote = useNotesStore.getState().currentNote;
+  const noteContent = mostCurrentNote
+    ? mostCurrentNote.content.tiptap
+    : {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+          },
+        ],
+      };
 
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
+  const [title, setTitle] = useState("");
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -58,6 +76,10 @@ export default function MainPage() {
       setDBSavedNotes(notes);
     }
   }, [notes, setUserNotes, setDBSavedNotes]);
+
+  useEffect(() => {
+    setTitle(currentNote?.name || "Untitled Note");
+  }, [currentNote]);
 
   // Show loading while authentication is being checked
   if (!isLoaded) {
@@ -76,6 +98,15 @@ export default function MainPage() {
       </div>
     );
   }
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    setTitle(e.target.value);
+    if (currentNote) {
+      markNoteAsUnsaved({ ...currentNote, name: e.target.value });
+      currentNote.name = e.target.value;
+    }
+  };
 
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
 
@@ -115,10 +146,28 @@ export default function MainPage() {
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
-                  <BreadcrumbItem>
+                  {/*<BreadcrumbItem>
                     <BreadcrumbPage className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-medium">
                       {(currentNote as FileNode)?.name || "Untitled"}
                     </BreadcrumbPage>
+                  </BreadcrumbItem>*/}
+                  <BreadcrumbItem>
+                    <Input
+                      type="text"
+                      value={title}
+                      onChange={handleTitleChange}
+                      onFocus={() => setIsTitleFocused(true)}
+                      onBlur={() => setIsTitleFocused(false)}
+                      placeholder="Untitled Note"
+                      className={cn(
+                        "text-xl font-semibold bg-transparent border-0 shadow-none p-0 h-auto",
+                        "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                        "focus:outline-none focus-visible:ring-0",
+                        isTitleFocused
+                          ? "border-b-2 border-primary"
+                          : "hover:border-b-2 hover:border-slate-300 dark:hover:border-slate-600",
+                      )}
+                    />
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
@@ -134,6 +183,44 @@ export default function MainPage() {
                     Unsaved changes
                   </Badge>
                 )}
+                <Button
+                  onClick={saveCurrentNote}
+                  disabled={
+                    !!(
+                      isSaving ||
+                      (mostCurrentNote &&
+                        dbSavedNotes.has(mostCurrentNote.pointer_id) &&
+                        JSON.stringify(noteContent) ===
+                          JSON.stringify(
+                            dbSavedNotes.get(mostCurrentNote.pointer_id)
+                              ?.content.tiptap,
+                          ))
+                    )
+                  }
+                  className={cn(
+                    "relative rounded-lg p-2 font-medium transition-all duration-200 border",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900",
+                    isSaving ||
+                      (mostCurrentNote &&
+                        dbSavedNotes.has(mostCurrentNote.pointer_id) &&
+                        JSON.stringify(noteContent) ===
+                          JSON.stringify(
+                            dbSavedNotes.get(mostCurrentNote.pointer_id)
+                              ?.content.tiptap,
+                          ))
+                      ? // Disabled state - more refined styling
+                        "bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed shadow-none opacity-60"
+                      : // Active state - simple darker/lighter slate
+                        "bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 border-slate-700 dark:border-slate-300 shadow-md hover:shadow-lg hover:bg-slate-800 dark:hover:bg-slate-200 focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400 transform hover:scale-[1.02] active:scale-[0.98]",
+                  )}
+                >
+                  <Save
+                    className={cn(
+                      "h-4 w-4 transition-all duration-200",
+                      isSaving && "animate-pulse scale-110",
+                    )}
+                  />
+                </Button>
 
                 {currentNote && (
                   <div className="hidden sm:block text-xs text-slate-500 dark:text-slate-400">
