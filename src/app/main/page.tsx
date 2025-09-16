@@ -137,22 +137,34 @@ export default function MainPage() {
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
                   <BreadcrumbItem>
-                    <Input
-                      type="text"
-                      value={title}
-                      onChange={handleTitleChange}
-                      onFocus={() => setIsTitleFocused(true)}
-                      onBlur={() => setIsTitleFocused(false)}
-                      placeholder="Untitled Note"
-                      className={cn(
-                        "text-xl font-semibold bg-transparent border-0 shadow-none p-0 h-auto",
-                        "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                        "focus:outline-none focus-visible:ring-0",
-                        isTitleFocused
-                          ? "border-b-2 border-primary"
-                          : "hover:border-b-2 hover:border-slate-300 dark:hover:border-slate-600",
-                      )}
-                    />
+                    <div className="relative group">
+                      <Input
+                        type="text"
+                        value={title}
+                        onChange={handleTitleChange}
+                        onFocus={() => setIsTitleFocused(true)}
+                        onBlur={() => setIsTitleFocused(false)}
+                        placeholder="Untitled Note"
+                        className={cn(
+                          "text-lg font-semibold bg-transparent border-0 shadow-none px-3 py-2 h-auto rounded-md",
+                          "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                          "focus:outline-none focus-visible:ring-0 transition-all duration-200",
+                          "min-w-[200px] max-w-[400px]",
+                          isTitleFocused
+                            ? "bg-white dark:bg-slate-800 shadow-sm ring-2 ring-primary/20 border border-primary/30"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent",
+                        )}
+                      />
+                      {/* Visual indicator for editable state */}
+                      <div
+                        className={cn(
+                          "absolute inset-0 rounded-md border-2 border-dashed transition-opacity duration-200 pointer-events-none",
+                          isTitleFocused
+                            ? "opacity-0"
+                            : "opacity-0 group-hover:opacity-30 border-slate-300 dark:border-slate-600",
+                        )}
+                      />
+                    </div>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
