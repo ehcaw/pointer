@@ -13,12 +13,8 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { HomeView } from "@/components/views/HomeView";
 import GraphView from "@/components/views/GraphView";
@@ -118,12 +114,6 @@ export default function MainPage() {
           {/* Header for note view */}
           {currentView === "note" && (
             <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">
-              <SidebarTrigger className="-ml-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 h-4 bg-slate-200 dark:bg-slate-700"
-              />
-
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
@@ -146,11 +136,6 @@ export default function MainPage() {
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
-                  {/*<BreadcrumbItem>
-                    <BreadcrumbPage className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-medium">
-                      {(currentNote as FileNode)?.name || "Untitled"}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>*/}
                   <BreadcrumbItem>
                     <Input
                       type="text"
@@ -238,12 +223,6 @@ export default function MainPage() {
           {/* Header for non-note views */}
           {currentView !== "note" && (
             <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">
-              <SidebarTrigger className="-ml-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 h-4 bg-slate-200 dark:bg-slate-700"
-              />
-
               <div className="flex items-center gap-2">
                 <Home className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                 <span className="text-slate-900 dark:text-slate-100 font-medium capitalize">

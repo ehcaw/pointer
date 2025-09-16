@@ -72,9 +72,7 @@ export const NotebookView = () => {
         <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800">
           <div className="px-6 py-3">
             <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
-              <div className="flex items-center gap-4">
-                <span>ID: {currentNote.pointer_id.slice(-8)}</span>
-              </div>
+              <div className="flex items-center gap-4"></div>
 
               <div className="flex items-center gap-2">
                 <Clock className="h-3 w-3" />

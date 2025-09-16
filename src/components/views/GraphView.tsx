@@ -29,7 +29,7 @@ export default function GraphView() {
   const filteredNodes =
     selectedTags.length > 0
       ? nodes.filter((node) =>
-          selectedTags.some((tag) => node.tags.includes(tag))
+          selectedTags.some((tag) => node.tags.includes(tag)),
         )
       : nodes;
 
@@ -58,21 +58,21 @@ export default function GraphView() {
 
   const handleUpdateNode = (updatedNode: NodeType) => {
     setNodes((prev) =>
-      prev.map((node) => (node.id === updatedNode.id ? updatedNode : node))
+      prev.map((node) => (node.id === updatedNode.id ? updatedNode : node)),
     );
   };
 
   const handleDeleteNode = (nodeId: string) => {
     setNodes((prev) => prev.filter((node) => node.id !== nodeId));
     setEdges((prev) =>
-      prev.filter((edge) => edge.from !== nodeId && edge.to !== nodeId)
+      prev.filter((edge) => edge.from !== nodeId && edge.to !== nodeId),
     );
     setSelectedNode(null);
   };
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
@@ -81,8 +81,8 @@ export default function GraphView() {
   return (
     <div className="bg-background">
       {/* Top Bar */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 py-3">
+      <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 h-full">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Your Neural Network
@@ -185,7 +185,7 @@ export default function GraphView() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="h-[calc(100vh-8rem)] flex overflow-hidden">
         {/* Desktop Tag Explorer */}
         <div className="hidden lg:block w-64 border-r bg-muted/30">
           <TagExplorer
