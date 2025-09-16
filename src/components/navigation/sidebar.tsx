@@ -177,10 +177,10 @@ export default function AppSidebar() {
                   </SidebarMenuButton>
                   <SidebarMenuButton
                     onClick={() => handleNavClick("graph")}
-                    data-active={currentView == "graph"}
+                    data-active={currentView === "graph"}
                     className={cn(
                       "rounded-lg transition-all",
-                      currentView === "home"
+                      currentView === "graph"
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
                         : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
                     )}
