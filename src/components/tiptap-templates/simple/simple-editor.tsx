@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { EditorContent, EditorContext, useEditor, Editor } from "@tiptap/react";
+import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -21,47 +21,15 @@ import { AutocompleteExtension } from "../../../providers/AutocompleteProvider";
 import { SlashCommand } from "@/components/tiptap-extension/slash-command-extension";
 
 // --- UI Primitives ---
-import { Button } from "@/components/tiptap-ui-primitive/button";
-import { Spacer } from "@/components/tiptap-ui-primitive/spacer";
-import {
-  Toolbar,
-  ToolbarGroup,
-  ToolbarSeparator,
-} from "@/components/tiptap-ui-primitive/toolbar";
+import { Toolbar } from "@/components/tiptap-ui-primitive/toolbar";
+import { MainToolbarContent } from "./toolbar/MainToolbar";
+import { MobileToolbarContent } from "./toolbar/MobileToolbar";
 
 // --- Tiptap Node ---
-// import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension";
-// import UploadPlugin from "@/components/tiptap-node/image-upload-node/image-upload-custom-node";
 import "@/components/tiptap-node/code-block-node/code-block-node.scss";
 import "@/components/tiptap-node/list-node/list-node.scss";
 import "@/components/tiptap-node/image-node/image-node.scss";
 import "@/components/tiptap-node/paragraph-node/paragraph-node.scss";
-
-// --- Tiptap UI ---
-import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-menu";
-import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button";
-import { ListDropdownMenu } from "@/components/tiptap-ui/list-dropdown-menu";
-import { BlockQuoteButton } from "@/components/tiptap-ui/blockquote-button";
-import { CodeBlockButton } from "@/components/tiptap-ui/code-block-button";
-import {
-  ColorHighlightPopover,
-  ColorHighlightPopoverContent,
-  ColorHighlightPopoverButton,
-} from "@/components/tiptap-ui/color-highlight-popover";
-import {
-  LinkPopover,
-  LinkContent,
-  LinkButton,
-} from "@/components/tiptap-ui/link-popover";
-import { MarkButton } from "@/components/tiptap-ui/mark-button";
-import { TextAlignButton } from "@/components/tiptap-ui/text-align-button";
-import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
-
-// --- Icons ---
-import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon";
-import { HighlighterIcon } from "@/components/tiptap-icons/highlighter-icon";
-import { LinkIcon } from "@/components/tiptap-icons/link-icon";
-import { Mic, MicOff } from "lucide-react";
 
 // --- Hooks ---
 import { useMobile } from "@/hooks/use-tiptap-mobile";
@@ -69,13 +37,7 @@ import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
-import { ThemeToggle } from "@/components/theme-toggle";
 import { SlashCommandPopup } from "@/components/tiptap-ui/slash-command-popup";
-
-// --- Lib ---
-// import { handleImageUpload } from "@/lib/tiptap-utils";
-import { useVoiceRecorderStore } from "@/hooks/use-voice-recorder";
-import { useHotkeys } from "react-hotkeys-hook";
 
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss";
@@ -83,155 +45,6 @@ import "@/components/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/notes-store";
 import { ensureJSONString } from "@/lib/utils";
-
-// --- Convex Database ---
-// import { api } from "../../../../convex/_generated/api";
-// import { useMutation } from "convex/react";
-
-const MainToolbarContent = ({
-  onHighlighterClick,
-  onLinkClick,
-  isMobile,
-  editor,
-}: {
-  onHighlighterClick: () => void;
-  onLinkClick: () => void;
-  isMobile: boolean;
-  editor?: Editor;
-}) => {
-  const { isRecording, stopAndTranscribe, startRecording } =
-    useVoiceRecorderStore();
-
-  useHotkeys(
-    "meta+shift+v",
-    async (e) => {
-      console.log("Mic hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      await handleMicToggle();
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
-
-  const handleMicToggle = async () => {
-    if (isRecording) {
-      const transcription = await stopAndTranscribe();
-      if (transcription) {
-        console.log("Transcription:", transcription);
-        if (editor) {
-          editor.commands.insertContent(transcription + " ");
-        }
-      }
-    } else {
-      await startRecording();
-    }
-  };
-
-  return (
-    <>
-      <Spacer />
-
-      <ToolbarGroup>
-        <UndoRedoButton action="undo" />
-        <UndoRedoButton action="redo" />
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <HeadingDropdownMenu levels={[1, 2, 3, 4]} />
-        <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} />
-        <BlockQuoteButton />
-        <CodeBlockButton />
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <MarkButton type="bold" />
-        <MarkButton type="italic" />
-        <MarkButton type="strike" />
-        <MarkButton type="code" />
-        <MarkButton type="underline" />
-        {!isMobile ? (
-          <ColorHighlightPopover />
-        ) : (
-          <ColorHighlightPopoverButton onClick={onHighlighterClick} />
-        )}
-        {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <MarkButton type="superscript" />
-        <MarkButton type="subscript" />
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <TextAlignButton align="left" />
-        <TextAlignButton align="center" />
-        <TextAlignButton align="right" />
-        <TextAlignButton align="justify" />
-      </ToolbarGroup>
-
-      <ToolbarSeparator />
-
-      <ToolbarGroup>
-        <ImageUploadButton text="Add" />
-      </ToolbarGroup>
-
-      <Spacer />
-
-      {isMobile && <ToolbarSeparator />}
-
-      <ToolbarGroup>
-        <ThemeToggle />
-      </ToolbarGroup>
-
-      <ToolbarGroup>
-        <Button onClick={handleMicToggle}>
-          {isRecording ? <Mic /> : <MicOff />}
-        </Button>
-      </ToolbarGroup>
-    </>
-  );
-};
-
-const MobileToolbarContent = ({
-  type,
-  onBack,
-}: {
-  type: "highlighter" | "link";
-  onBack: () => void;
-}) => (
-  <>
-    <ToolbarGroup>
-      <Button data-style="ghost" onClick={onBack}>
-        <ArrowLeftIcon className="tiptap-button-icon" />
-        {type === "highlighter" ? (
-          <HighlighterIcon className="tiptap-button-icon" />
-        ) : (
-          <LinkIcon className="tiptap-button-icon" />
-        )}
-      </Button>
-    </ToolbarGroup>
-
-    <ToolbarSeparator />
-
-    {type === "highlighter" ? (
-      <ColorHighlightPopoverContent />
-    ) : (
-      <LinkContent />
-    )}
-  </>
-);
 
 interface SimpleEditorProps {
   content: string | Record<string, unknown> | null | undefined;
@@ -343,7 +156,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       AutocompleteExtension,
       SlashCommand.configure({
         suggestion: {
-          char: '/',
+          char: "/",
           startOfLine: false,
         },
       }),
@@ -351,28 +164,31 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     content: initialContent,
     onUpdate: ({ editor }) => {
       // Check for slash command - more natural detection
-      const { selection } = editor.state
-      const { $from } = selection
-      const textBefore = $from.nodeBefore?.textContent || ''
-      
+      const { selection } = editor.state;
+      const { $from } = selection;
+      const textBefore = $from.nodeBefore?.textContent || "";
+
       // Look for slash in the text before cursor
-      const slashIndex = textBefore.lastIndexOf('/')
+      const slashIndex = textBefore.lastIndexOf("/");
       if (slashIndex !== -1) {
         // Check if the slash is the last character or followed by non-space characters
-        const textAfterSlash = textBefore.slice(slashIndex + 1)
+        const textAfterSlash = textBefore.slice(slashIndex + 1);
         // Only show if we're right after the slash or typing the command name
-        if (textAfterSlash.length === 0 || (!textAfterSlash.includes(' ') && textAfterSlash.length < 20)) {
-          setShowSlashCommand(true)
-          setSlashCommandQuery(textAfterSlash)
+        if (
+          textAfterSlash.length === 0 ||
+          (!textAfterSlash.includes(" ") && textAfterSlash.length < 20)
+        ) {
+          setShowSlashCommand(true);
+          setSlashCommandQuery(textAfterSlash);
         } else {
-          setShowSlashCommand(false)
-          setSlashCommandQuery("")
+          setShowSlashCommand(false);
+          setSlashCommandQuery("");
         }
       } else {
-        setShowSlashCommand(false)
-        setSlashCommandQuery("")
+        setShowSlashCommand(false);
+        setSlashCommandQuery("");
       }
-      
+
       // 2. Logic for marking unsaved status (THIS IS WHERE THE CHANGE GOES)
       if (!currentNote) {
         // If there's no current note, we can't determine unsaved status
@@ -421,50 +237,52 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
   // Calculate position for slash command popup - position relative to viewport
   const getSlashCommandPosition = () => {
-    if (!editor) return { top: 0, left: 0, position: 'fixed' as const }
-    
-    const { selection } = editor.state
-    const { $from } = selection
-    const coords = editor.view.coordsAtPos($from.pos)
-    
+    if (!editor) return { top: 0, left: 0, position: "fixed" as const };
+
+    const { selection } = editor.state;
+    const { $from } = selection;
+    const coords = editor.view.coordsAtPos($from.pos);
+
     // Position relative to viewport (fixed positioning)
     return {
       top: coords.bottom + 4, // 4px below the cursor
       left: coords.left,
-      position: 'fixed' as const
-    }
-  }
+      position: "fixed" as const,
+    };
+  };
 
   // Handle escape key to close slash command
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showSlashCommand) {
-        e.preventDefault()
-        setShowSlashCommand(false)
+      if (e.key === "Escape" && showSlashCommand) {
+        e.preventDefault();
+        setShowSlashCommand(false);
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [showSlashCommand])
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showSlashCommand]);
 
   // Handle enter key when slash command is open
   useEffect(() => {
     const handleEnter = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && showSlashCommand) {
-        e.preventDefault()
-        e.stopPropagation() // Stop the event from reaching the editor
+      if (e.key === "Enter" && showSlashCommand) {
+        e.preventDefault();
+        e.stopPropagation(); // Stop the event from reaching the editor
         // Manually trigger the selection - find the popup and click the selected item
-        const selectedItem = document.querySelector('.slash-command-item.selected') as HTMLElement
+        const selectedItem = document.querySelector(
+          ".slash-command-item.selected",
+        ) as HTMLElement;
         if (selectedItem) {
-          selectedItem.click()
+          selectedItem.click();
         }
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleEnter, true) // Use capture phase
-    return () => document.removeEventListener('keydown', handleEnter, true)
-  }, [showSlashCommand])
+    document.addEventListener("keydown", handleEnter, true); // Use capture phase
+    return () => document.removeEventListener("keydown", handleEnter, true);
+  }, [showSlashCommand]);
 
   useEffect(() => {
     if (!isMobile && mobileView !== "main") {
@@ -494,10 +312,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       );
     }
   }, [currentNote, dbSavedNotes]); // Only re-run when the currentNote object reference changes
-
-  // Remove the old useEffect that was trying to manage unsaved state based on `mostCurrentNote` and `snapshots`.
-  // It's no longer needed as the `onUpdate` callback now handles the primary logic,
-  // and the new useEffect handles priming `dbSavedNotes`.
 
   return (
     <EditorContext.Provider value={{ editor }}>
@@ -533,14 +347,16 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
           className="simple-editor-content"
         />
         {showSlashCommand && editor && (
-          <div style={{
-            position: 'fixed',
-            top: getSlashCommandPosition().top,
-            left: getSlashCommandPosition().left,
-            zIndex: 1000, // High z-index to ensure it's above everything
-          }}>
-            <SlashCommandPopup 
-              editor={editor} 
+          <div
+            style={{
+              position: "fixed",
+              top: getSlashCommandPosition().top,
+              left: getSlashCommandPosition().left,
+              zIndex: 1000, // High z-index to ensure it's above everything
+            }}
+          >
+            <SlashCommandPopup
+              editor={editor}
               onClose={() => setShowSlashCommand(false)}
               query={slashCommandQuery}
             />
