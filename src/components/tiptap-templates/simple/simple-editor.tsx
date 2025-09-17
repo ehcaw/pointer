@@ -67,13 +67,8 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Get currentNote and state setters from the notes store
-  const {
-    currentNote,
-    markNoteAsUnsaved,
-    unsavedNotes,
-    removeUnsavedNote,
-    dbSavedNotes,
-  } = useNotesStore();
+  const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
+    useNotesStore();
 
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);

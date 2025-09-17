@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,8 +23,7 @@ import { NotebookView } from "@/components/views/NotebookView";
 import { Node } from "@/types/note";
 import { api } from "../../../convex/_generated/api";
 import { useQuery } from "convex/react";
-import { FileText, Home, Clock, Save } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { FileText, Home, Clock } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import AppSidebar from "@/components/navigation/sidebar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -40,21 +38,8 @@ export default function MainPage() {
     unsavedNotes,
     setDBSavedNotes,
     markNoteAsUnsaved,
-    dbSavedNotes,
   } = useNotesStore();
-  const { saveCurrentNote, isSaving, currentNote } = useNoteEditor();
-  const mostCurrentNote = useNotesStore.getState().currentNote;
-  const noteContent = mostCurrentNote
-    ? mostCurrentNote.content.tiptap
-    : {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-          },
-        ],
-      };
-
+  const { currentNote } = useNoteEditor();
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
   const [title, setTitle] = useState("");
   const [isTitleFocused, setIsTitleFocused] = useState(false);

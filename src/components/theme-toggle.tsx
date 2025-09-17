@@ -1,7 +1,6 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useTheme } from "@/providers/ThemeProvider";
 
 interface ThemeToggleProps {
@@ -9,10 +8,7 @@ interface ThemeToggleProps {
   size?: "default" | "sm" | "lg" | "icon";
 }
 
-export function ThemeToggle({
-  variant = "ghost",
-  size = "icon",
-}: ThemeToggleProps) {
+export function ThemeToggle({}: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
 
   const toggleTheme = () => {
