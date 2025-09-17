@@ -259,7 +259,6 @@ export function useNoteEditor() {
     saveCurrentNote,
     saveNote,
     deleteNote,
-
     // Navigation
     handleNavigateAway,
   };

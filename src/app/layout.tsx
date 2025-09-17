@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider publishableKey="pk_test_c2hhcmluZy1sbGFtYS0yNi5jbGVyay5hY2NvdW50cy5kZXYk">
-      <html lang="en" className="light">
+      <html lang="en" className="light" suppressHydrationWarning={true}>
         <head>
           <script
             dangerouslySetInnerHTML={{

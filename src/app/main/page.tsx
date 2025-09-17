@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,8 +23,7 @@ import { NotebookView } from "@/components/views/NotebookView";
 import { Node } from "@/types/note";
 import { api } from "../../../convex/_generated/api";
 import { useQuery } from "convex/react";
-import { FileText, Home, Clock, Save } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { FileText, Home, Clock } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import AppSidebar from "@/components/navigation/sidebar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -40,21 +38,8 @@ export default function MainPage() {
     unsavedNotes,
     setDBSavedNotes,
     markNoteAsUnsaved,
-    dbSavedNotes,
   } = useNotesStore();
-  const { saveCurrentNote, isSaving, currentNote } = useNoteEditor();
-  const mostCurrentNote = useNotesStore.getState().currentNote;
-  const noteContent = mostCurrentNote
-    ? mostCurrentNote.content.tiptap
-    : {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-          },
-        ],
-      };
-
+  const { currentNote } = useNoteEditor();
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
   const [title, setTitle] = useState("");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
@@ -179,52 +164,6 @@ export default function MainPage() {
                     <Clock className="h-3 w-3 mr-1" />
                     Unsaved changes
                   </Badge>
-                )}
-                <Button
-                  onClick={saveCurrentNote}
-                  disabled={
-                    !!(
-                      isSaving ||
-                      (mostCurrentNote &&
-                        dbSavedNotes.has(mostCurrentNote.pointer_id) &&
-                        JSON.stringify(noteContent) ===
-                          JSON.stringify(
-                            dbSavedNotes.get(mostCurrentNote.pointer_id)
-                              ?.content.tiptap,
-                          ))
-                    )
-                  }
-                  className={cn(
-                    "relative rounded-lg p-2 font-medium transition-all duration-200 border",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900",
-                    isSaving ||
-                      (mostCurrentNote &&
-                        dbSavedNotes.has(mostCurrentNote.pointer_id) &&
-                        JSON.stringify(noteContent) ===
-                          JSON.stringify(
-                            dbSavedNotes.get(mostCurrentNote.pointer_id)
-                              ?.content.tiptap,
-                          ))
-                      ? // Disabled state - more refined styling
-                        "bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed shadow-none opacity-60"
-                      : // Active state - simple darker/lighter slate
-                        "bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 border-slate-700 dark:border-slate-300 shadow-md hover:shadow-lg hover:bg-slate-800 dark:hover:bg-slate-200 focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400 transform hover:scale-[1.02] active:scale-[0.98]",
-                  )}
-                >
-                  <Save
-                    className={cn(
-                      "h-4 w-4 transition-all duration-200",
-                      isSaving && "animate-pulse scale-110",
-                    )}
-                  />
-                </Button>
-
-                {currentNote && (
-                  <div className="hidden sm:block text-xs text-slate-500 dark:text-slate-400">
-                    {formatDistanceToNow(new Date(currentNote.updatedAt), {
-                      addSuffix: true,
-                    })}
-                  </div>
                 )}
 
                 <UserButton />
