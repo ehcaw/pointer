@@ -208,6 +208,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       // Update content immediately in memory (fast)
       currentNote.content.tiptap = ensureJSONString(currentEditorJson);
       currentNote.content.text = currentEditorText;
+      currentNote.updatedAt = new Date().toISOString();
 
       // Mark as unsaved
       markNoteAsUnsaved(currentNote);

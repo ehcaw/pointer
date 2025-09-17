@@ -77,7 +77,7 @@ export const NotebookView = () => {
               <div className="flex items-center gap-2">
                 <Clock className="h-3 w-3" />
                 <span>
-                  Last edited {new Date(currentNote.updatedAt).toLocaleString()}
+                  Last saved {new Date(currentNote.updatedAt).toLocaleString()}
                 </span>
               </div>
             </div>
