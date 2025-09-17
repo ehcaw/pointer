@@ -180,52 +180,6 @@ export default function MainPage() {
                     Unsaved changes
                   </Badge>
                 )}
-                <Button
-                  onClick={saveCurrentNote}
-                  disabled={
-                    !!(
-                      isSaving ||
-                      (mostCurrentNote &&
-                        dbSavedNotes.has(mostCurrentNote.pointer_id) &&
-                        JSON.stringify(noteContent) ===
-                          JSON.stringify(
-                            dbSavedNotes.get(mostCurrentNote.pointer_id)
-                              ?.content.tiptap,
-                          ))
-                    )
-                  }
-                  className={cn(
-                    "relative rounded-lg p-2 font-medium transition-all duration-200 border",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900",
-                    isSaving ||
-                      (mostCurrentNote &&
-                        dbSavedNotes.has(mostCurrentNote.pointer_id) &&
-                        JSON.stringify(noteContent) ===
-                          JSON.stringify(
-                            dbSavedNotes.get(mostCurrentNote.pointer_id)
-                              ?.content.tiptap,
-                          ))
-                      ? // Disabled state - more refined styling
-                        "bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed shadow-none opacity-60"
-                      : // Active state - simple darker/lighter slate
-                        "bg-slate-700 dark:bg-slate-300 text-white dark:text-slate-900 border-slate-700 dark:border-slate-300 shadow-md hover:shadow-lg hover:bg-slate-800 dark:hover:bg-slate-200 focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400 transform hover:scale-[1.02] active:scale-[0.98]",
-                  )}
-                >
-                  <Save
-                    className={cn(
-                      "h-4 w-4 transition-all duration-200",
-                      isSaving && "animate-pulse scale-110",
-                    )}
-                  />
-                </Button>
-
-                {currentNote && (
-                  <div className="hidden sm:block text-xs text-slate-500 dark:text-slate-400">
-                    {formatDistanceToNow(new Date(currentNote.updatedAt), {
-                      addSuffix: true,
-                    })}
-                  </div>
-                )}
 
                 <UserButton />
               </div>
