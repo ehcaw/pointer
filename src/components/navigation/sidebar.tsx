@@ -105,8 +105,8 @@ export default function AppSidebar() {
     .slice(0, 5);
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarInset className="bg-transparent">
+    <Sidebar collapsible="icon" className="border-r-0 flex flex-col">
+      <SidebarInset className="bg-transparent flex flex-col h-screen">
         {/* Header */}
         <SidebarHeader className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center h-full w-full">
@@ -153,7 +153,7 @@ export default function AppSidebar() {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="bg-white dark:bg-slate-900">
+        <SidebarContent className="bg-white dark:bg-slate-900 flex-1 overflow-y-auto">
           {/* Navigation */}
           <SidebarGroup>
             <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
@@ -252,7 +252,7 @@ export default function AppSidebar() {
                         "rounded-lg transition-all my-1.5 w-full",
                         "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0",
                         isActive
-                          ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 group-data-[collapsible=icon]:bg-blue-600 group-data-[collapsible=icon]:text-white group-data-[collapsible=icon]:shadow-lg group-data-[collapsible=icon]:ring-2 group-data-[collapsible=icon]:ring-blue-500/50"
+                          ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 group-data-[collapsible=icon]:bg-slate-200 dark:group-data-[collapsible=icon]:bg-slate-700 group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
                           : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 group-data-[collapsible=icon]:hover:bg-slate-200 dark:group-data-[collapsible=icon]:hover:bg-slate-700",
                       )}
                     >
@@ -266,7 +266,7 @@ export default function AppSidebar() {
                           className={cn(
                             "h-3 w-3 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4",
                             isActive
-                              ? "text-primary group-data-[collapsible=icon]:!text-white"
+                              ? "text-primary group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
                               : "text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:text-slate-600 dark:group-data-[collapsible=icon]:text-slate-300",
                           )}
                         />
@@ -329,7 +329,7 @@ export default function AppSidebar() {
                           "rounded-lg transition-all my-1.5 w-full",
                           "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0",
                           isActive
-                            ? "bg-primary/10 text-primary hover:bg-primary/15 group-data-[collapsible=icon]:bg-blue-600 group-data-[collapsible=icon]:text-white group-data-[collapsible=icon]:shadow-lg group-data-[collapsible=icon]:ring-2 group-data-[collapsible=icon]:ring-blue-500/50"
+                            ? "bg-primary/10 text-primary hover:bg-primary/15 group-data-[collapsible=icon]:bg-slate-200 dark:group-data-[collapsible=icon]:bg-slate-700 group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
                             : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 group-data-[collapsible=icon]:hover:bg-slate-200 dark:group-data-[collapsible=icon]:hover:bg-slate-700",
                         )}
                       >
@@ -343,7 +343,7 @@ export default function AppSidebar() {
                             className={cn(
                               "h-3 w-3 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4",
                               isActive
-                                ? "text-primary group-data-[collapsible=icon]:!text-white"
+                                ? "text-primary group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
                                 : "text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:text-slate-600 dark:group-data-[collapsible=icon]:text-slate-300",
                             )}
                           />
@@ -391,15 +391,15 @@ export default function AppSidebar() {
         </SidebarContent>
 
         {/* Footer */}
-        <SidebarFooter className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
+        <SidebarFooter className="mt-auto h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 h-full w-full">
             {/* Expanded state */}
-            <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
+            <div className="group-data-[collapsible=icon]:hidden flex items-center w-full">
               <div className="flex items-center gap-2">
                 <FileText className="h-3 w-3" />
                 <span>{userNotes.length} notes total</span>
               </div>
-              <div className="ml-auto">
+              <div className="ml-auto mt-2">
                 <ThemeToggle size="sm" />
               </div>
             </div>
@@ -409,7 +409,9 @@ export default function AppSidebar() {
                 variant="ghost"
                 className="rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 h-6 w-6"
               />
-              <ThemeToggle size="sm" />
+              <div className="mt-1">
+                <ThemeToggle size="sm" />
+              </div>
             </div>
           </div>
         </SidebarFooter>

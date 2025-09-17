@@ -53,10 +53,10 @@ export const NotebookView = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Main Editor */}
-      <div className="px-6 py-8">
+      <div className="px-6 py-8 pb-20">
         <div className="mx-auto max-w-[80%]">
           <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="w-full min-h-[calc(100vh-200px)]">
+            <div className="w-full min-h-[calc(100vh-240px)]">
               <SimpleEditor
                 key={currentNote?.pointer_id || "new-note"}
                 content={noteContent}
@@ -69,9 +69,9 @@ export const NotebookView = () => {
 
       {/* Footer with note info */}
       {currentNote && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800">
-          <div className="px-6 py-3">
-            <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
+        <div className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 h-16">
+          <div className="px-6 py-4 h-full">
+            <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 h-full">
               <div className="flex items-center gap-4"></div>
 
               <div className="flex items-center gap-2">
