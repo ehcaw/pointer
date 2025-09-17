@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
@@ -44,6 +44,7 @@ import "@/components/tiptap-templates/simple/simple-editor.scss";
 import "@/components/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/notes-store";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
 
 interface SimpleEditorProps {
@@ -74,6 +75,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     dbSavedNotes,
   } = useNotesStore();
 
+  const { saveCurrentNote } = useNoteEditor();
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+
   // This ref will store the "saved" state of each note, mirroring the DB
 
   // Parse content appropriately based on input type
@@ -82,26 +87,15 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       return "";
     }
 
-    // If content is an object (TipTap JSON), use it directly
-    if (content && typeof content === "object") {
-      // If content is an empty object, treat it as an empty string for Tiptap
-      if (Object.keys(content).length === 0) {
-        return "";
-      }
-      return content;
-    }
-
     // If content is a string, try to parse it as JSON first
     if (typeof content === "string") {
       // If it's an empty string, return empty string for Tiptap
       if (content.trim() === "") {
         return "";
       }
-
       // Try to parse as JSON (for stored TipTap content)
       try {
         const parsed = JSON.parse(content);
-
         // Verify it looks like TipTap JSON (has type and content properties)
         if (parsed && typeof parsed === "object" && parsed.type) {
           return parsed;
@@ -109,13 +103,14 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       } catch (e) {
         console.warn("JSON parsing failed: ", e);
       }
-
       return content;
     }
-
     // Fallback
     return "";
   }, [content]);
+
+  const lastContentRef = useRef<string>("");
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -162,18 +157,16 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       }),
     ],
     content: initialContent,
+    // Lightweight onUpdate - only handles UI updates
     onUpdate: ({ editor }) => {
-      // Check for slash command - more natural detection
+      // Handle slash command (lightweight)
       const { selection } = editor.state;
       const { $from } = selection;
       const textBefore = $from.nodeBefore?.textContent || "";
 
-      // Look for slash in the text before cursor
       const slashIndex = textBefore.lastIndexOf("/");
       if (slashIndex !== -1) {
-        // Check if the slash is the last character or followed by non-space characters
         const textAfterSlash = textBefore.slice(slashIndex + 1);
-        // Only show if we're right after the slash or typing the command name
         if (
           textAfterSlash.length === 0 ||
           (!textAfterSlash.includes(" ") && textAfterSlash.length < 20)
@@ -189,46 +182,58 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         setSlashCommandQuery("");
       }
 
-      // 2. Logic for marking unsaved status (THIS IS WHERE THE CHANGE GOES)
-      if (!currentNote) {
-        // If there's no current note, we can't determine unsaved status
-        return;
+      // Debounce the heavy content update operations
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
       }
 
-      const noteId = currentNote.pointer_id;
-      const currentEditorJson = editor.getJSON();
-      const currentEditorText = editor.getText();
-      const dbSavedMirror = dbSavedNotes.get(noteId);
-
-      let changed = false;
-
-      if (dbSavedMirror) {
-        // Note exists in our DB mirror cache, compare current editor content with it
-        // Ensure the tiptap content from the mirror is also stringified for consistent comparison
-        const lastSavedJson = JSON.stringify(dbSavedMirror.content.tiptap);
-        const lastSavedText = dbSavedMirror.content.text;
-
-        // Use OR (||) so if either JSON or plain text differs, it's marked as changed
-        changed =
-          JSON.stringify(currentEditorJson) != lastSavedJson ||
-          currentEditorText != lastSavedText;
-      } else {
-        // This case occurs if:
-        // a) It's a brand new note that has never been saved to the DB.
-        // b) An existing note was loaded, but dbSavedNotes.current hasn't been primed yet.
-        // In both scenarios, we should generally consider it "unsaved" relative to the DB.
-        changed = true;
-      }
-
-      if (changed) {
-        markNoteAsUnsaved(currentNote);
-        currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-        currentNote.content.text = currentEditorText;
-      } else if (!changed && unsavedNotes.has(currentNote.pointer_id)) {
-        removeUnsavedNote(currentNote.pointer_id); // Ensure it's unmarked if content matches DB mirror
-      }
+      updateTimeoutRef.current = setTimeout(() => {
+        debouncedContentUpdate();
+      }, 150); // Very short debounce for content updates
     },
   });
+
+  // Debounced content update function
+  const debouncedContentUpdate = useCallback(() => {
+    if (!currentNote || !editor) return;
+
+    const currentEditorJson = editor.getJSON();
+    const currentEditorText = editor.getText();
+    const currentContentHash = JSON.stringify(currentEditorJson);
+
+    // Only update if content actually changed
+    if (currentContentHash !== lastContentRef.current) {
+      lastContentRef.current = currentContentHash;
+
+      // Update content immediately in memory (fast)
+      currentNote.content.tiptap = ensureJSONString(currentEditorJson);
+      currentNote.content.text = currentEditorText;
+
+      // Mark as unsaved
+      markNoteAsUnsaved(currentNote);
+
+      // Setup auto-save timer
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+
+      autoSaveTimeoutRef.current = setTimeout(async () => {
+        try {
+          await saveCurrentNote();
+          autoSaveTimeoutRef.current = null;
+          removeUnsavedNote(currentNote.pointer_id);
+        } catch (error) {
+          console.error("Auto-save failed:", error);
+        }
+      }, AUTO_SAVE_INTERVAL);
+    }
+  }, [
+    currentNote,
+    editor,
+    markNoteAsUnsaved,
+    saveCurrentNote,
+    removeUnsavedNote,
+  ]);
 
   const bodyRect = useCursorVisibility({
     editor,
@@ -299,19 +304,32 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     }
   }, [isMobile, mobileView, editor, editorRef]);
 
-  // **NEW useEffect**: Prime dbSavedNotes.current when the active note changes.
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   useEffect(() => {
     if (currentNote) {
-      // Store the *initial* content of the currentNote as the saved state
-      // This assumes `currentNote.content.tiptap` and `currentNote.content.text`
-      // accurately reflect the content from the database when the note is loaded/selected.
       dbSavedNotes.set(
         currentNote.pointer_id,
         JSON.parse(JSON.stringify(currentNote)),
       );
     }
-  }, [currentNote, dbSavedNotes]); // Only re-run when the currentNote object reference changes
+  }, [currentNote, dbSavedNotes]);
+
+  useEffect(() => {
+    if (currentNote && editor) {
+      lastContentRef.current = JSON.stringify(editor.getJSON());
+    }
+  }, [currentNote, editor]);
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <EditorContext.Provider value={{ editor }}>
