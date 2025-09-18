@@ -112,6 +112,9 @@ export default function LoginPage() {
             src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg/1200px-%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg"
             alt="The School of Athens"
             className="w-full h-full object-cover opacity-85"
+            width={1200}
+            height={800}
+            unoptimized={true}
           />
           {/* Subtle overlay to soften the image */}
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/40 via-transparent to-stone-50/30"></div>
