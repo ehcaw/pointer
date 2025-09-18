@@ -7,7 +7,10 @@ import { SignIn } from "@clerk/nextjs";
 import Image from "next/image";
 import { Libre_Baskerville } from "next/font/google";
 
-const libreBaskerville = Libre_Baskerville({ weight: "400" });
+const libreBaskerville = Libre_Baskerville({
+  weight: "400",
+  subsets: ["latin"],
+});
 
 export default function LoginPage() {
   const { isSignedIn, isLoaded } = useUser();
