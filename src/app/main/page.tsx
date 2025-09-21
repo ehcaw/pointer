@@ -17,6 +17,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { HomeView } from "@/components/views/HomeView";
 import GraphView from "@/components/views/GraphView";
+import ExcalidrawWrapper from "@/components/ExcalidrawWrapper";
 import React from "react";
 import { useNotesStore } from "@/lib/notes-store";
 import { NotebookView } from "@/components/views/NotebookView";
@@ -193,6 +194,7 @@ export default function MainPage() {
             {currentView === "home" && <HomeView />}
             {currentView === "note" && <NotebookView />}
             {currentView === "graph" && <GraphView />}
+            {currentView === "whiteboard" && <ExcalidrawWrapper />}
           </div>
         </SidebarInset>
       </SidebarProvider>

@@ -13,6 +13,7 @@
     "@auth/core": "0.37.0",
     "@clerk/nextjs": "^6.32.0",
     "@convex-dev/auth": "^0.0.88",
+    "@excalidraw/excalidraw": "^0.18.0",
     "@floating-ui/react": "^0.27.10",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.12",

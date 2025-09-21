@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Home, FileText, Clock, GitGraph, Trash } from "lucide-react";
+import {
+  Plus,
+  Home,
+  FileText,
+  Clock,
+  GitGraph,
+  Trash,
+  LineSquiggle,
+} from "lucide-react";
 import Image from "next/image";
 import {
   Sidebar,
@@ -63,7 +71,7 @@ export default function AppSidebar() {
     createNewNote(title);
   };
 
-  const handleNavClick = (view: "home" | "graph") => {
+  const handleNavClick = (view: "home" | "graph" | "whiteboard" | "note") => {
     setCurrentView(view);
   };
 
@@ -187,6 +195,19 @@ export default function AppSidebar() {
                   >
                     <GitGraph className="h-4 w-4" />
                     <span>Jots</span>
+                  </SidebarMenuButton>
+                  <SidebarMenuButton
+                    onClick={() => handleNavClick("whiteboard")}
+                    data-active={currentView === "whiteboard"}
+                    className={cn(
+                      "rounded-lg transition-all",
+                      currentView === "whiteboard"
+                        ? "bg-primary/10 text-primary hover:bg-primary/15"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                    )}
+                  >
+                    <LineSquiggle className="h-4 w-4" />
+                    <span>Whiteboard</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

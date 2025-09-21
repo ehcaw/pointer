@@ -8,7 +8,7 @@ interface NotesStore {
 
   // UI state
   openUserNotes: Node[];
-  currentView: "home" | "note" | "graph";
+  currentView: "home" | "note" | "graph" | "whiteboard";
   currentNote: Node | null;
   isLoading: boolean;
 
@@ -21,7 +21,7 @@ interface NotesStore {
   setUserNotes: (notes: Node[]) => void;
   setOpenUserNotes: (notes: Node[]) => void;
   setTreeStructure: (structure: Node[]) => void;
-  setCurrentView: (view: "home" | "note" | "graph") => void;
+  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") => void;
   setCurrentNote: (note: Node | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   setDBSavedNotes: (notes: Node[]) => void;
@@ -68,7 +68,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
-  setCurrentView: (view: "home" | "note" | "graph") =>
+  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") =>
     set({ currentView: view }),
   setCurrentNote: (note: Node | null) => {
     set({ currentNote: note });
@@ -77,7 +77,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setDBSavedNotes: (notes: Node[]) => {
     const dbSavedNotes = new Map<string, Node>([]);
     notes.forEach((note) =>
-      dbSavedNotes.set(note.pointer_id, JSON.parse(JSON.stringify(note)))
+      dbSavedNotes.set(note.pointer_id, JSON.parse(JSON.stringify(note))),
     );
     set({ dbSavedNotes });
   },
@@ -91,7 +91,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const state = get();
     if (
       !state.openUserNotes.some(
-        (n) => n.pointer_id.toString() === note.pointer_id.toString()
+        (n) => n.pointer_id.toString() === note.pointer_id.toString(),
       )
     ) {
       set({
@@ -122,7 +122,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Remove from open notes
     const openUserNotes = state.openUserNotes.filter(
-      (n) => n.pointer_id.toString() !== noteId
+      (n) => n.pointer_id.toString() !== noteId,
     );
 
     // Set new current note (if any)
@@ -142,7 +142,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     if (!note.pointer_id || note.pointer_id.toString().startsWith("temp-")) {
       const newUnsavedNotes = [...state.newUnsavedNotes];
       const index = newUnsavedNotes.findIndex(
-        (n) => n.pointer_id === note.pointer_id
+        (n) => n.pointer_id === note.pointer_id,
       );
 
       if (index !== -1) {
@@ -162,7 +162,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Also update in the open notes list
     const openUserNotes = [...state.openUserNotes];
     const index = openUserNotes.findIndex(
-      (n) => n.pointer_id.toString() === note.pointer_id.toString()
+      (n) => n.pointer_id.toString() === note.pointer_id.toString(),
     );
 
     if (index !== -1) {
@@ -194,7 +194,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
           // Find original note
           return (
             state.userNotes.find(
-              (n) => n.pointer_id.toString() === note.pointer_id.toString()
+              (n) => n.pointer_id.toString() === note.pointer_id.toString(),
             ) || note
           );
         }
@@ -233,18 +233,18 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Check if it's a new note or an existing one with unsaved changes
     const isNewNote = state.newUnsavedNotes.some(
-      (n) => n.pointer_id.toString() === noteId
+      (n) => n.pointer_id.toString() === noteId,
     );
 
     if (isNewNote) {
       // Remove from new notes
       const newUnsavedNotes = state.newUnsavedNotes.filter(
-        (n) => n.pointer_id.toString() !== noteId
+        (n) => n.pointer_id.toString() !== noteId,
       );
 
       // Remove from open notes
       const openUserNotes = state.openUserNotes.filter(
-        (n) => n.pointer_id.toString() !== noteId
+        (n) => n.pointer_id.toString() !== noteId,
       );
 
       // Update current note if needed
@@ -268,13 +268,13 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       // Replace with original in open notes
       const openUserNotes = [...state.openUserNotes];
       const index = openUserNotes.findIndex(
-        (n) => n.pointer_id.toString() === noteId
+        (n) => n.pointer_id.toString() === noteId,
       );
 
       if (index !== -1) {
         // Find original note
         const originalNote = state.userNotes.find(
-          (n) => n.pointer_id.toString() === noteId
+          (n) => n.pointer_id.toString() === noteId,
         );
 
         if (originalNote) {
@@ -320,7 +320,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   removeNewUnsavedNote: (noteId: string) => {
     const state = get();
     const newUnsavedNotes = state.newUnsavedNotes.filter(
-      (n) => n.pointer_id.toString() !== noteId
+      (n) => n.pointer_id.toString() !== noteId,
     );
     set({ newUnsavedNotes });
   },
@@ -331,12 +331,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update in userNotes
     const userNotes = state.userNotes.map((n) =>
-      n.pointer_id.toString() === note.pointer_id.toString() ? note : n
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n,
     );
 
     // Update in open notes
     const openUserNotes = state.openUserNotes.map((n) =>
-      n.pointer_id.toString() === note.pointer_id.toString() ? note : n
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n,
     );
 
     // Update current note if needed
@@ -350,7 +350,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update tree structure if needed
     const treeStructure = state.treeStructure.map((n) =>
-      n.pointer_id.toString() === note.pointer_id.toString() ? note : n
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n,
     );
 
     set({
@@ -366,17 +366,17 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Remove from userNotes
     const userNotes = state.userNotes.filter(
-      (n) => n.pointer_id.toString() !== noteId
+      (n) => n.pointer_id.toString() !== noteId,
     );
 
     // Remove from open notes
     const openUserNotes = state.openUserNotes.filter(
-      (n) => n.pointer_id.toString() !== noteId
+      (n) => n.pointer_id.toString() !== noteId,
     );
 
     // Remove from tree structure
     const treeStructure = state.treeStructure.filter(
-      (n) => n.pointer_id.toString() !== noteId
+      (n) => n.pointer_id.toString() !== noteId,
     );
 
     // Remove from unsaved changes if present
@@ -384,7 +384,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     unsavedNotes.delete(noteId);
 
     const newUnsavedNotes = state.newUnsavedNotes.filter(
-      (n) => n.pointer_id.toString() !== noteId
+      (n) => n.pointer_id.toString() !== noteId,
     );
 
     // Update current note if needed
@@ -425,7 +425,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
         // Update or add to userNotes
         const userNoteIndex = updatedUserNotes.findIndex(
-          (n) => n.pointer_id.toString() === noteId
+          (n) => n.pointer_id.toString() === noteId,
         );
         if (userNoteIndex !== -1) {
           updatedUserNotes[userNoteIndex] = note;
@@ -435,7 +435,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
         // Update open notes
         const openNoteIndex = updatedOpenUserNotes.findIndex(
-          (n) => n.pointer_id.toString() === noteId
+          (n) => n.pointer_id.toString() === noteId,
         );
         if (openNoteIndex !== -1) {
           updatedOpenUserNotes[openNoteIndex] = note;
@@ -451,7 +451,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
         // Update or add to tree structure
         const treeNoteIndex = updatedTreeStructure.findIndex(
-          (n) => n.pointer_id.toString() === noteId
+          (n) => n.pointer_id.toString() === noteId,
         );
         if (treeNoteIndex !== -1) {
           updatedTreeStructure[treeNoteIndex] = note;
