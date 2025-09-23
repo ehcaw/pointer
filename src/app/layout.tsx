@@ -29,7 +29,11 @@ export default function RootLayout({
 }>) {
   const CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      signInFallbackRedirectUrl={"/"}
+      signInForceRedirectUrl={"/"}
+    >
       <html lang="en" className="light" suppressHydrationWarning={true}>
         <head>
           <script
