@@ -24,10 +24,12 @@ import { NotebookView } from "@/components/views/NotebookView";
 import { Node } from "@/types/note";
 import { api } from "../../../convex/_generated/api";
 import { useQuery } from "convex/react";
-import { FileText, Home, Clock } from "lucide-react";
+import { FileText, Home, Clock, Share2 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import AppSidebar from "@/components/navigation/sidebar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function MainPage() {
   const { isSignedIn, isLoaded } = useUser();
@@ -91,6 +93,22 @@ export default function MainPage() {
   };
 
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
+
+  const handleShareNote = async () => {
+    if (!currentNote) return;
+
+    const previewUrl = `${window.location.origin}/preview/${currentNote.pointer_id}`;
+
+    try {
+      await navigator.clipboard.writeText(previewUrl);
+      toast.success("Preview link copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      // Fallback: open the preview in a new tab
+      window.open(previewUrl, "_blank");
+      toast.info("Preview opened in new tab");
+    }
+  };
 
   const getDefaultInput = () => {
     switch (currentView) {
@@ -176,6 +194,18 @@ export default function MainPage() {
                     <Clock className="h-3 w-3 mr-1" />
                     Unsaved changes
                   </Badge>
+                )}
+
+                {currentNote && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={handleShareNote}
+                    title="Share preview link"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
                 )}
 
                 <UserButton />

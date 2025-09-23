@@ -5,6 +5,7 @@ import "./globals.css";
 import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
           <ThemeProvider defaultTheme="system" storageKey="theme">
             <ConvexClientProvider>
               <CommandMenuProvider>{children}</CommandMenuProvider>
+              <Toaster position="top-right" />
             </ConvexClientProvider>
           </ThemeProvider>
         </body>
