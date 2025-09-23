@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useConvex } from "convex/react";
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { FileNode, Node } from "@/types/note";
 import { api } from "../../convex/_generated/api";
 import { ensureJSONString } from "@/lib/utils";

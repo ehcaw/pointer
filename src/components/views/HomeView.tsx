@@ -24,7 +24,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 // Store
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { FileNode, type Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 

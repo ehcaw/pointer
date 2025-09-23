@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNotesStore } from "../lib/notes-store";
+import { useNotesStore } from "../lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { Input } from "./ui/input";
 
-import { SimpleEditor } from "./tiptap-templates/simple/simple-editor";
+import { SimpleEditor } from "./tiptap/tiptap-templates/simple/simple-editor";
 
 interface NoteEditorProps {
   noteId?: string;

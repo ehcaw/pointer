@@ -33,4 +33,21 @@ export default defineSchema({
     tenantId: v.string(),
     name: v.string(),
   }),
+  whiteboards: defineTable({
+    // Basic metadata
+    title: v.string(),
+    tenantId: v.string(),
+
+    // Excalidraw core data
+    elements: v.array(v.any()), // Excalidraw elements
+
+    // Selected persistent app state
+    appState: v.object({
+      viewBackgroundColor: v.optional(v.string()),
+      theme: v.optional(v.string()),
+      gridSize: v.optional(v.number()),
+      name: v.optional(v.string()),
+    }),
+    lastModified: v.number(),
+  }).index("by_owner", ["tenantId"]),
 });

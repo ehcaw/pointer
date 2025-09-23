@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CommandMenu } from "@/components/ui/command-menu";
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
 
 export function CommandMenuProvider({

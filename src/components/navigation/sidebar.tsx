@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Home, FileText, Clock, GitGraph, Trash } from "lucide-react";
+import {
+  Plus,
+  Home,
+  FileText,
+  Clock,
+  GitGraph,
+  Trash,
+  LineSquiggle,
+} from "lucide-react";
 import Image from "next/image";
 import {
   Sidebar,
@@ -34,7 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
@@ -51,6 +59,7 @@ export default function AppSidebar() {
     unsavedNotes,
     openUserNotes,
     setCurrentNote,
+    unsetCurrentNote,
     currentNote,
     dbSavedNotes,
   } = useNotesStore();
@@ -63,7 +72,7 @@ export default function AppSidebar() {
     createNewNote(title);
   };
 
-  const handleNavClick = (view: "home" | "graph") => {
+  const handleNavClick = (view: "home" | "graph" | "whiteboard" | "note") => {
     setCurrentView(view);
   };
 
@@ -163,7 +172,10 @@ export default function AppSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    onClick={() => handleNavClick("home")}
+                    onClick={() => {
+                      handleNavClick("home");
+                      unsetCurrentNote();
+                    }}
                     data-active={currentView === "home"}
                     className={cn(
                       "rounded-lg transition-all",
@@ -176,7 +188,10 @@ export default function AppSidebar() {
                     <span>Home</span>
                   </SidebarMenuButton>
                   <SidebarMenuButton
-                    onClick={() => handleNavClick("graph")}
+                    onClick={() => {
+                      handleNavClick("graph");
+                      unsetCurrentNote();
+                    }}
                     data-active={currentView === "graph"}
                     className={cn(
                       "rounded-lg transition-all",
@@ -187,6 +202,22 @@ export default function AppSidebar() {
                   >
                     <GitGraph className="h-4 w-4" />
                     <span>Jots</span>
+                  </SidebarMenuButton>
+                  <SidebarMenuButton
+                    onClick={() => {
+                      handleNavClick("whiteboard");
+                      unsetCurrentNote();
+                    }}
+                    data-active={currentView === "whiteboard"}
+                    className={cn(
+                      "rounded-lg transition-all",
+                      currentView === "whiteboard"
+                        ? "bg-primary/10 text-primary hover:bg-primary/15"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                    )}
+                  >
+                    <LineSquiggle className="h-4 w-4" />
+                    <span>Whiteboard</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

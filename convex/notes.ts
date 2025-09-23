@@ -120,6 +120,7 @@ export const updateNoteInDb = mutation({
 
     if (existingNote) {
       // UPDATE: Note exists, update it
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
       const update: Record<string, any> = {};
 
       // Only include defined fields
@@ -247,12 +248,23 @@ export const generateUploadUrl = mutation({
   },
 });
 
+// Public query for getting note by pointer_id for preview (no auth required)
+export const getPublicNote = query({
+  args: { pointer_id: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("notes")
+      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .first();
+  },
+});
+
 export const generateAutocompleteSuggestion = action({
   args: {
     fullText: v.string(),
     currLine: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async () => {
     const text = "";
     //   const { text } = await generateText({
     //     model: groq("llama-3.3-70b-versatile"),
