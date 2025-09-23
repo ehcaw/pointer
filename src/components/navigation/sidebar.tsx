@@ -42,7 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,7 @@ export default function AppSidebar() {
     unsavedNotes,
     openUserNotes,
     setCurrentNote,
+    unsetCurrentNote,
     currentNote,
     dbSavedNotes,
   } = useNotesStore();
@@ -171,7 +172,10 @@ export default function AppSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    onClick={() => handleNavClick("home")}
+                    onClick={() => {
+                      handleNavClick("home");
+                      unsetCurrentNote();
+                    }}
                     data-active={currentView === "home"}
                     className={cn(
                       "rounded-lg transition-all",
@@ -184,7 +188,10 @@ export default function AppSidebar() {
                     <span>Home</span>
                   </SidebarMenuButton>
                   <SidebarMenuButton
-                    onClick={() => handleNavClick("graph")}
+                    onClick={() => {
+                      handleNavClick("graph");
+                      unsetCurrentNote();
+                    }}
                     data-active={currentView === "graph"}
                     className={cn(
                       "rounded-lg transition-all",
@@ -197,7 +204,10 @@ export default function AppSidebar() {
                     <span>Jots</span>
                   </SidebarMenuButton>
                   <SidebarMenuButton
-                    onClick={() => handleNavClick("whiteboard")}
+                    onClick={() => {
+                      handleNavClick("whiteboard");
+                      unsetCurrentNote();
+                    }}
                     data-active={currentView === "whiteboard"}
                     className={cn(
                       "rounded-lg transition-all",

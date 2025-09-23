@@ -1,8 +1,8 @@
 "use client";
-import { SimpleEditor } from "../tiptap-templates/simple/simple-editor";
+import { SimpleEditor } from "../tiptap/tiptap-templates/simple/simple-editor";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect } from "react";
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 
