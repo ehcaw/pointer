@@ -74,7 +74,7 @@ export default function MainPage() {
     );
   }
 
-  // Don't render mdin app if not signed in (prevents flash)
+  // Don't render main app if not signed in (prevents flash)
   if (!isSignedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
