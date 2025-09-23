@@ -217,16 +217,6 @@ export default function MainPage() {
           {/* Header for non-note views */}
           {currentView !== "note" && (
             <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">
-              {/*<div className="flex items-center gap-2">
-                <Home className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                <span className="text-slate-900 dark:text-slate-100 font-medium capitalize">
-                  {currentView}
-                </span>
-              </div>
-
-              <div className="ml-auto">
-                <UserButton />
-              </div>*/}
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
@@ -285,6 +275,11 @@ export default function MainPage() {
                   )}
                 </BreadcrumbList>
               </Breadcrumb>
+
+              {/* User Button for non-note views */}
+              <div className="ml-auto">
+                <UserButton />
+              </div>
             </header>
           )}
 
