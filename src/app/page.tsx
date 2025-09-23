@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import { SignIn } from "@clerk/nextjs";
+import { useUser, SignIn } from "@clerk/nextjs";
 import Image from "next/image";
 import { Libre_Baskerville } from "next/font/google";
 
@@ -13,8 +12,8 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export default function LoginPage() {
-  const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
+  const { isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -66,44 +65,41 @@ export default function LoginPage() {
           </div>
 
           {/* Clerk Sign In Component */}
-          <div className="flex justify-center">
+          <div className="w-full max-w-sm mx-auto">
             <SignIn
               appearance={{
                 elements: {
-                  rootBox: "mx-auto",
-                  card: "shadow-xl border border-stone-200 bg-white/95 backdrop-blur-sm",
-                  headerTitle: "text-stone-900 font-bold",
-                  headerSubtitle: "text-stone-600",
+                  formButtonPrimary:
+                    "bg-stone-900 hover:bg-stone-800 text-white font-medium py-3 rounded-lg transition-all duration-200",
+                  card: "shadow-none bg-transparent",
+                  headerTitle: "hidden",
+                  headerSubtitle: "hidden",
                   socialButtonsBlockButton:
-                    "border border-stone-200 hover:bg-stone-50 transition-colors",
+                    "border border-stone-200 hover:bg-stone-50 text-stone-700",
                   socialButtonsBlockButtonText: "text-stone-700 font-medium",
                   formFieldInput:
                     "border border-stone-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent rounded-lg",
-                  formButtonPrimary:
-                    "bg-stone-900 hover:bg-stone-800 text-white font-medium py-3 rounded-lg transition-all duration-200",
+                  formFieldLabel: "text-stone-700 font-medium text-sm",
                   footerActionLink:
                     "text-amber-600 hover:text-amber-700 font-medium",
-                  identityPreviewText: "text-stone-700",
-                  formFieldLabel: "text-stone-700 font-medium",
+                  identityPreviewText: "text-stone-600",
+                  formHeaderTitle: "text-stone-900 text-xl font-semibold",
+                  formHeaderSubtitle: "text-stone-600",
                   dividerLine: "bg-stone-200",
-                  dividerText: "text-stone-500",
+                  dividerText: "text-stone-500 text-sm",
+                  formFieldErrorText: "text-red-600 text-sm",
+                  alert:
+                    "bg-red-50 border border-red-200 text-red-600 rounded-lg",
+                  alertText: "text-red-600 text-sm",
+                },
+                layout: {
+                  socialButtonsPlacement: "bottom",
                 },
               }}
+              redirectUrl="/main"
+              signUpUrl="/signup"
             />
           </div>
-
-          {/* Footer Links */}
-          {/*<div className="flex justify-center space-x-6 text-sm text-stone-500 pt-8">
-            <a href="#" className="hover:text-stone-700 transition-colors">
-              Help
-            </a>
-            <a href="#" className="hover:text-stone-700 transition-colors">
-              Terms
-            </a>
-            <a href="#" className="hover:text-stone-700 transition-colors">
-              Privacy
-            </a>
-          </div>*/}
         </div>
       </div>
 
