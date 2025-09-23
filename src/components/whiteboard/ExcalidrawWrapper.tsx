@@ -38,9 +38,6 @@ const ExcalidrawWrapper: React.FC = () => {
     console.log("Excalidraw board changed!");
     console.log("Elements:", elements);
     console.log("App State:", appState);
-    console.log("Files:", files);
-
-    console.log("SKLDFJLKSDJFLKSD");
 
     // You can add your custom logic here
     // For example: save to localStorage, send to server, etc.
