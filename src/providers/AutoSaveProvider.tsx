@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNotesStore } from "@/lib/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 
 interface AutoSaveProviderProps {
   children: React.ReactNode;

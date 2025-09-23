@@ -44,9 +44,10 @@ export default defineSchema({
     // Selected persistent app state
     appState: v.object({
       viewBackgroundColor: v.optional(v.string()),
-      theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
+      theme: v.optional(v.string()),
       gridSize: v.optional(v.number()),
       name: v.optional(v.string()),
     }),
+    lastModified: v.number(),
   }).index("by_owner", ["tenantId"]),
 });

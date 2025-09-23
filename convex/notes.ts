@@ -120,6 +120,7 @@ export const updateNoteInDb = mutation({
 
     if (existingNote) {
       // UPDATE: Note exists, update it
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
       const update: Record<string, any> = {};
 
       // Only include defined fields
@@ -263,7 +264,7 @@ export const generateAutocompleteSuggestion = action({
     fullText: v.string(),
     currLine: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async () => {
     const text = "";
     //   const { text } = await generateText({
     //     model: groq("llama-3.3-70b-versatile"),

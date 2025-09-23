@@ -14,6 +14,7 @@ export interface Whiteboard {
 
   // Persistent app state (filtered from ExcalidrawAppState)
   appState: WhiteboardAppState;
+  lastModified: number;
 }
 
 // Filtered app state - only persistent properties
@@ -38,6 +39,7 @@ export const normalizeTheme = (theme?: string): "light" | "dark" => {
 };
 
 // Type guard for Whiteboard
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isWhiteboard = (obj: any): obj is Whiteboard => {
   return (
     obj &&
@@ -46,11 +48,13 @@ export const isWhiteboard = (obj: any): obj is Whiteboard => {
     typeof obj.tenantId === "string" &&
     Array.isArray(obj.elements) &&
     obj.appState &&
-    typeof obj.appState === "object"
+    typeof obj.appState === "object" &&
+    obj.lastModified
   );
 };
 
 // Transformation function to safely convert Convex response to Whiteboard
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const transformConvexWhiteboard = (data: any): Whiteboard | null => {
   if (!data || !isWhiteboard(data)) {
     return null;
@@ -68,6 +72,7 @@ export const transformConvexWhiteboard = (data: any): Whiteboard | null => {
       gridSize: data.appState?.gridSize,
       name: data.appState?.name,
     },
+    lastModified: data.lastModified,
   };
 };
 

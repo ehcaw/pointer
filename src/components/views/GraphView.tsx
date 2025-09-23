@@ -35,6 +35,8 @@ export default function GraphView() {
 
   // Handle keyboard shortcuts
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();

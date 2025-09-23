@@ -1,17 +1,30 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
-import {
-  Excalidraw,
-  convertToExcalidrawElements,
-} from "@excalidraw/excalidraw";
-
-import "@excalidraw/excalidraw/index.css";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import {
   ExcalidrawImperativeAPI,
-  ExcalidrawElement,
   AppState,
   BinaryFiles,
 } from "@excalidraw/excalidraw/types";
+import { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+
+import "@excalidraw/excalidraw/index.css";
+
+// Dynamically import Excalidraw to prevent SSR issues
+const Excalidraw = dynamic(
+  async () => (await import("@excalidraw/excalidraw")).Excalidraw,
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading whiteboard...</p>
+        </div>
+      </div>
+    ),
+  },
+);
 
 const ExcalidrawWrapper: React.FC = () => {
   const [excalidrawApi, setExcalidrawApi] =
@@ -50,7 +63,13 @@ const ExcalidrawWrapper: React.FC = () => {
     };
   }, [excalidrawApi]);
 
-  console.log(excalidrawApi?.getAppState());
+  // Only log app state when we're in the browser
+  useEffect(() => {
+    if (typeof window !== "undefined" && excalidrawApi) {
+      console.log(excalidrawApi?.getAppState());
+    }
+  }, [excalidrawApi]);
+
   return (
     <div className="w-full h-full">
       <Excalidraw
@@ -60,4 +79,5 @@ const ExcalidrawWrapper: React.FC = () => {
     </div>
   );
 };
+
 export default ExcalidrawWrapper;

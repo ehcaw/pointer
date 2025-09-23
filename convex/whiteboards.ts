@@ -18,6 +18,7 @@ export const create = mutation({
         viewBackgroundColor: "#ffffff",
         theme: "light",
       },
+      lastModified: Date.now(),
     });
 
     const whiteboard = await ctx.db.get(whiteboardId);
@@ -27,11 +28,11 @@ export const create = mutation({
 });
 
 export const getWhiteboard = query({
-  args: { id: v.id("whiteboards") },
+  args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      return [];
+      return null;
     }
     return await ctx.db
       .query("whiteboards")
@@ -45,17 +46,16 @@ export const updateWhiteboard = mutation({
     id: v.id("whiteboards"),
     elements: v.array(v.any()),
     appState: v.object({
-      viewBackgroundColor: v.optional(v.string()),
+      viewBackgroundColor: v.optional(
+        v.union(v.literal("light"), v.literal("dark")),
+      ),
       theme: v.optional(v.string()),
       gridSize: v.optional(v.number()),
       name: v.optional(v.string()),
     }),
-    lastModifiedBy: v.string(),
-    version: v.number(),
   },
   handler: async (ctx, args) => {
     const { id, ...updateData } = args;
-
     await ctx.db.patch(id, {
       ...updateData,
       lastModified: Date.now(),

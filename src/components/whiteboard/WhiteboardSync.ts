@@ -1,12 +1,9 @@
 import { useCallback, useRef, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import {
-  ExcalidrawElement,
-  AppState,
-  BinaryFiles,
-} from "@excalidraw/excalidraw/types";
+import { AppState } from "@excalidraw/excalidraw/types";
+import { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { useWhiteboardApi } from "@/hooks/use-whiteboard-api";
 
 interface UseWhiteboardSyncProps {
@@ -16,9 +13,9 @@ interface UseWhiteboardSyncProps {
 
 export const useWhiteboardSync = ({
   whiteboardId,
-  userId,
+  userId, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: UseWhiteboardSyncProps) => {
-  const updateWhiteboard = useMutation(api.whiteboards.update);
+  const updateWhiteboard = useMutation(api.whiteboards.updateWhiteboard);
   const { whiteboard } = useWhiteboardApi();
 
   // Debouncing
@@ -26,22 +23,33 @@ export const useWhiteboardSync = ({
   const lastSaveRef = useRef<number>(0);
 
   // Filter appState to only persistent properties
-  const filterAppState = useCallback((appState: AppState) => {
-    return {
-      viewBackgroundColor: appState.viewBackgroundColor,
-      theme: appState.theme,
-      gridSize: appState.gridSize,
-      name: appState.name,
-    };
-  }, []);
+  const filterAppState = useCallback(
+    (
+      appState: AppState,
+    ): {
+      viewBackgroundColor?: "light" | "dark" | undefined;
+      theme?: string | undefined;
+      gridSize?: number | undefined;
+      name?: string | undefined;
+    } => {
+      return {
+        viewBackgroundColor:
+          appState.viewBackgroundColor === "light" ||
+          appState.viewBackgroundColor === "dark"
+            ? (appState.viewBackgroundColor as "light" | "dark")
+            : undefined,
+        theme: typeof appState.theme === "string" ? appState.theme : undefined,
+        gridSize:
+          typeof appState.gridSize === "number" ? appState.gridSize : undefined,
+        name: appState.name ?? undefined,
+      };
+    },
+    [],
+  );
 
   // Debounced save function
   const debouncedSave = useCallback(
-    (
-      elements: readonly ExcalidrawElement[],
-      appState: AppState,
-      files: BinaryFiles,
-    ) => {
+    (elements: readonly ExcalidrawElement[], appState: AppState) => {
       // Clear existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -64,8 +72,6 @@ export const useWhiteboardSync = ({
             //eslint-disable-next-line @typescript-eslint/no-explicit-any
             elements: elements as any[], // Type assertion for Convex
             appState: filterAppState(appState),
-            lastModifiedBy: userId,
-            version: (whiteboard?.version || 0) + 1,
           });
 
           lastSaveRef.current = now;
@@ -75,7 +81,7 @@ export const useWhiteboardSync = ({
         }
       }, 1000); // 1 second debounce
     },
-    [whiteboardId, userId, updateWhiteboard, whiteboard, filterAppState],
+    [whiteboardId, updateWhiteboard, whiteboard, filterAppState],
   );
 
   // Cleanup timeout on unmount

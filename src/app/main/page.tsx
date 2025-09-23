@@ -96,6 +96,7 @@ export default function MainPage() {
 
   const handleShareNote = async () => {
     if (!currentNote) return;
+    if (typeof window === "undefined") return;
 
     const previewUrl = `${window.location.origin}/preview/${currentNote.pointer_id}`;
 

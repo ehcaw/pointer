@@ -1,48 +1,48 @@
-import { mergeAttributes, Node } from "@tiptap/react"
-import { ReactNodeViewRenderer } from "@tiptap/react"
-import { ImageUploadNode as ImageUploadNodeComponent } from "@/components/tiptap-node/image-upload-node/image-upload-node"
+import { mergeAttributes, Node } from "@tiptap/react";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import { ImageUploadNode as ImageUploadNodeComponent } from "@/components/tiptap/tiptap-node/image-upload-node/image-upload-node";
 
 export type UploadFunction = (
   file: File,
   onProgress?: (event: { progress: number }) => void,
-  abortSignal?: AbortSignal
-) => Promise<string>
+  abortSignal?: AbortSignal,
+) => Promise<string>;
 
 export interface ImageUploadNodeOptions {
   /**
    * Acceptable file types for upload.
    * @default 'image/*'
    */
-  accept?: string
+  accept?: string;
   /**
    * Maximum number of files that can be uploaded.
    * @default 1
    */
-  limit?: number
+  limit?: number;
   /**
    * Maximum file size in bytes (0 for unlimited).
    * @default 0
    */
-  maxSize?: number
+  maxSize?: number;
   /**
    * Function to handle the upload process.
    */
-  upload?: UploadFunction
+  upload?: UploadFunction;
   /**
    * Callback for upload errors.
    */
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void;
   /**
    * Callback for successful uploads.
    */
-  onSuccess?: (url: string) => void
+  onSuccess?: (url: string) => void;
 }
 
 declare module "@tiptap/react" {
   interface Commands<ReturnType> {
     imageUpload: {
-      setImageUploadNode: (options?: ImageUploadNodeOptions) => ReturnType
-    }
+      setImageUploadNode: (options?: ImageUploadNodeOptions) => ReturnType;
+    };
   }
 }
 
@@ -69,7 +69,7 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
       upload: undefined,
       onError: undefined,
       onSuccess: undefined,
-    }
+    };
   },
 
   addAttributes() {
@@ -83,22 +83,22 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
       maxSize: {
         default: this.options.maxSize,
       },
-    }
+    };
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-type="image-upload"]' }]
+    return [{ tag: 'div[data-type="image-upload"]' }];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
       mergeAttributes({ "data-type": "image-upload" }, HTMLAttributes),
-    ]
+    ];
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(ImageUploadNodeComponent)
+    return ReactNodeViewRenderer(ImageUploadNodeComponent);
   },
 
   addCommands() {
@@ -109,9 +109,9 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
           return commands.insertContent({
             type: this.name,
             attrs: options,
-          })
+          });
         },
-    }
+    };
   },
 
   /**
@@ -120,28 +120,28 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
   addKeyboardShortcuts() {
     return {
       Enter: ({ editor }) => {
-        const { selection } = editor.state
-        const { nodeAfter } = selection.$from
+        const { selection } = editor.state;
+        const { nodeAfter } = selection.$from;
 
         if (
           nodeAfter &&
           nodeAfter.type.name === "imageUpload" &&
           editor.isActive("imageUpload")
         ) {
-          const nodeEl = editor.view.nodeDOM(selection.$from.pos)
+          const nodeEl = editor.view.nodeDOM(selection.$from.pos);
           if (nodeEl && nodeEl instanceof HTMLElement) {
             // Since NodeViewWrapper is wrapped with a div, we need to click the first child
-            const firstChild = nodeEl.firstChild
+            const firstChild = nodeEl.firstChild;
             if (firstChild && firstChild instanceof HTMLElement) {
-              firstChild.click()
-              return true
+              firstChild.click();
+              return true;
             }
           }
         }
-        return false
+        return false;
       },
-    }
+    };
   },
-})
+});
 
-export default ImageUploadNode
+export default ImageUploadNode;

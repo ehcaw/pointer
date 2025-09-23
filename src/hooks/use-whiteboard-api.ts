@@ -1,18 +1,11 @@
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useWhiteboardStore } from "@/lib/stores/whiteboard-store";
-import { ensureJSONString } from "@/lib/utils";
 import { transformConvexWhiteboard, Whiteboard } from "@/types/whiteboard";
 
 export function useWhiteboardApi() {
   const convex = useConvex();
-  const {
-    whiteboard,
-    setWhiteboard,
-    updateWhiteboardAppState,
-    updateWhiteboardAppStateAndElements,
-    updateWhiteboardElements,
-  } = useWhiteboardStore();
+  const { whiteboard, setWhiteboard } = useWhiteboardStore();
 
   const fetchWhiteboard = async () => {
     const rawWhiteboard = await convex.query(api.whiteboards.getWhiteboard, {});
