@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import {
   ExcalidrawImperativeAPI,
   AppState,
-  BinaryFiles,
 } from "@excalidraw/excalidraw/types";
 import { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
@@ -33,7 +32,6 @@ const ExcalidrawWrapper: React.FC = () => {
   const handleChange = (
     elements: readonly ExcalidrawElement[],
     appState: AppState,
-    files: BinaryFiles,
   ) => {
     console.log("Excalidraw board changed!");
     console.log("Elements:", elements);
