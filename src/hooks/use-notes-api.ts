@@ -2,7 +2,6 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
-import { ensureJSONString } from "@/lib/utils";
 
 interface MutationType {
   pointer_id: string;
@@ -37,38 +36,19 @@ export function useNotesApi() {
   const saveNote = async (note: Node): Promise<Node> => {
     try {
       console.log(note.content);
-      if (note.pointer_id.toString().startsWith("temp-")) {
-        // Create new note
-        const { pointer_id, ...noteData } = note;
-        note.content.tiptap = ensureJSONString(note.content.tiptap);
-        const mutationData: MutationType = {
-          pointer_id: pointer_id,
-          name: noteData.name,
-          tenantId: noteData.tenantId!,
-          createdAt: String(noteData.createdAt),
-          updatedAt: String(noteData.updatedAt),
-          lastAccessed: String(new Date()),
-          lastEdited: String(noteData.lastEdited || new Date()),
-          content: note.content,
-        };
-
-        await convex.mutation(api.notes.createNoteInDb, mutationData);
-        return note; // Return the original note or fetch the saved version
-      } else {
-        // Update existing note
-        const updateData: MutationType = {
-          pointer_id: note.pointer_id,
-          name: note.name,
-          tenantId: note.tenantId,
-          createdAt: note.createdAt,
-          updatedAt: note.updatedAt,
-          lastAccessed: String(note.lastAccessed),
-          lastEdited: String(new Date()),
-          content: note.content,
-        };
-        await convex.mutation(api.notes.updateNoteInDb, updateData);
-        return note;
-      }
+      // Update existing note
+      const updateData: MutationType = {
+        pointer_id: note.pointer_id,
+        name: note.name,
+        tenantId: note.tenantId,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+        lastAccessed: String(note.lastAccessed),
+        lastEdited: String(new Date()),
+        content: note.content,
+      };
+      await convex.mutation(api.notes.updateNoteInDb, updateData);
+      return note;
     } catch (error) {
       console.error("Error saving note:", error);
       throw error;
