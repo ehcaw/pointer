@@ -16,7 +16,6 @@ interface NoteContent {
 export const getUserId = action({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    console.log(identity);
     return identity ? identity.subject : null;
   },
 });
@@ -38,7 +37,6 @@ export const readNotesFromDb = query({
     if (!identity) {
       return [];
     }
-    console.log(identity);
     return await ctx.db
       .query("notes")
       // .filter((q) => q.eq(q.field("tenantId"), args.user_id))

@@ -37,17 +37,8 @@ export default defineSchema({
     // Basic metadata
     title: v.string(),
     tenantId: v.string(),
-
-    // Excalidraw core data
-    elements: v.array(v.any()), // Excalidraw elements
-
-    // Selected persistent app state
-    appState: v.object({
-      viewBackgroundColor: v.optional(v.string()),
-      theme: v.optional(v.string()),
-      gridSize: v.optional(v.number()),
-      name: v.optional(v.string()),
-    }),
-    lastModified: v.number(),
+    // Serialized JSON data for export/import
+    serializedData: v.optional(v.string()),
+    lastModified: v.string(),
   }).index("by_owner", ["tenantId"]),
 });
