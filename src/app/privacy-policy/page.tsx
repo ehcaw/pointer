@@ -311,13 +311,13 @@ export default function PrivacyPolicy() {
             </div>
             <div className="flex space-x-6">
               <Link
-                href="/terms"
+                href="/terms-of-service"
                 className="text-stone-500 hover:text-stone-700 text-sm transition-colors font-medium"
               >
                 Terms of Service
               </Link>
               <Link
-                href="/privacy"
+                href="/privacy-policy"
                 className="text-amber-600 hover:text-amber-700 text-sm transition-colors font-medium"
               >
                 Privacy Policy
