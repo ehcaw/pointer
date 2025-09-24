@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 import Image from "next/image";
 import { Libre_Baskerville } from "next/font/google";
 
@@ -12,7 +12,7 @@ const libreBaskerville = Libre_Baskerville({
   subsets: ["latin"],
 });
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
@@ -31,7 +31,7 @@ export default function LoginPage() {
     );
   }
 
-  // Don't render login if already signed in (prevents flash)
+  // Don't render sign up if already signed in (prevents flash)
   if (isSignedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -42,7 +42,7 @@ export default function LoginPage() {
 
   return (
     <div className={`min-h-screen flex ${libreBaskerville.className}`}>
-      {/* Left Panel - Login Form */}
+      {/* Left Panel - Sign Up Form */}
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-stone-50 to-amber-50 px-8 py-12">
         <div className="w-full max-w-md space-y-8">
           {/* Logo */}
@@ -59,22 +59,19 @@ export default function LoginPage() {
 
           {/* Welcome Text */}
           <div className="space-y-2 text-center mb-8">
-            <h2 className="text-3xl font-bold text-stone-900">Welcome back!</h2>
+            <h2 className="text-3xl font-bold text-stone-900">Join Pointer</h2>
             <p className="text-stone-600">
-              Your thoughts, your stories, your flow — all in one place.
+              Start your journey of organized thoughts and seamless note-taking.
             </p>
           </div>
 
-          {/* Clerk Sign In Component */}
+          {/* Clerk Sign Up Component */}
           <div className="flex justify-center">
-            <SignIn
+            <SignUp
               routing="hash"
-              signUpUrl="/sign-up"
+              signInUrl="/"
               forceRedirectUrl="/main"
               fallbackRedirectUrl="/main"
-              signUpForceRedirectUrl="/main"
-              signUpFallbackRedirectUrl="/main"
-              redirectUrl="/main"
               appearance={{
                 elements: {
                   rootBox: "mx-auto",
@@ -157,10 +154,11 @@ export default function LoginPage() {
           <div className="absolute bottom-12 left-8 right-8">
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-lg border border-stone-200/50 max-w-md">
               <blockquote className="text-stone-700 font-serif italic text-lg leading-relaxed">
-                &quot;The only true wisdom is in knowing you know nothing.&quot;
+                &quot;A journey of a thousand miles begins with a single
+                step.&quot;
               </blockquote>
               <cite className="text-stone-500 text-sm mt-2 block font-medium">
-                — Socrates
+                — Lao Tzu
               </cite>
             </div>
           </div>
