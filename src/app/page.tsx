@@ -50,8 +50,8 @@ export default function LoginPage() {
             <Image
               src="/images/pointerlogo-575-transparent.svg"
               alt="Pen icon"
-              width={32}
-              height={32}
+              width={24}
+              height={24}
               className="h-6 w-6 object-contain"
             />
             <h1 className="text-2xl font-bold text-stone-800">Pointer</h1>

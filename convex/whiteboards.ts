@@ -118,9 +118,6 @@ export const getOrCreateWhiteboard = mutation({
 export const getWhiteboardById = query({
   args: { id: v.id("whiteboards") },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("whiteboards")
-      .filter((q) => q.eq(q.field("_id"), args.id))
-      .first();
+    return await ctx.db.get(args.id);
   },
 });
