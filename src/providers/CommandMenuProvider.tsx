@@ -32,7 +32,6 @@ export function CommandMenuProvider({
 
   const handleCreateNote = () => {
     // You can implement note creation here or pass it as a prop
-    console.log("Create note triggered");
     setCurrentView("note");
   };
 
