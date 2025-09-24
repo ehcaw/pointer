@@ -1,6 +1,5 @@
 import dynamic from "next/dynamic";
-// import { useWhiteboardStore } from "@/lib/stores/whiteboard-store";
-// import { useWhiteboardApi } from "@/hooks/use-whiteboard-api";
+import { WhiteboardProvider } from "@/providers/WhiteboardProvider";
 
 const ExcalidrawWrapper = dynamic(
   async () => (await import("../whiteboard/ExcalidrawWrapper")).default,
@@ -10,5 +9,9 @@ const ExcalidrawWrapper = dynamic(
 );
 
 export default function WhiteboardView() {
-  return <ExcalidrawWrapper />;
+  return (
+    <WhiteboardProvider>
+      <ExcalidrawWrapper />
+    </WhiteboardProvider>
+  );
 }

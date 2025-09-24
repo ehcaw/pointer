@@ -1,13 +1,79 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import {
   ExcalidrawImperativeAPI,
   AppState,
+  ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
 import { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
+import { useConvex } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { useWhiteboardStore } from "@/lib/stores/whiteboard-store";
+import { useWhiteboardContext } from "@/providers/WhiteboardProvider";
+import {
+  deserializeWhiteboardData,
+  createDefaultWhiteboardState,
+  serializeWhiteboardData,
+} from "./whiteboard-utils";
 
 import "@excalidraw/excalidraw/index.css";
+
+// Utility function for throttling
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useThrottledCallback<T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number,
+): T {
+  const lastRun = useRef(Date.now());
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  return useCallback(
+    ((...args: Parameters<T>) => {
+      const now = Date.now();
+
+      if (now - lastRun.current >= delay) {
+        lastRun.current = now;
+        callback(...args);
+      } else {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(
+          () => {
+            lastRun.current = Date.now();
+            callback(...args);
+          },
+          delay - (now - lastRun.current),
+        );
+      }
+    }) as T,
+    [callback, delay],
+  );
+}
+
+// Debounced function for auto-save
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useDebounce<T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number,
+): T {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  return useCallback(
+    ((...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    }) as T,
+    [callback, delay],
+  );
+}
 
 // Dynamically import Excalidraw to prevent SSR issues
 const Excalidraw = dynamic(
@@ -26,53 +92,200 @@ const Excalidraw = dynamic(
 );
 
 const ExcalidrawWrapper: React.FC = () => {
-  const [excalidrawApi, setExcalidrawApi] =
-    useState<ExcalidrawImperativeAPI | null>(null);
+  const [, setExcalidrawApi] = useState<ExcalidrawImperativeAPI | null>(null);
+  const [initialData, setInitialData] =
+    useState<ExcalidrawInitialDataState | null>(null);
 
-  const handleChange = (
-    elements: readonly ExcalidrawElement[],
-    appState: AppState,
-  ) => {
-    console.log("Excalidraw board changed!");
-    console.log("Elements:", elements);
-    console.log("App State:", appState);
+  const { whiteboard, isLoading: whiteboardLoading } = useWhiteboardContext();
+  const { setPendingChanges } = useWhiteboardStore();
+  const convex = useConvex();
 
-    // You can add your custom logic here
-    // For example: save to localStorage, send to server, etc.
-  };
+  // Refs for performance optimization
+  const isInitializingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
+  const lastWhiteboardIdRef = useRef<string | null>(null);
+  const pendingSerializedDataRef = useRef<string | null>(null);
+  const elementsHashRef = useRef<string>("");
 
-  // Subscribe to changes using the API's onChange method
+  const CHANGE_THROTTLE_MS = 100; // Throttle UI updates
+  const AUTO_SAVE_DEBOUNCE_MS = 2000; // Debounce auto-save
+
+  // Lightweight hash function for change detection
+  const hashElements = useCallback(
+    (elements: readonly ExcalidrawElement[]): string => {
+      return (
+        elements.length +
+        "_" +
+        elements.reduce((hash, el) => {
+          return (
+            hash + el.id + el.x + el.y + (el.width || 0) + (el.height || 0)
+          );
+        }, "")
+      );
+    },
+    [],
+  );
+
+  // Initialize whiteboard data
   useEffect(() => {
-    if (!excalidrawApi) return;
+    const initializeWhiteboard = async () => {
+      if (isInitializingRef.current || whiteboardLoading || !whiteboard) {
+        return;
+      }
 
-    const unsubscribe = excalidrawApi.onChange((elements, appState, files) => {
-      console.log("API onChange triggered!");
-      console.log("Elements via API:", elements);
-      console.log("App State via API:", appState);
-      console.log("Files via API:", files);
-    });
+      if (
+        hasInitializedRef.current &&
+        whiteboard._id === lastWhiteboardIdRef.current
+      ) {
+        return;
+      }
 
-    // Cleanup subscription on unmount
-    return () => {
-      unsubscribe();
+      isInitializingRef.current = true;
+      console.log("Initializing whiteboard data for:", whiteboard._id);
+
+      try {
+        let deserializedData = null;
+
+        if (whiteboard.serializedData) {
+          deserializedData = await deserializeWhiteboardData(
+            whiteboard.serializedData,
+          );
+        }
+
+        if (!deserializedData) {
+          deserializedData = createDefaultWhiteboardState();
+        }
+
+        setInitialData(deserializedData);
+        hasInitializedRef.current = true;
+        lastWhiteboardIdRef.current = whiteboard._id;
+
+        // Initialize elements hash
+        if (deserializedData?.elements) {
+          elementsHashRef.current = hashElements(deserializedData.elements);
+        }
+
+        console.log("Whiteboard initialization complete");
+      } catch (error) {
+        console.error("Failed to initialize whiteboard:", error);
+        setInitialData(createDefaultWhiteboardState());
+      } finally {
+        isInitializingRef.current = false;
+      }
     };
-  }, [excalidrawApi]);
 
-  // Only log app state when we're in the browser
-  useEffect(() => {
-    if (typeof window !== "undefined" && excalidrawApi) {
-      console.log(excalidrawApi?.getAppState());
-    }
-  }, [excalidrawApi]);
+    initializeWhiteboard();
+  }, [whiteboard?._id, whiteboardLoading, hashElements]);
 
-  return (
-    <div className="w-full h-full">
+  // Optimized auto-save function
+  const performAutoSave = useCallback(
+    async (serializedData: string) => {
+      if (!whiteboard || !serializedData) return;
+
+      try {
+        await convex.mutation(api.whiteboards.updateWhiteboard, {
+          id: whiteboard._id,
+          serializedData: serializedData,
+        });
+        setPendingChanges(false);
+        console.log("Whiteboard auto-saved successfully");
+      } catch (error) {
+        console.error("Auto save failed:", error);
+      }
+    },
+    [convex, whiteboard?._id, setPendingChanges],
+  );
+
+  // Debounced auto-save
+  const debouncedAutoSave = useDebounce(performAutoSave, AUTO_SAVE_DEBOUNCE_MS);
+
+  // Throttled change handler for immediate UI updates
+  const processChange = useCallback(
+    async (elements: readonly ExcalidrawElement[], appState: AppState) => {
+      if (isInitializingRef.current || !whiteboard) {
+        return;
+      }
+
+      // Quick change detection using hash
+      const newHash = hashElements(elements);
+      if (newHash === elementsHashRef.current) {
+        return; // No meaningful change
+      }
+
+      elementsHashRef.current = newHash;
+      setPendingChanges(true);
+
+      try {
+        const whiteboardAppState = {
+          viewBackgroundColor: appState.viewBackgroundColor,
+          theme: appState.theme,
+          gridSize: appState.gridSize,
+          name: appState.name ?? undefined,
+        };
+
+        const serializedData = await serializeWhiteboardData(
+          elements,
+          whiteboardAppState,
+        );
+
+        if (serializedData) {
+          pendingSerializedDataRef.current = serializedData;
+
+          // Update store immediately for UI consistency
+          useWhiteboardStore.getState().updateSerializedData(serializedData);
+
+          // Schedule auto-save
+          debouncedAutoSave(serializedData);
+        }
+      } catch (error) {
+        console.error("Failed to process whiteboard change:", error);
+      }
+    },
+    [whiteboard, hashElements, setPendingChanges, debouncedAutoSave],
+  );
+
+  // Throttled change handler
+  const throttledHandleChange = useThrottledCallback(
+    processChange,
+    CHANGE_THROTTLE_MS,
+  );
+
+  // Main change handler
+  const handleChange = useCallback(
+    (elements: readonly ExcalidrawElement[], appState: AppState) => {
+      throttledHandleChange(elements, appState);
+    },
+    [throttledHandleChange],
+  );
+
+  // Memoized Excalidraw component to prevent unnecessary re-renders
+  const excalidrawComponent = useMemo(() => {
+    if (!initialData) return null;
+
+    return (
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawApi(api)}
         onChange={handleChange}
+        initialData={initialData}
+        // Performance optimizations
+        renderTopRightUI={() => null} // Remove if you need this UI
       />
-    </div>
-  );
+    );
+  }, [initialData, handleChange]);
+
+  // Show loading until we have initial data
+  if (whiteboardLoading || !initialData) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading whiteboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="w-full h-full">{excalidrawComponent}</div>;
 };
 
 export default ExcalidrawWrapper;
