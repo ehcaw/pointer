@@ -282,7 +282,7 @@ export default function PrivacyPolicy() {
 
               <section className="mb-10">
                 <h2 className="text-2xl font-bold text-stone-900 mb-4 border-b border-stone-200 pb-2">
-                  7. Contact Us
+                  6. Contact Us
                 </h2>
                 <div className="bg-gradient-to-r from-amber-50 to-stone-50 border border-stone-200 rounded-lg p-6">
                   <p className="text-stone-700 mb-4">
