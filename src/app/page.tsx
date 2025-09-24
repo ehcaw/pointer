@@ -93,17 +93,20 @@ export default function LoginPage() {
           </div>
 
           {/* Footer Links */}
-          {/*<div className="flex justify-center space-x-6 text-sm text-stone-500 pt-8">
-            <a href="#" className="hover:text-stone-700 transition-colors">
-              Help
-            </a>
-            <a href="#" className="hover:text-stone-700 transition-colors">
+          <div className="flex justify-center space-x-6 text-sm text-stone-500 pt-8">
+            <a
+              href="/terms-of-service"
+              className="hover:text-stone-700 transition-colors"
+            >
               Terms
             </a>
-            <a href="#" className="hover:text-stone-700 transition-colors">
+            <a
+              href="/privacy-policy"
+              className="hover:text-stone-700 transition-colors"
+            >
               Privacy
             </a>
-          </div>*/}
+          </div>
         </div>
       </div>
 
