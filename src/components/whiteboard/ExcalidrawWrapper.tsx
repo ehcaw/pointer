@@ -262,6 +262,13 @@ const ExcalidrawWrapper: React.FC = () => {
   const excalidrawComponent = useMemo(() => {
     if (!initialData) return null;
 
+    const UIOptions = {
+      canvasActions: {
+        loadScene: false,
+      },
+      tools: { image: false },
+    };
+
     return (
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawApi(api)}
@@ -269,6 +276,7 @@ const ExcalidrawWrapper: React.FC = () => {
         initialData={initialData}
         // Performance optimizations
         renderTopRightUI={() => null} // Remove if you need this UI
+        UIOptions={UIOptions}
       />
     );
   }, [initialData, handleChange]);
