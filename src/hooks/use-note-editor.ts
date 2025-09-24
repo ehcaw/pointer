@@ -4,6 +4,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 import { FileNode, Node } from "@/types/note";
 import { api } from "../../convex/_generated/api";
 import { ensureJSONString } from "@/lib/utils";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 /**
  * Custom hook to connect TipTap editor with our notes store system.
  * Manages content syncing, saving, and unsaved changes tracking.
@@ -14,6 +15,7 @@ import { ensureJSONString } from "@/lib/utils";
 export function useNoteEditor() {
   const convex = useConvex();
 
+  const { setCurrentView } = usePreferencesStore();
   // Get necessary methods from notes store
   const {
     currentNote,
@@ -103,6 +105,7 @@ export function useNoteEditor() {
     // Add to store as unsaved
     addNewUnsavedNote(newNote);
     addOpenUserNote(newNote);
+    setCurrentView("note");
     setCurrentNote(newNote);
 
     return newNote;

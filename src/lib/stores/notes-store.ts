@@ -8,7 +8,6 @@ interface NotesStore {
 
   // UI state
   openUserNotes: Node[];
-  currentView: "home" | "note" | "graph" | "whiteboard";
   currentNote: Node | null;
   isLoading: boolean;
 
@@ -21,7 +20,6 @@ interface NotesStore {
   setUserNotes: (notes: Node[]) => void;
   setOpenUserNotes: (notes: Node[]) => void;
   setTreeStructure: (structure: Node[]) => void;
-  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") => void;
   setCurrentNote: (note: Node | null) => void;
   unsetCurrentNote: () => void;
   setIsLoading: (isLoading: boolean) => void;
@@ -56,7 +54,6 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
   // UI state
   openUserNotes: [],
-  currentView: "home",
   currentNote: null,
   isLoading: false,
 
@@ -69,8 +66,6 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
-  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") =>
-    set({ currentView: view }),
   setCurrentNote: (note: Node | null) => {
     set({ currentNote: note });
   },
@@ -101,13 +96,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       set({
         openUserNotes: [...state.openUserNotes, note],
         currentNote: note,
-        currentView: "note",
       });
     } else {
       // Just focus the note if already open
       set({
         currentNote: note,
-        currentView: "note",
       });
     }
   },
@@ -132,9 +125,8 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Set new current note (if any)
     const currentNote =
       openUserNotes.length > 0 ? openUserNotes[openUserNotes.length - 1] : null;
-    const currentView = currentNote ? "note" : "home";
 
-    set({ openUserNotes, currentNote, currentView });
+    set({ openUserNotes, currentNote });
   },
 
   // Unsaved changes management
@@ -220,14 +212,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
     }
 
-    const currentView = currentNote ? "note" : "home";
-
     set({
       unsavedNotes: new Map(),
       newUnsavedNotes: [],
       openUserNotes,
       currentNote,
-      currentView,
     });
   },
 
@@ -257,13 +246,10 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
         currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
       }
 
-      const currentView = currentNote ? "note" : "home";
-
       set({
         newUnsavedNotes,
         openUserNotes,
         currentNote,
-        currentView,
       });
     } else {
       // Remove from unsaved notes Map
@@ -397,8 +383,6 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
     }
 
-    const currentView = currentNote ? "note" : "home";
-
     set({
       userNotes,
       openUserNotes,
@@ -406,7 +390,6 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       unsavedNotes,
       newUnsavedNotes,
       currentNote,
-      currentView,
     });
   },
   saveAllUnsavedNotes: async () => {

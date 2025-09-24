@@ -5,12 +5,14 @@ import { useEffect } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 export const NotebookView = () => {
   const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
     useNoteEditor(); // Imported handleEditorUpdate
 
-  const { currentView, saveDBSavedNote, removeUnsavedNote } = useNotesStore();
+  const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
+  const { currentView } = usePreferencesStore();
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {

@@ -8,11 +8,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { FileText, Home } from "lucide-react";
-import { useNotesStore } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { UserButton } from "@clerk/nextjs";
 
 export default function DefaultHeader() {
-  const { currentView } = useNotesStore();
+  const { currentView } = usePreferencesStore();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">

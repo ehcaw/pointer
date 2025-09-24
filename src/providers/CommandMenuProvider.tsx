@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { CommandMenu } from "@/components/ui/command-menu";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 export function CommandMenuProvider({
   children,
@@ -11,7 +12,8 @@ export function CommandMenuProvider({
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { userNotes, setCurrentNote, setCurrentView } = useNotesStore();
+  const { userNotes, setCurrentNote } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

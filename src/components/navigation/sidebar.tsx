@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
@@ -54,8 +55,6 @@ export default function AppSidebar() {
 
   const {
     userNotes,
-    setCurrentView,
-    currentView,
     unsavedNotes,
     openUserNotes,
     setCurrentNote,
@@ -63,6 +62,8 @@ export default function AppSidebar() {
     currentNote,
     dbSavedNotes,
   } = useNotesStore();
+
+  const { currentView, setCurrentView } = usePreferencesStore();
 
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
 

@@ -10,6 +10,7 @@ import GraphView from "@/components/views/GraphView";
 import WhiteboardView from "@/components/views/WhiteboardView";
 import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
 import { Node } from "@/types/note";
 import { api } from "../../../convex/_generated/api";
@@ -24,7 +25,8 @@ export default function MainPage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
-  const { currentView, setUserNotes, setDBSavedNotes } = useNotesStore();
+  const { setUserNotes, setDBSavedNotes } = useNotesStore();
+  const { currentView } = usePreferencesStore();
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
 
   // Redirect to login if not authenticated

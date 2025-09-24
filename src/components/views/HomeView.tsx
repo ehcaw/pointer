@@ -25,11 +25,13 @@ import { Badge } from "@/components/ui/badge";
 
 // Store
 import { useNotesStore } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { FileNode, type Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 
 export function HomeView() {
-  const { userNotes, setCurrentNote, setCurrentView } = useNotesStore();
+  const { userNotes, setCurrentNote } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
 
   const { createEmptyNote } = useNoteEditor();
   const [query, setQuery] = React.useState("");
@@ -523,7 +525,7 @@ function SearchResultCard({
 
 function EmptyState() {
   const { createEmptyNote } = useNoteEditor();
-  const { setCurrentView } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
 
   const handleCreateNote = () => {
     createEmptyNote("My First Note");
