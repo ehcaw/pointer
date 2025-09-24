@@ -5,6 +5,8 @@ import { FileNode, Node } from "@/types/note";
 import { api } from "../../convex/_generated/api";
 import { ensureJSONString } from "@/lib/utils";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
+import { v4 as uuidv4 } from "uuid";
+
 /**
  * Custom hook to connect TipTap editor with our notes store system.
  * Manages content syncing, saving, and unsaved changes tracking.
@@ -83,21 +85,19 @@ export function useNoteEditor() {
    * Create a new note in the database
    */
   const createNewNote = async (name: string): Promise<FileNode> => {
-    // Use a more predictable temp ID that won't cause hydration issues
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const id = uuidv4();
 
     const userId = await convex.action(api.notes.getUserId);
 
     const newNote: FileNode = {
-      pointer_id: tempId,
+      pointer_id: id,
       tenantId: userId?.toString() || "unknown",
       name,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       lastEdited: new Date().toISOString(),
       content: {
-        tiptap:
-          '{\n          type: "doc",\n          content: [\n            {\n              type: "paragraph",\n              content: [{ type: "text", text: "" }],\n            },\n          ],\n        }',
+        tiptap: "",
         text: "",
       },
     };
