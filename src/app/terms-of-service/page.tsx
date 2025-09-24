@@ -326,7 +326,7 @@ export default function TermsOfService() {
             </div>
             <div className="flex space-x-6">
               <Link
-                href="/terms"
+                href="/terms-of-service"
                 className="text-amber-600 hover:text-amber-700 text-sm transition-colors font-medium"
               >
                 Terms of Service
