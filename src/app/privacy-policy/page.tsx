@@ -9,7 +9,7 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - Pointer ",
+  title: "Privacy Policy - Pointer",
   description: "Privacy Policy for Pointer application",
 };
 
@@ -282,7 +282,7 @@ export default function PrivacyPolicy() {
 
               <section className="mb-10">
                 <h2 className="text-2xl font-bold text-stone-900 mb-4 border-b border-stone-200 pb-2">
-                  7. Contact Us
+                  6. Contact Us
                 </h2>
                 <div className="bg-gradient-to-r from-amber-50 to-stone-50 border border-stone-200 rounded-lg p-6">
                   <p className="text-stone-700 mb-4">
@@ -311,13 +311,13 @@ export default function PrivacyPolicy() {
             </div>
             <div className="flex space-x-6">
               <Link
-                href="/terms"
+                href="/terms-of-service"
                 className="text-stone-500 hover:text-stone-700 text-sm transition-colors font-medium"
               >
                 Terms of Service
               </Link>
               <Link
-                href="/privacy"
+                href="/privacy-policy"
                 className="text-amber-600 hover:text-amber-700 text-sm transition-colors font-medium"
               >
                 Privacy Policy
