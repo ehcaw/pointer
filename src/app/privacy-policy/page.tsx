@@ -9,7 +9,7 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - Pointer ",
+  title: "Privacy Policy - Pointer",
   description: "Privacy Policy for Pointer application",
 };
 
