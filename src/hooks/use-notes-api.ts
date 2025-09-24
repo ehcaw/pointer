@@ -2,6 +2,7 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
+import { ensureJSONString } from "@/lib/utils";
 
 interface MutationType {
   pointer_id: string;
@@ -37,6 +38,12 @@ export function useNotesApi() {
     try {
       console.log(note.content);
       // Update existing note
+      //
+      const normalizedContent = {
+        text: note.content.text,
+        tiptap: ensureJSONString(note.content.tiptap),
+      };
+
       const updateData: MutationType = {
         pointer_id: note.pointer_id,
         name: note.name,
@@ -45,7 +52,7 @@ export function useNotesApi() {
         updatedAt: note.updatedAt,
         lastAccessed: String(note.lastAccessed),
         lastEdited: String(new Date()),
-        content: note.content,
+        content: normalizedContent,
       };
       await convex.mutation(api.notes.updateNoteInDb, updateData);
       return note;
