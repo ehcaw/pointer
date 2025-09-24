@@ -11,6 +11,7 @@ import { useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useWhiteboardStore } from "@/lib/stores/whiteboard-store";
 import { useWhiteboardContext } from "@/providers/WhiteboardProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 import {
   deserializeWhiteboardData,
   createDefaultWhiteboardState,
@@ -92,12 +93,14 @@ const Excalidraw = dynamic(
 );
 
 const ExcalidrawWrapper: React.FC = () => {
-  const [, setExcalidrawApi] = useState<ExcalidrawImperativeAPI | null>(null);
+  const [excalidrawApi, setExcalidrawApi] =
+    useState<ExcalidrawImperativeAPI | null>(null);
   const [initialData, setInitialData] =
     useState<ExcalidrawInitialDataState | null>(null);
 
   const { whiteboard, isLoading: whiteboardLoading } = useWhiteboardContext();
   const { setPendingChanges } = useWhiteboardStore();
+  const { theme, resolvedTheme } = useTheme();
   const convex = useConvex();
 
   // Refs for performance optimization
@@ -218,7 +221,7 @@ const ExcalidrawWrapper: React.FC = () => {
       try {
         const whiteboardAppState = {
           viewBackgroundColor: appState.viewBackgroundColor,
-          theme: appState.theme,
+          theme: resolvedTheme,
           gridSize: appState.gridSize,
           name: appState.name ?? undefined,
         };
@@ -258,6 +261,17 @@ const ExcalidrawWrapper: React.FC = () => {
     [throttledHandleChange],
   );
 
+  // Update Excalidraw theme when global theme changes
+  useEffect(() => {
+    if (excalidrawApi) {
+      excalidrawApi.updateScene({
+        appState: {
+          theme: resolvedTheme,
+        },
+      });
+    }
+  }, [theme, excalidrawApi, resolvedTheme]);
+
   // Memoized Excalidraw component to prevent unnecessary re-renders
   const excalidrawComponent = useMemo(() => {
     if (!initialData) return null;
@@ -273,13 +287,19 @@ const ExcalidrawWrapper: React.FC = () => {
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawApi(api)}
         onChange={handleChange}
-        initialData={initialData}
+        initialData={{
+          ...initialData,
+          appState: {
+            ...initialData?.appState,
+            theme: resolvedTheme,
+          },
+        }}
         // Performance optimizations
         renderTopRightUI={() => null} // Remove if you need this UI
         UIOptions={UIOptions}
       />
     );
-  }, [initialData, handleChange]);
+  }, [initialData, handleChange, resolvedTheme]);
 
   // Show loading until we have initial data
   if (whiteboardLoading || !initialData) {
