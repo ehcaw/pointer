@@ -133,27 +133,8 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   markNoteAsUnsaved: (note: Node) => {
     const state = get();
     const unsavedNotes = new Map(state.unsavedNotes);
-
-    // If it's a temporary note (hasn't been saved to DB yet), update in newUnsavedNotes
-    if (!note.pointer_id || note.pointer_id.toString().startsWith("temp-")) {
-      const newUnsavedNotes = [...state.newUnsavedNotes];
-      const index = newUnsavedNotes.findIndex(
-        (n) => n.pointer_id === note.pointer_id,
-      );
-
-      if (index !== -1) {
-        newUnsavedNotes[index] = note;
-      } else {
-        newUnsavedNotes.push(note);
-      }
-
-      set({ newUnsavedNotes });
-    }
-    // Otherwise, it's an existing note - track changes in unsavedNotes Map
-    else {
-      unsavedNotes.set(note.pointer_id.toString(), note);
-      set({ unsavedNotes });
-    }
+    unsavedNotes.set(note.pointer_id.toString(), note);
+    set({ unsavedNotes });
 
     // Also update in the open notes list
     const openUserNotes = [...state.openUserNotes];
@@ -184,29 +165,23 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const state = get();
 
     // Replace open notes with their original versions
-    const openUserNotes = state.openUserNotes
-      .map((note) => {
-        if (state.unsavedNotes.has(note.pointer_id.toString())) {
-          // Find original note
-          return (
-            state.userNotes.find(
-              (n) => n.pointer_id.toString() === note.pointer_id.toString(),
-            ) || note
-          );
-        }
-        return note;
-      })
-      .filter((note) => {
-        // Filter out any notes that were newly created but not saved
-        return !note.pointer_id.toString().startsWith("temp-");
-      });
+    const openUserNotes = state.openUserNotes.map((note) => {
+      if (state.unsavedNotes.has(note.pointer_id.toString())) {
+        // Find original note
+        return (
+          state.userNotes.find(
+            (n) => n.pointer_id.toString() === note.pointer_id.toString(),
+          ) || note
+        );
+      }
+      return note;
+    });
 
     // Update current note if needed
     let currentNote = state.currentNote;
     if (
       currentNote &&
-      (state.unsavedNotes.has(currentNote.pointer_id.toString()) ||
-        currentNote.pointer_id.toString().startsWith("temp-"))
+      state.unsavedNotes.has(currentNote.pointer_id.toString())
     ) {
       // If current note was unsaved
       currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;

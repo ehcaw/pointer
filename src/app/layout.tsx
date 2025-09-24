@@ -31,8 +31,10 @@ export default function RootLayout({
   return (
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
-      signInFallbackRedirectUrl={"/"}
-      signUpFallbackRedirectUrl={"/"}
+      signInFallbackRedirectUrl={"/main"}
+      signUpFallbackRedirectUrl={"/main"}
+      signInUrl="/"
+      signUpUrl="/sign-up"
     >
       <html lang="en" className="light" suppressHydrationWarning={true}>
         <head>
@@ -47,6 +49,10 @@ export default function RootLayout({
               } catch (e) {}
             `,
             }}
+          />
+          <meta
+            name="google-site-verification"
+            content="fKXbpJa8x6USGALa2_OO8L4rwYc8UDSPOa5Tib7LLok"
           />
         </head>
         <body
