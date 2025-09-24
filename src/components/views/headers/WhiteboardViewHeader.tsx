@@ -8,9 +8,14 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+import { UserButton } from "@clerk/nextjs";
 
 import { cn } from "@/lib/utils";
-import { FileText, Home } from "lucide-react";
+import { FileText, Home, Share2, Clock } from "lucide-react";
 
 import { useWhiteboardStore } from "@/lib/stores/whiteboard-store";
 
@@ -18,7 +23,7 @@ export default function WhiteboardViewHeader() {
   const [title, setTitle] = useState("");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
 
-  const { whiteboard } = useWhiteboardStore();
+  const { whiteboard, hasPendingChanges } = useWhiteboardStore();
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -26,6 +31,23 @@ export default function WhiteboardViewHeader() {
     if (whiteboard) {
       whiteboard.title = e.target.value;
       console.log(whiteboard);
+    }
+  };
+
+  const handleShareWhiteboard = async () => {
+    if (!whiteboard) return;
+    if (typeof window === "undefined") return;
+
+    const previewUrl = `${window.location.origin}/preview/whiteboard/${whiteboard._id}`;
+
+    try {
+      await navigator.clipboard.writeText(previewUrl);
+      toast.success("Preview link copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      // Fallback: open the preview in a new tab
+      window.open(previewUrl, "_blank");
+      toast.info("Preview opened in new tab");
     }
   };
 
@@ -90,9 +112,9 @@ export default function WhiteboardViewHeader() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Status indicators */}
-      {/*<div className="ml-auto flex items-center gap-2">
-        {hasUnsavedChanges && (
+      {/*Status Indicators*/}
+      <div className="ml-auto flex items-center gap-2">
+        {hasPendingChanges && (
           <Badge
             variant="secondary"
             className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
@@ -102,12 +124,12 @@ export default function WhiteboardViewHeader() {
           </Badge>
         )}
 
-        {currentNote && (
+        {whiteboard && (
           <Button
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={handleShareNote}
+            onClick={handleShareWhiteboard}
             title="Share preview link"
           >
             <Share2 className="h-4 w-4" />
@@ -115,7 +137,7 @@ export default function WhiteboardViewHeader() {
         )}
 
         <UserButton />
-      </div>*/}
+      </div>
     </header>
   );
 }

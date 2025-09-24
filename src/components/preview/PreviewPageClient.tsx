@@ -6,6 +6,8 @@ import { api } from "../../../convex/_generated/api";
 import { PreviewEditor } from "@/components/preview/PreviewEditor";
 import { Clock, FileText, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import Image from "next/image";
 
 function PreviewContent({ slug }: { slug: string }) {
   const note = useQuery(api.notes.getPublicNote, { pointer_id: slug });
@@ -64,6 +66,19 @@ function PreviewContent({ slug }: { slug: string }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src="/images/pointerlogo-575-transparent.svg"
+                  alt="Pointer Logo"
+                  width={32}
+                  height={32}
+                  className="w-6 h-6"
+                />
+              </Link>
+              <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
               <div className="flex items-center gap-2">
                 <Eye className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -73,13 +88,13 @@ function PreviewContent({ slug }: { slug: string }) {
               <div className="hidden sm:block">
                 <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
               </div>
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <h1 className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
                 {note.name}
               </h1>
             </div>
 
             <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="hidden sm:flex">
+              <Badge variant="secondary" className="hidden sm:flex text-sm">
                 <FileText className="h-3 w-3 mr-1" />
                 Read-only
               </Badge>
