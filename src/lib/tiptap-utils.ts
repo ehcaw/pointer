@@ -1,7 +1,9 @@
 import type { Attrs, Node } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
-// import { useMutation } from "convex/react";
-// import { api } from "../../convex/_generated/api";
+import { useConvex } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
+import { getPreviouslyCachedImageOrNull } from "next/dist/server/image-optimizer";
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
@@ -128,50 +130,95 @@ export function findNodePosition(props: {
     : null;
 }
 
-/**
- * Handles image upload with progress tracking and abort capability
- * @param file The file to upload
- * @param onProgress Optional callback for tracking upload progress
- * @param abortSignal Optional AbortSignal for cancelling the upload
- * @returns Promise resolving to the URL of the uploaded image
- */
-export const handleImageUpload = async (
-  file: File,
-  onProgress?: (event: { progress: number }) => void,
-  abortSignal?: AbortSignal,
-): Promise<string> => {
-  // Validate file
-  if (!file) {
-    throw new Error("No file provided");
-  }
+// /**
+//  * Handles image upload with progress tracking and abort capability
+//  * @param file The file to upload
+//  * @param onProgress Optional callback for tracking upload progress
+//  * @param abortSignal Optional AbortSignal for cancelling the upload
+//  * @returns Promise resolving to the URL of the uploaded image
+//  */
+// export const handleImageUpload = async (
+//   file: File,
+//   onProgress?: (event: { progress: number }) => void,
+//   abortSignal?: AbortSignal,
+// ): Promise<string> => {
+//   // Validate file
+//   if (!file) {
+//     throw new Error("No file provided");
+//   }
 
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error(
-      `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
-    );
-  }
+//   if (file.size > MAX_FILE_SIZE) {
+//     throw new Error(
+//       `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+//     );
+//   }
 
-  // const uploadUrl = useMutation(api.notes.generateUploadUrl);
-  // const uploadResult = await fetch(uploadUrl, {
-  //   method: "POST",
-  //   headers: { "Content-Type": file.type },
-  //   body: file,
-  // });
+//   // const uploadUrl = useMutation(api.notes.generateUploadUrl);
+//   // const uploadResult = await fetch(uploadUrl, {
+//   //   method: "POST",
+//   //   headers: { "Content-Type": file.type },
+//   //   body: file,
+//   // });
 
-  // // For demo/testing: Simulate upload progress
-  for (let progress = 0; progress <= 100; progress += 10) {
-    if (abortSignal?.aborted) {
-      throw new Error("Upload cancelled");
+//   // // For demo/testing: Simulate upload progress
+//   for (let progress = 0; progress <= 100; progress += 10) {
+//     if (abortSignal?.aborted) {
+//       throw new Error("Upload cancelled");
+//     }
+//     await new Promise((resolve) => setTimeout(resolve, 500));
+//     onProgress?.({ progress });
+//   }
+
+//   // return "/images/placeholder-image.png"
+
+//   // Uncomment for production use:
+
+//   return convertFileToBase64(file, abortSignal);
+// };
+//
+export const useTiptapImage = () => {
+  const convex = useConvex();
+  async function HandleImageUpload(
+    file: File,
+    ownerId: string,
+    documentType: "notes" | "whiteboards",
+    documentOwnerId: Id<"notes"> | Id<"whiteboards">,
+    onProgress?: (event: { progress: number }) => void,
+    abortSignal?: AbortSignal,
+  ): Promise<string> {
+    // Validate file
+    if (!file) {
+      throw new Error("No file provided");
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onProgress?.({ progress });
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error(
+        `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+      );
+    }
+    const uploadUrl = await convex.mutation(api.notes.generateUploadUrl);
+    const uploadResult = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    const { storageId } = await uploadResult.json();
+    const getImageUrl = new URL(
+      `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage`,
+    );
+    getImageUrl.searchParams.set("storageId", storageId);
+    await convex.mutation(api.image_references.sendImage, {
+      storageId: storageId,
+      owner: ownerId,
+      document_type: documentType,
+      document_owner_id: documentOwnerId,
+    });
+
+    return getImageUrl.href;
   }
 
-  // return "/images/placeholder-image.png"
-
-  // Uncomment for production use:
-
-  return convertFileToBase64(file, abortSignal);
+  return {
+    HandleImageUpload,
+  };
 };
 
 /**
