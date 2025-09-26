@@ -41,11 +41,15 @@ export default defineSchema({
     serializedData: v.optional(v.string()),
     lastModified: v.string(),
   }).index("by_owner", ["tenantId"]),
-  image_references: defineTable({
-    body: v.string(),
-    owner: v.string(),
+  imageReferences: defineTable({
+    storageId: v.string(),
+    tenantId: v.string(),
     format: v.union(v.literal("image")),
-    document_owner_type: v.union(v.literal("notes"), v.literal("whiteboards")),
-    document_owner: v.union(v.id("notes"), v.id("whiteboards")),
-  }),
+    documentOwnerType: v.union(v.literal("notes"), v.literal("whiteboards")),
+    documentOwner: v.union(v.id("notes"), v.id("whiteboards")),
+    createdAt: v.string(),
+  })
+    .index("by_doc", ["documentOwner"])
+    .index("by_storage", ["storageId"])
+    .index("by_doc_storage", ["documentOwner", "storageId"]),
 });

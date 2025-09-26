@@ -14,9 +14,10 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as auth from "../auth.js";
+import type * as cron from "../cron.js";
 import type * as graph from "../graph.js";
 import type * as http from "../http.js";
-import type * as messages from "../messages.js";
+import type * as imageReferences from "../imageReferences.js";
 import type * as notes from "../notes.js";
 import type * as whiteboards from "../whiteboards.js";
 
@@ -30,9 +31,10 @@ import type * as whiteboards from "../whiteboards.js";
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  cron: typeof cron;
   graph: typeof graph;
   http: typeof http;
-  messages: typeof messages;
+  imageReferences: typeof imageReferences;
   notes: typeof notes;
   whiteboards: typeof whiteboards;
 }>;
