@@ -171,15 +171,16 @@ export const useTiptapImage = () => {
 
   async function HandleImageDelete(
     storageId: Id<"_storage">,
-    documentOwner: Id<"notes"> | Id<"whiteboards">,
+    documentOwner: string,
     documentOwnerType: "notes" | "whiteboards",
   ) {
     if (!storageId || !documentOwner) return;
     try {
+      console.log("UNLINKING IMAGE ", storageId);
       await convex.mutation(api.imageReferences.unlinkImage, {
         storageId,
-        documentOwnerType,
         documentOwner,
+        documentOwnerType,
       });
     } catch (error) {
       console.error("Error unlinking image from document", error);

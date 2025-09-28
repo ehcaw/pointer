@@ -26,6 +26,7 @@ export function useNotesApi() {
     setIsLoading(true);
     try {
       const notes: Node[] = await convex.query(api.notes.readNotesFromDb, {});
+      console.log(notes);
       setUserNotes(notes);
     } catch (error) {
       console.error("Error fetching notes:", error);

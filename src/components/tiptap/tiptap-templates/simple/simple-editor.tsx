@@ -70,8 +70,16 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Get currentNote and state setters from the notes store
-  const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
-    useNotesStore();
+  const {
+    currentNote,
+    markNoteAsUnsaved,
+    removeUnsavedNote,
+    dbSavedNotes,
+    userNotes,
+  } = useNotesStore();
+
+  const currentNoteRef = useRef(currentNote);
+
   const { HandleImageDelete } = useTiptapImage();
 
   const { saveCurrentNote } = useNoteEditor();
@@ -202,7 +210,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     ],
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates
-    onUpdate: ({ editor, transaction }) => {
+    onUpdate: async ({ editor, transaction }) => {
       // Handle slash command (lightweight)
       const { selection } = editor.state;
       const { $from } = selection;
@@ -254,22 +262,29 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
           (src) => !afterSrcs.has(src),
         );
 
-        // Process deleted images
-        deletedImageSrcs.forEach(async (src) => {
-          const storageId = extractStorageIdFromUrl(src);
-          if (storageId && currentNote) {
-            try {
-              // Unlink the image from this document
-              HandleImageDelete(
-                storageId as Id<"_storage">,
-                currentNote._id as Id<"notes">,
-                "notes",
-              );
-            } catch (error) {
-              console.error("Failed to unlink image:", error);
-            }
+        // Process deleted images in parallel
+        if (deletedImageSrcs.length > 0 && currentNote._id) {
+          try {
+            await Promise.all(
+              deletedImageSrcs
+                .map(async (src) => {
+                  const storageId = extractStorageIdFromUrl(src);
+                  if (storageId && currentNoteRef.current) {
+                    console.log("UNLINKING IMAGE:", storageId);
+                    console.log("CURRENT NOTE ID, ", currentNote._id);
+                    return HandleImageDelete(
+                      storageId as Id<"_storage">,
+                      currentNoteRef.current._id!, // Use ! since we checked above
+                      "notes",
+                    );
+                  }
+                })
+                .filter(Boolean), // Remove undefined promises
+            );
+          } catch (error) {
+            console.error("Failed to unlink images:", error);
           }
-        });
+        }
       }
     },
   });

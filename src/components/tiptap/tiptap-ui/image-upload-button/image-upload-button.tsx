@@ -16,6 +16,7 @@ import { Button } from "@/components/tiptap/tiptap-ui-primitive/button";
 import { useTiptapImage } from "@/lib/tiptap-utils";
 import { useUserStore } from "@/lib/stores/user-store";
 import { useNotesStore } from "@/lib/stores/notes-store";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { useConvex } from "convex/react";
 
@@ -42,6 +43,7 @@ export function useImageUploadButton(
   const { HandleImageUpload } = useTiptapImage();
   const { getUserId } = useUserStore();
   const { currentNote } = useNotesStore();
+  const { saveCurrentNote } = useNoteEditor();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const convex = useConvex();
@@ -176,6 +178,7 @@ export function useImageUploadButton(
         }
       } finally {
         setIsUploading(false);
+        await saveCurrentNote();
       }
     },
     [editor, maxFileSize, onUploadStart, onUploadSuccess, onUploadError],
