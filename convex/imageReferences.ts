@@ -168,7 +168,7 @@ export const resolveImageReferences = internalMutation({
       const imageUrl = baseImageUrl + ref.storageId;
       if (
         whiteboard?.serializedData &&
-        whiteboard?.serializedData?.includes(imageUrl)
+        JSON.stringify(whiteboard.serializedData).includes(imageUrl)
       ) {
         toInsert.push({
           storageId: ref.storageId,
@@ -189,9 +189,10 @@ export const resolveImageReferences = internalMutation({
       toInsert.map((data) => ctx.db.insert("imageReferences", data)),
     );
 
-    // Then delete unused storage
+    // Then delete unused storage (deduplicate to avoid double deletion)
+    const uniqueStorageIds = [...new Set(toDelete)];
     await Promise.all(
-      toDelete.map((storageId) => ctx.storage.delete(storageId)),
+      uniqueStorageIds.map((storageId) => ctx.storage.delete(storageId)),
     );
 
     // Finally delete cleanup records

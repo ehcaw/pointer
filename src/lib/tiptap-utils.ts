@@ -4,6 +4,13 @@ import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 
 /**
  * Checks if a mark exists in the editor schema
@@ -135,7 +142,7 @@ export const useTiptapImage = () => {
     file: File,
     ownerId: string,
     documentType: "notes" | "whiteboards",
-    documentOwnerId: Id<"notes"> | Id<"whiteboards">,
+    documentOwner: string,
   ): Promise<string> {
     // Validate file
     if (!file) {
@@ -146,6 +153,9 @@ export const useTiptapImage = () => {
         `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
       );
     }
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      throw new Error("Invalid file type. Only images are allowed.");
+    }
     const uploadUrl = await convex.mutation(
       api.imageReferences.generateUploadUrl,
     );
@@ -154,7 +164,17 @@ export const useTiptapImage = () => {
       headers: { "Content-Type": file.type },
       body: file,
     });
-    const { storageId } = await uploadResult.json();
+
+    if (!uploadResult.ok) {
+      throw new Error(`Upload failed with status: ${uploadResult.status}`);
+    }
+
+    const uploadData = await uploadResult.json();
+    if (!uploadData.storageId) {
+      throw new Error("Upload succeeded but no storage ID returned");
+    }
+
+    const { storageId } = uploadData;
     const getImageUrl = new URL(
       `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage`,
     );
@@ -163,7 +183,7 @@ export const useTiptapImage = () => {
       storageId: storageId,
       tenantId: ownerId,
       documentOwnerType: documentType,
-      documentOwner: documentOwnerId,
+      documentOwner: documentOwner,
     });
     return getImageUrl.href;
   }
