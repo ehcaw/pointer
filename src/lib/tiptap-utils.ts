@@ -146,7 +146,9 @@ export const useTiptapImage = () => {
         `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
       );
     }
-    const uploadUrl = await convex.mutation(api.notes.generateUploadUrl);
+    const uploadUrl = await convex.mutation(
+      api.imageReferences.generateUploadUrl,
+    );
     const uploadResult = await fetch(uploadUrl, {
       method: "POST",
       headers: { "Content-Type": file.type },

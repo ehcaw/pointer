@@ -233,12 +233,6 @@ export const deleteNoteByPointerId = mutation({
   },
 });
 
-export const generateUploadUrl = mutation({
-  handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
-  },
-});
-
 // Public query for getting note by pointer_id for preview (no auth required)
 export const getPublicNote = query({
   args: { pointer_id: v.string() },

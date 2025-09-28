@@ -146,7 +146,10 @@ export const resolveImageReferences = internalMutation({
     // Process notes
     for (const { ref, note } of notes) {
       const imageUrl = baseImageUrl + ref.storageId;
-      if (note?.content.tiptap?.includes(imageUrl)) {
+      if (
+        note?.content.tiptap &&
+        JSON.stringify(note.content.tiptap).includes(imageUrl)
+      ) {
         toInsert.push({
           storageId: ref.storageId,
           tenantId: ref.tenantId,
@@ -163,7 +166,10 @@ export const resolveImageReferences = internalMutation({
     // Process whiteboards
     for (const { ref, whiteboard } of whiteboards) {
       const imageUrl = baseImageUrl + ref.storageId;
-      if (whiteboard?.serializedData?.includes(imageUrl)) {
+      if (
+        whiteboard?.serializedData &&
+        whiteboard?.serializedData?.includes(imageUrl)
+      ) {
         toInsert.push({
           storageId: ref.storageId,
           tenantId: ref.tenantId,
@@ -177,14 +183,18 @@ export const resolveImageReferences = internalMutation({
       }
     }
 
-    // Execute all operations in parallel batches
-    await Promise.all([
-      // Insert all imageReferences
-      ...toInsert.map((data) => ctx.db.insert("imageReferences", data)),
-      // Delete all unused storage
-      ...toDelete.map((storageId) => ctx.storage.delete(storageId)),
-      // Delete all cleanup records
-      ...allCleanupIds.map((id) => ctx.db.delete(id)),
-    ]);
+    // Execute operations in proper sequence to avoid race conditions
+    // First insert all imageReferences
+    await Promise.all(
+      toInsert.map((data) => ctx.db.insert("imageReferences", data)),
+    );
+
+    // Then delete unused storage
+    await Promise.all(
+      toDelete.map((storageId) => ctx.storage.delete(storageId)),
+    );
+
+    // Finally delete cleanup records
+    await Promise.all(allCleanupIds.map((id) => ctx.db.delete(id)));
   },
 });
