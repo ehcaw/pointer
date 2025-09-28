@@ -12,7 +12,6 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import { Underline } from "@tiptap/extension-underline";
-import { ImageUploadNode } from "../../tiptap-node/image-upload-node";
 
 // --- Custom Extensions ---
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
@@ -47,7 +46,9 @@ import "@/components/tiptap/tiptap-templates/active-button.scss";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
-import { useTiptapImage } from "@/lib/tiptap-utils";
+import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
+
+import { Id } from "../../../../../convex/_generated/dataModel";
 
 interface SimpleEditorProps {
   content: string | Record<string, unknown> | null | undefined;
@@ -71,117 +72,11 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
     useNotesStore();
-  const { HandleImageUpload } = useTiptapImage();
+  const { HandleImageDelete } = useTiptapImage();
 
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
-
-  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-  const handleImageDrop = async (files: File[], position: number) => {
-    if (!editor) return;
-
-    for (const file of files) {
-      try {
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          console.error(
-            `File ${file.name} exceeds maximum size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
-          );
-          continue;
-        }
-
-        // Show loading state (optional)
-        const filename = file.name.replace(/\.[^/.]+$/, "") || "image";
-        const placeholderText = `Uploading ${filename}...`;
-
-        // Insert a placeholder while uploading
-        editor
-          .chain()
-          .focus()
-          .insertContentAt(position, [
-            {
-              type: "paragraph",
-              content: [{ type: "text", text: placeholderText }],
-            },
-          ])
-          .run();
-
-        // TODO: Replace this with your actual Convex upload function
-        const imageUrl = await HandleImageUpload(file);
-
-        // Remove the placeholder and insert the actual image
-        // You'll need to find and replace the placeholder text
-        // const currentContent = editor.getJSON();
-        const doc = editor.state.doc;
-        let placeholderPos = -1;
-        // Search for the placeholder text
-        doc.descendants((node, pos) => {
-          if (node.isText && node.text === placeholderText) {
-            placeholderPos = pos;
-            return false; // Stop searching
-          }
-          return true;
-        });
-        if (placeholderPos !== -1) {
-          // Replace the entire paragraph containing the placeholder
-          const $pos = doc.resolve(placeholderPos);
-          const paragraphStart = $pos.start($pos.depth);
-          const paragraphEnd = $pos.end($pos.depth);
-
-          editor
-            .chain()
-            .focus()
-            .deleteRange({ from: paragraphStart, to: paragraphEnd })
-            .insertContentAt(paragraphStart, [
-              {
-                type: "image",
-                attrs: {
-                  src: imageUrl,
-                  alt: filename,
-                  title: filename,
-                },
-              },
-            ])
-            .run();
-        }
-      } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
-        const filename = file.name.replace(/\.[^/.]+$/, "") || "image";
-        const placeholderText = `Uploading ${filename}...`;
-        const doc = editor.state.doc;
-        let placeholderPos = -1;
-        // Search for the placeholder text
-        doc.descendants((node, pos) => {
-          if (node.isText && node.text === placeholderText) {
-            placeholderPos = pos;
-            return false; // Stop searching
-          }
-          return true;
-        });
-
-        if (placeholderPos !== -1) {
-          // Replace the entire paragraph containing the placeholder
-          const $pos = doc.resolve(placeholderPos);
-          const paragraphStart = $pos.start($pos.depth);
-          const paragraphEnd = $pos.end($pos.depth);
-          const filename = file.name.replace(/\.[^/.]+$/, "") || "image";
-          const placeholderText = `Uploading ${filename}...`;
-          editor
-            .chain()
-            .focus()
-            .deleteRange({ from: paragraphStart, to: paragraphEnd })
-            .insertContentAt(paragraphStart, [
-              {
-                type: "text",
-                content: `Failed to upload ${filename}.`,
-              },
-            ])
-            .run();
-        }
-    }
-  };
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -223,53 +118,53 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
       },
-      handleDrop: (view, event, slice, moved) => {
-        // Check if files are being dropped
-        if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-          const files = Array.from(event.dataTransfer.files);
+      //   handleDrop: (view, event, slice, moved) => {
+      //     // Check if files are being dropped
+      //     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      //       const files = Array.from(event.dataTransfer.files);
 
-          // Filter for image files
-          const imageFiles = files.filter((file) =>
-            file.type.startsWith("image/"),
-          );
+      //       // Filter for image files
+      //       const imageFiles = files.filter((file) =>
+      //         file.type.startsWith("image/"),
+      //       );
 
-          if (imageFiles.length > 0) {
-            event.preventDefault();
+      //       if (imageFiles.length > 0) {
+      //         event.preventDefault();
 
-            // Get the drop position
-            const coordinates = view.posAtCoords({
-              left: event.clientX,
-              top: event.clientY,
-            });
+      //         // Get the drop position
+      //         const coordinates = view.posAtCoords({
+      //           left: event.clientX,
+      //           top: event.clientY,
+      //         });
 
-            if (coordinates) {
-              handleImageDrop(imageFiles, coordinates.pos);
-            }
+      //         if (coordinates) {
+      //           handleImageDrop(imageFiles, coordinates.pos);
+      //         }
 
-            return true; // Handled
-          }
-        }
+      //         return true; // Handled
+      //       }
+      //     }
 
-        return false; // Not handled, let TipTap handle it
-      },
-      handleDOMEvents: {
-        dragover: (view, event) => {
-          // Check if dragging files
-          if (event.dataTransfer?.types.includes("Files")) {
-            event.preventDefault();
-            // You could add visual feedback here, like highlighting the editor
-            view.dom.classList.add("dragging-files");
-          }
-        },
-        dragleave: (view, _event) => {
-          // Remove visual feedback
-          view.dom.classList.remove("dragging-files");
-        },
-        drop: (view, _event) => {
-          // Clean up visual feedback
-          view.dom.classList.remove("dragging-files");
-        },
-      },
+      //     return false; // Not handled, let TipTap handle it
+      //   },
+      //   handleDOMEvents: {
+      //     dragover: (view, event) => {
+      //       // Check if dragging files
+      //       if (event.dataTransfer?.types.includes("Files")) {
+      //         event.preventDefault();
+      //         // You could add visual feedback here, like highlighting the editor
+      //         view.dom.classList.add("dragging-files");
+      //       }
+      //     },
+      //     dragleave: (view, _event) => {
+      //       // Remove visual feedback
+      //       view.dom.classList.remove("dragging-files");
+      //     },
+      //     drop: (view, _event) => {
+      //       // Clean up visual feedback
+      //       view.dom.classList.remove("dragging-files");
+      //     },
+      //   },
     },
     extensions: [
       StarterKit.configure({
@@ -307,7 +202,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     ],
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction }) => {
       // Handle slash command (lightweight)
       const { selection } = editor.state;
       const { $from } = selection;
@@ -339,6 +234,43 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       updateTimeoutRef.current = setTimeout(() => {
         debouncedContentUpdate();
       }, 150); // Very short debounce for content updates
+
+      if (transaction.docChanged && currentNote) {
+        const getImageSrcs = (doc: typeof transaction.doc) => {
+          const srcs = new Set<string>();
+          doc.descendants((node) => {
+            if (node.type.name === "image" && node.attrs?.src) {
+              srcs.add(node.attrs.src);
+            }
+            return true;
+          });
+          return srcs;
+        };
+        const beforeSrcs = getImageSrcs(transaction.before);
+        const afterSrcs = getImageSrcs(transaction.doc);
+
+        // Find images that were deleted (in before but not in after)
+        const deletedImageSrcs = [...beforeSrcs].filter(
+          (src) => !afterSrcs.has(src),
+        );
+
+        // Process deleted images
+        deletedImageSrcs.forEach(async (src) => {
+          const storageId = extractStorageIdFromUrl(src);
+          if (storageId && currentNote) {
+            try {
+              // Unlink the image from this document
+              HandleImageDelete(
+                storageId as Id<"_storage">,
+                currentNote._id as Id<"notes">,
+                "notes",
+              );
+            } catch (error) {
+              console.error("Failed to unlink image:", error);
+            }
+          }
+        });
+      }
     },
   });
 

@@ -52,4 +52,14 @@ export default defineSchema({
     .index("by_doc", ["documentOwner"])
     .index("by_storage", ["storageId"])
     .index("by_doc_storage", ["documentOwner", "storageId"]),
+  imageReferencesCleanup: defineTable({
+    storageId: v.string(),
+    tenantId: v.string(),
+    documentOwnerType: v.union(v.literal("notes"), v.literal("whiteboards")),
+    documentOwner: v.union(v.id("notes"), v.id("whiteboards")),
+    createdAt: v.string(),
+  })
+    .index("by_doc", ["documentOwner"])
+    .index("by_storage", ["storageId"])
+    .index("by_doc_storage", ["documentOwner", "storageId"]),
 });

@@ -130,52 +130,6 @@ export function findNodePosition(props: {
     : null;
 }
 
-// /**
-//  * Handles image upload with progress tracking and abort capability
-//  * @param file The file to upload
-//  * @param onProgress Optional callback for tracking upload progress
-//  * @param abortSignal Optional AbortSignal for cancelling the upload
-//  * @returns Promise resolving to the URL of the uploaded image
-//  */
-// export const handleImageUpload = async (
-//   file: File,
-//   onProgress?: (event: { progress: number }) => void,
-//   abortSignal?: AbortSignal,
-// ): Promise<string> => {
-//   // Validate file
-//   if (!file) {
-//     throw new Error("No file provided");
-//   }
-
-//   if (file.size > MAX_FILE_SIZE) {
-//     throw new Error(
-//       `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
-//     );
-//   }
-
-//   // const uploadUrl = useMutation(api.notes.generateUploadUrl);
-//   // const uploadResult = await fetch(uploadUrl, {
-//   //   method: "POST",
-//   //   headers: { "Content-Type": file.type },
-//   //   body: file,
-//   // });
-
-//   // // For demo/testing: Simulate upload progress
-//   for (let progress = 0; progress <= 100; progress += 10) {
-//     if (abortSignal?.aborted) {
-//       throw new Error("Upload cancelled");
-//     }
-//     await new Promise((resolve) => setTimeout(resolve, 500));
-//     onProgress?.({ progress });
-//   }
-
-//   // return "/images/placeholder-image.png"
-
-//   // Uncomment for production use:
-
-//   return convertFileToBase64(file, abortSignal);
-// };
-//
 export const useTiptapImage = () => {
   const convex = useConvex();
   async function HandleImageUpload(
@@ -206,19 +160,51 @@ export const useTiptapImage = () => {
       `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage`,
     );
     getImageUrl.searchParams.set("storageId", storageId);
-    await convex.mutation(api.image_references.sendImage, {
+    await convex.mutation(api.imageReferences.linkImage, {
       storageId: storageId,
-      owner: ownerId,
-      document_type: documentType,
-      document_owner_id: documentOwnerId,
+      tenantId: ownerId,
+      documentOwnerType: documentType,
+      documentOwner: documentOwnerId,
     });
-
     return getImageUrl.href;
+  }
+
+  async function HandleImageDelete(
+    storageId: Id<"_storage">,
+    documentOwner: Id<"notes"> | Id<"whiteboards">,
+    documentOwnerType: "notes" | "whiteboards",
+  ) {
+    if (!storageId || !documentOwner) return;
+    try {
+      await convex.mutation(api.imageReferences.unlinkImage, {
+        storageId,
+        documentOwnerType,
+        documentOwner,
+      });
+    } catch (error) {
+      console.error("Error unlinking image from document", error);
+    }
   }
 
   return {
     HandleImageUpload,
+    HandleImageDelete,
   };
+};
+
+export const extractStorageIdFromUrl = (url: string): string | null => {
+  try {
+    if (url.includes("convex.cloud") || url.includes("convex.site")) {
+      // For URLs like: https://domain.convex.cloud/getImage?storageId=xyz
+      const urlObj = new URL(url);
+      return urlObj.searchParams.get("storageId");
+    }
+    // For direct Convex URLs, the storage ID might be in the path
+    // Adjust this based on your actual URL structure
+    return null;
+  } catch {
+    return null;
+  }
 };
 
 /**

@@ -1,134 +1,94 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { api } from "../../../convex/_generated/api";
 
 // Define user theme preferences
 export type ThemePreference = "light" | "dark" | "system";
 
-// Define user interface
-export interface User {
-  _id: string; // MongoDB ObjectId as string
-  name: string;
-  email: string;
-  createdAt: Date;
-  preferences: {
-    theme: ThemePreference;
-    sidebarExpanded: boolean;
-    defaultEditor: "simple" | "advanced";
-  };
-}
-
 interface UserStore {
   // User data
-  currentUser: User | null;
+  userId: string | null;
   isAuthenticated: boolean;
-  lastActive: Date | null;
 
   // Actions
-  setUser: (user: User) => void;
+  setUserId: (userId: string | null) => void;
   clearUser: () => void;
-  updateUserPreferences: (preferences: Partial<User["preferences"]>) => void;
-  toggleSidebar: () => void;
-  setTheme: (theme: ThemePreference) => void;
-  updateLastActive: () => void;
+  getUserId: (convex: any) => Promise<string | null>;
 
-  // Beta testing features
-  enableBetaFeatures: boolean;
-  toggleBetaFeatures: () => void;
+  // Preferences
+  theme: ThemePreference;
+  sidebarExpanded: boolean;
+  setTheme: (theme: ThemePreference) => void;
+  toggleSidebar: () => void;
 }
 
-// Create the user store with persistence
 export const useUserStore = create<UserStore>()(
   persist(
-    (set) => ({
-      // Default state - hardcoded user for beta testing
-      currentUser: {
-        _id: "6572ac1c9b22cc99e7f0e923", // Hardcoded ObjectID for testing
-        name: "Test User",
-        email: "test@example.com",
-        createdAt: new Date("2023-01-01"),
-        preferences: {
-          theme: "system",
-          sidebarExpanded: true,
-          defaultEditor: "simple",
-        },
-      },
-      isAuthenticated: true, // Auto-authenticated for beta
-      lastActive: new Date(),
-      enableBetaFeatures: false,
+    (set, get) => ({
+      // Default state
+      userId: null,
+      isAuthenticated: false,
+      theme: "system",
+      sidebarExpanded: true,
 
-      // User actions
-      setUser: (user) =>
+      // Actions
+      setUserId: (userId) =>
         set({
-          currentUser: user,
-          isAuthenticated: true,
-          lastActive: new Date(),
+          userId,
+          isAuthenticated: !!userId,
         }),
 
       clearUser: () =>
         set({
-          currentUser: null,
+          userId: null,
           isAuthenticated: false,
         }),
 
-      updateUserPreferences: (preferences) =>
-        set((state) => ({
-          currentUser: state.currentUser
-            ? {
-                ...state.currentUser,
-                preferences: {
-                  ...state.currentUser.preferences,
-                  ...preferences,
-                },
-              }
-            : null,
-        })),
+      getUserId: async (convex) => {
+        const state = get();
 
+        // If we already have a userId, return it
+        if (state.userId) {
+          return state.userId;
+        }
+
+        // If we don't have a userId and a convex action is provided, call it
+        // if (convexAction) {
+        //   try {
+        //     const userId = await convexAction();
+        //     if (userId) {
+        //       set({ userId, isAuthenticated: true });
+        //     }
+        //     return userId;
+        //   } catch (error) {
+        //     console.error("Failed to get user ID:", error);
+        //     return null;
+        //   }
+        // }
+        //
+        if (convex) {
+          try {
+            const userId = await convex.action(api.auth.getUserId);
+            if (userId) {
+              set({ userId, isAuthenticated: true });
+            }
+            return userId;
+          } catch (error) {
+            console.error("Failed to get user ID:", error);
+            return null;
+          }
+        }
+
+        return null;
+      },
+
+      // Preferences
+      setTheme: (theme) => set({ theme }),
       toggleSidebar: () =>
-        set((state) => ({
-          currentUser: state.currentUser
-            ? {
-                ...state.currentUser,
-                preferences: {
-                  ...state.currentUser.preferences,
-                  sidebarExpanded:
-                    !state.currentUser.preferences.sidebarExpanded,
-                },
-              }
-            : null,
-        })),
-
-      setTheme: (theme) =>
-        set((state) => ({
-          currentUser: state.currentUser
-            ? {
-                ...state.currentUser,
-                preferences: {
-                  ...state.currentUser.preferences,
-                  theme,
-                },
-              }
-            : null,
-        })),
-
-      updateLastActive: () =>
-        set({
-          lastActive: new Date(),
-        }),
-
-      // Beta features toggle
-      toggleBetaFeatures: () =>
-        set((state) => ({
-          enableBetaFeatures: !state.enableBetaFeatures,
-        })),
+        set((state) => ({ sidebarExpanded: !state.sidebarExpanded })),
     }),
     {
-      name: "pointer-user-storage", // localStorage key
-      partialize: (state) => ({
-        // Only persist these fields to localStorage
-        currentUser: state.currentUser,
-        isAuthenticated: state.isAuthenticated,
-        enableBetaFeatures: state.enableBetaFeatures,
-      }),
-    }
-  )
+      name: "pointer-user-storage",
+    },
+  ),
 );
