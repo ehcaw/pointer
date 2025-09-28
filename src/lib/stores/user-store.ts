@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { api } from "../../../convex/_generated/api";
+import { ConvexReactClient } from "convex/react";
 
 // Define user theme preferences
 export type ThemePreference = "light" | "dark" | "system";
@@ -13,7 +14,7 @@ interface UserStore {
   // Actions
   setUserId: (userId: string | null) => void;
   clearUser: () => void;
-  getUserId: (convex: any) => Promise<string | null>;
+  getUserId: (convex: ConvexReactClient) => Promise<string | null>;
 
   // Preferences
   theme: ThemePreference;

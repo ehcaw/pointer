@@ -3,7 +3,6 @@ import type { Editor } from "@tiptap/react";
 import { useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { getPreviouslyCachedImageOrNull } from "next/dist/server/image-optimizer";
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
@@ -137,8 +136,6 @@ export const useTiptapImage = () => {
     ownerId: string,
     documentType: "notes" | "whiteboards",
     documentOwnerId: Id<"notes"> | Id<"whiteboards">,
-    onProgress?: (event: { progress: number }) => void,
-    abortSignal?: AbortSignal,
   ): Promise<string> {
     // Validate file
     if (!file) {

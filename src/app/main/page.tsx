@@ -25,7 +25,7 @@ export default function MainPage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
-  const { setUserNotes, setDBSavedNotes, userNotes } = useNotesStore();
+  const { setUserNotes, setDBSavedNotes } = useNotesStore();
   const { currentView } = usePreferencesStore();
   const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
 
