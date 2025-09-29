@@ -94,8 +94,10 @@ const SlashCommandContent: React.FC<{
           to: from,
         };
 
-        // First, delete the slash and any text after it
-        editor.chain().focus().deleteRange(range).run();
+        // First, delete the slash and any text after it (except for table, which handles it in its command)
+        if (item.icon !== "table") {
+          editor.chain().deleteRange(range).run();
+        }
 
         // Then apply the specific command
         if (item.icon === "h1" || item.icon === "h2" || item.icon === "h3") {
@@ -227,10 +229,7 @@ const SlashCommandContent: React.FC<{
             editor.chain().setLink({ href: url }).run();
           }
         } else if (item.icon === "table") {
-          editor
-            .chain()
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run();
+          item.command({ editor, range });
         } else {
           // For inline formatting (bold, italic, etc.)
           switch (item.icon) {

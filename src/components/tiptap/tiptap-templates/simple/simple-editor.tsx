@@ -15,7 +15,6 @@ import { Underline } from "@tiptap/extension-underline";
 import { Placeholder } from "@tiptap/extensions";
 import Emoji, { emojis } from "@tiptap/extension-emoji";
 import { TableKit } from "@tiptap/extension-table";
-import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
@@ -29,8 +28,8 @@ import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command
 
 // --- UI Primitives ---
 import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
-import { MainToolbarContent } from "./toolbar/MainToolbar";
-import { MobileToolbarContent } from "./toolbar/MobileToolbar";
+import { MainToolbarContent } from "../toolbar/MainToolbar";
+import { MobileToolbarContent } from "../toolbar/MobileToolbar";
 
 // --- Tiptap Node ---
 import "@/components/tiptap/tiptap-node/code-block-node/code-block-node.scss";
@@ -48,7 +47,7 @@ import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 import { SlashCommandPopup } from "@/components/tiptap/tiptap-ui/slash-command-popup";
 
 // --- Styles ---
-import "@/components/tiptap/tiptap-templates/simple/simple-editor.scss";
+import "@/components/tiptap/tiptap-templates/editor.scss";
 import "@/components/tiptap/tiptap-templates/active-button.scss";
 
 import { useNotesStore } from "@/lib/stores/notes-store";
@@ -218,13 +217,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         enableEmoticons: true,
       }),
       TableKit.configure({
-        table: { resizable: true },
-      }),
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: "tiptap-table",
-        },
+        table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
       }),
       TableRow,
       TableHeader,

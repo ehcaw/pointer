@@ -24,6 +24,7 @@ import {
 import { MarkButton } from "@/components/tiptap/tiptap-ui/mark-button";
 import { TextAlignButton } from "@/components/tiptap/tiptap-ui/text-align-button";
 import { UndoRedoButton } from "@/components/tiptap/tiptap-ui/undo-redo-button";
+import { TableContextMenu } from "@/components/tiptap/tiptap-ui/table-context-menu";
 import { Editor } from "@tiptap/react";
 
 export const MainToolbarContent = ({
@@ -121,9 +122,10 @@ export const MainToolbarContent = ({
 
       <ToolbarSeparator />
 
-      <ToolbarGroup>
-        <ImageUploadButton />
-      </ToolbarGroup>
+       <ToolbarGroup>
+         <ImageUploadButton />
+         <TableContextMenu editor={editor} />
+       </ToolbarGroup>
 
       <Spacer />
 
