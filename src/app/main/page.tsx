@@ -18,9 +18,10 @@ import DefaultHeader from "@/components/views/headers/DefaultHeader";
 import NoteViewHeader from "@/components/views/headers/NoteViewHeader";
 import WhiteboardViewHeader from "@/components/views/headers/WhiteboardViewHeader";
 
-import { dataFetchers } from "@/lib/utils/dataFetchers";
+import { createDataFetchers } from "@/lib/utils/dataFetchers";
 
 import useSWR from "swr";
+import { useConvex } from "convex/react";
 
 export default function MainPage() {
   const { isSignedIn, isLoaded, user } = useUser();
@@ -28,6 +29,9 @@ export default function MainPage() {
 
   const { setUserNotes, setDBSavedNotes } = useNotesStore();
   const { currentView } = usePreferencesStore();
+
+  const convex = useConvex();
+  const dataFetchers = createDataFetchers(convex);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -38,10 +42,10 @@ export default function MainPage() {
 
   //
   const shouldFetch = isLoaded && isSignedIn && user?.id;
-  const { data, isLoading, error } = useSWR(
+  const { isLoading } = useSWR(
     shouldFetch ? "user-notes" : null,
     async () => {
-      const result = dataFetchers.fetchUserNotes(user!.id!);
+      const result = await dataFetchers.fetchUserNotes(user!.id!);
       return result;
     },
     {
@@ -53,9 +57,6 @@ export default function MainPage() {
       dedupingInterval: 60000,
     },
   );
-
-  // Add this to see what's happening
-  console.log("SWR state:", { data, isLoading, error });
 
   // Show loading while authentication is being checked
   if (!isLoaded || isLoading) {
