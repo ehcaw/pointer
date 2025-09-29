@@ -43,9 +43,9 @@ export default function MainPage() {
   //
   const shouldFetch = isLoaded && isSignedIn && user?.id;
   const { isLoading } = useSWR(
-    shouldFetch ? "user-notes" : null,
-    async () => {
-      const result = await dataFetchers.fetchUserNotes(user!.id!);
+    shouldFetch ? user.id : null,
+    async (userId: string) => {
+      const result = await dataFetchers.fetchUserNotes(userId);
       return result;
     },
     {
