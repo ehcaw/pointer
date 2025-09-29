@@ -21,6 +21,10 @@ import DefaultHeader from "@/components/views/headers/DefaultHeader";
 import NoteViewHeader from "@/components/views/headers/NoteViewHeader";
 import WhiteboardViewHeader from "@/components/views/headers/WhiteboardViewHeader";
 
+import { dataFetchers } from "@/lib/utils/dataFetchers";
+
+import useSWR from "swr";
+
 export default function MainPage() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
@@ -36,15 +40,22 @@ export default function MainPage() {
     }
   }, [isSignedIn, isLoaded, router]);
 
-  useEffect(() => {
-    if (notes && notes.length > 0) {
+  // useEffect(() => {
+  //   if (notes && notes.length > 0) {
+  //     setUserNotes(notes);
+  //     setDBSavedNotes(notes);
+  //   }
+  // }, [notes, setUserNotes, setDBSavedNotes]);
+  //
+  const { isLoading } = useSWR([], async () => dataFetchers.fetchUserNotes(), {
+    onSuccess: (notes) => {
       setUserNotes(notes);
       setDBSavedNotes(notes);
-    }
-  }, [notes, setUserNotes, setDBSavedNotes]);
+    },
+  });
 
   // Show loading while authentication is being checked
-  if (!isLoaded) {
+  if (!isLoaded || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
