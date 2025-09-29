@@ -31,7 +31,6 @@ export default function MainPage() {
 
   const { setUserNotes, setDBSavedNotes } = useNotesStore();
   const { currentView } = usePreferencesStore();
-  const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -40,18 +39,14 @@ export default function MainPage() {
     }
   }, [isSignedIn, isLoaded, router]);
 
-  // useEffect(() => {
-  //   if (notes && notes.length > 0) {
-  //     setUserNotes(notes);
-  //     setDBSavedNotes(notes);
-  //   }
-  // }, [notes, setUserNotes, setDBSavedNotes]);
   //
   const { isLoading } = useSWR([], async () => dataFetchers.fetchUserNotes(), {
     onSuccess: (notes) => {
       setUserNotes(notes);
       setDBSavedNotes(notes);
     },
+    revalidateIfStale: true,
+    dedupingInterval: 60000, // 1 minute
   });
 
   // Show loading while authentication is being checked
