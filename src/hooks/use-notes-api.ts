@@ -36,8 +36,6 @@ export function useNotesApi() {
 
   const saveNote = async (note: Node): Promise<Node> => {
     try {
-      console.log(note.content);
-      // Update existing note
       //
       const normalizedContent = {
         text: note.content.text,

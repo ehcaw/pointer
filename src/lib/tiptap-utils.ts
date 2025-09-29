@@ -1,8 +1,16 @@
 import type { Attrs, Node } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
-// import { useMutation } from "convex/react";
-// import { api } from "../../convex/_generated/api";
+import { useConvex } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 
 /**
  * Checks if a mark exists in the editor schema
@@ -128,50 +136,196 @@ export function findNodePosition(props: {
     : null;
 }
 
-/**
- * Handles image upload with progress tracking and abort capability
- * @param file The file to upload
- * @param onProgress Optional callback for tracking upload progress
- * @param abortSignal Optional AbortSignal for cancelling the upload
- * @returns Promise resolving to the URL of the uploaded image
- */
-export const handleImageUpload = async (
-  file: File,
-  onProgress?: (event: { progress: number }) => void,
-  abortSignal?: AbortSignal,
-): Promise<string> => {
-  // Validate file
-  if (!file) {
-    throw new Error("No file provided");
-  }
-
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error(
-      `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
-    );
-  }
-
-  // const uploadUrl = useMutation(api.notes.generateUploadUrl);
-  // const uploadResult = await fetch(uploadUrl, {
-  //   method: "POST",
-  //   headers: { "Content-Type": file.type },
-  //   body: file,
-  // });
-
-  // // For demo/testing: Simulate upload progress
-  for (let progress = 0; progress <= 100; progress += 10) {
-    if (abortSignal?.aborted) {
-      throw new Error("Upload cancelled");
+export const useTiptapImage = () => {
+  const convex = useConvex();
+  async function HandleImageUpload(
+    file: File,
+    ownerId: string,
+    documentType: "notes" | "whiteboards",
+    documentOwner: string,
+  ): Promise<string> {
+    // Validate inputs
+    if (!file) {
+      throw new Error("No file provided");
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onProgress?.({ progress });
+    if (!ownerId?.trim()) {
+      throw new Error("Owner ID is required");
+    }
+    if (!documentOwner?.trim()) {
+      throw new Error("Document owner is required");
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error(
+        `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
+      );
+    }
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      throw new Error("Invalid file type. Only images are allowed.");
+    }
+
+    let storageId: string;
+    let uploadUrl: string;
+
+    try {
+      // Get upload URL
+      uploadUrl = await convex.mutation(api.imageReferences.generateUploadUrl);
+      if (!uploadUrl) {
+        throw new Error("Failed to generate upload URL");
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to get upload URL: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+
+    try {
+      // Upload file
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        const errorText = await uploadResult
+          .text()
+          .catch(() => "Unknown error");
+        throw new Error(
+          `Upload failed with status ${uploadResult.status}: ${errorText}`,
+        );
+      }
+
+      const uploadData = await uploadResult.json();
+      if (!uploadData?.storageId) {
+        throw new Error("Upload succeeded but no storage ID returned");
+      }
+
+      storageId = uploadData.storageId;
+    } catch (error) {
+      throw new Error(
+        `File upload failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+
+    try {
+      // Link image to document
+      await convex.mutation(api.imageReferences.linkImage, {
+        storageId: storageId as Id<"_storage">,
+        tenantId: ownerId,
+        documentOwnerType: documentType,
+        documentOwner: documentOwner,
+      });
+    } catch (error) {
+      // If linking fails, we should clean up the uploaded file
+      console.warn(
+        `Failed to link image ${storageId} to document, attempting cleanup:`,
+        error,
+      );
+      try {
+        await convex.mutation(api.imageReferences.unlinkImage, {
+          storageId: storageId as Id<"_storage">,
+          documentOwner: documentOwner,
+          documentOwnerType: documentType,
+        });
+      } catch (cleanupError) {
+        console.error("Failed to cleanup orphaned image:", cleanupError);
+      }
+      throw new Error(
+        `Failed to link image to document: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+
+    // Generate and return image URL
+    try {
+      const getImageUrl = new URL(
+        `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage`,
+      );
+      getImageUrl.searchParams.set("storageId", storageId);
+      return getImageUrl.href;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      throw new Error(`Failed to generate image URL: ${error}`);
+    }
   }
 
-  // return "/images/placeholder-image.png"
+  async function HandleImageDelete(
+    storageId: Id<"_storage">,
+    documentOwner: string,
+    documentOwnerType: "notes" | "whiteboards",
+  ) {
+    // Validate inputs
+    if (!storageId) {
+      console.warn("HandleImageDelete: No storage ID provided");
+      return;
+    }
+    if (!documentOwner?.trim()) {
+      console.warn("HandleImageDelete: No document owner provided");
+      return;
+    }
+    if (!documentOwnerType) {
+      console.warn("HandleImageDelete: No document owner type provided");
+      return;
+    }
 
-  // Uncomment for production use:
+    try {
+      console.log("UNLINKING IMAGE ", storageId);
+      await convex.mutation(api.imageReferences.unlinkImage, {
+        storageId,
+        documentOwner,
+        documentOwnerType,
+      });
+    } catch (error) {
+      console.error(
+        `Error unlinking image ${storageId} from document ${documentOwner}:`,
+        error,
+      );
+      // Don't throw - deletion failures shouldn't break the UI
+    }
+  }
 
-  return convertFileToBase64(file, abortSignal);
+  return {
+    HandleImageUpload,
+    HandleImageDelete,
+  };
+};
+
+export const extractStorageIdFromUrl = (url: string): string | null => {
+  if (!url || typeof url !== "string") {
+    return null;
+  }
+
+  try {
+    // Handle common Convex URL patterns
+    if (
+      url.includes("convex.cloud") ||
+      url.includes("convex.site") ||
+      url.includes("getImage")
+    ) {
+      const urlObj = new URL(url);
+      const storageId = urlObj.searchParams.get("storageId");
+
+      // Validate storage ID format (basic validation)
+      if (storageId && storageId.length > 0 && !storageId.includes(" ")) {
+        return storageId;
+      }
+    }
+
+    // Handle blob URLs or data URLs
+    if (url.startsWith("blob:") || url.startsWith("data:")) {
+      return null;
+    }
+
+    // Handle direct storage ID patterns in path
+    const pathMatch = url.match(/\/([a-zA-Z0-9_-]+)(?:\?|$)/);
+    if (pathMatch && pathMatch[1]) {
+      return pathMatch[1];
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("Failed to extract storage ID from URL:", url, error);
+    return null;
+  }
 };
 
 /**

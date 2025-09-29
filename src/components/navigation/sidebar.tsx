@@ -86,7 +86,6 @@ export default function AppSidebar() {
     ) {
       saveCurrentNote();
     }
-
     setCurrentNote(note);
     setCurrentView("note");
   };

@@ -13,13 +13,6 @@ interface NoteContent {
   tiptap: any; // Using 'any' as requested
 }
 
-export const getUserId = action({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    return identity ? identity.subject : null;
-  },
-});
-
 export const readNoteFromDb = query({
   args: { pointer_id: v.string() },
   handler: async (ctx, args) => {
@@ -237,12 +230,6 @@ export const deleteNoteByPointerId = mutation({
       .filter((q) => q.eq(q.field("tenantId"), args.user_id))
       .collect();
     return notes;
-  },
-});
-
-export const generateUploadUrl = mutation({
-  handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
   },
 });
 

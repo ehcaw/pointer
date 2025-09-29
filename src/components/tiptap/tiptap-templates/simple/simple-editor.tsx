@@ -46,6 +46,9 @@ import "@/components/tiptap/tiptap-templates/active-button.scss";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
+import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
+
+import { Id } from "../../../../../convex/_generated/dataModel";
 
 interface SimpleEditorProps {
   content: string | Record<string, unknown> | null | undefined;
@@ -70,11 +73,13 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
     useNotesStore();
 
+  const currentNoteRef = useRef(currentNote);
+
+  const { HandleImageDelete } = useTiptapImage();
+
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
-
-  // This ref will store the "saved" state of each note, mirroring the DB
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -116,6 +121,53 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
       },
+      //   handleDrop: (view, event, slice, moved) => {
+      //     // Check if files are being dropped
+      //     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      //       const files = Array.from(event.dataTransfer.files);
+
+      //       // Filter for image files
+      //       const imageFiles = files.filter((file) =>
+      //         file.type.startsWith("image/"),
+      //       );
+
+      //       if (imageFiles.length > 0) {
+      //         event.preventDefault();
+
+      //         // Get the drop position
+      //         const coordinates = view.posAtCoords({
+      //           left: event.clientX,
+      //           top: event.clientY,
+      //         });
+
+      //         if (coordinates) {
+      //           handleImageDrop(imageFiles, coordinates.pos);
+      //         }
+
+      //         return true; // Handled
+      //       }
+      //     }
+
+      //     return false; // Not handled, let TipTap handle it
+      //   },
+      //   handleDOMEvents: {
+      //     dragover: (view, event) => {
+      //       // Check if dragging files
+      //       if (event.dataTransfer?.types.includes("Files")) {
+      //         event.preventDefault();
+      //         // You could add visual feedback here, like highlighting the editor
+      //         view.dom.classList.add("dragging-files");
+      //       }
+      //     },
+      //     dragleave: (view, _event) => {
+      //       // Remove visual feedback
+      //       view.dom.classList.remove("dragging-files");
+      //     },
+      //     drop: (view, _event) => {
+      //       // Clean up visual feedback
+      //       view.dom.classList.remove("dragging-files");
+      //     },
+      //   },
     },
     extensions: [
       StarterKit.configure({
@@ -133,7 +185,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       Superscript,
       Subscript,
       Selection,
-      Image,
+      // Image,
       // ImageUploadNode.configure({
       //   accept: "image/*",
       //   maxSize: MAX_FILE_SIZE,
@@ -153,7 +205,7 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     ],
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates
-    onUpdate: ({ editor }) => {
+    onUpdate: async ({ editor, transaction }) => {
       // Handle slash command (lightweight)
       const { selection } = editor.state;
       const { $from } = selection;
@@ -185,6 +237,50 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       updateTimeoutRef.current = setTimeout(() => {
         debouncedContentUpdate();
       }, 150); // Very short debounce for content updates
+
+      if (transaction.docChanged && currentNote) {
+        const getImageSrcs = (doc: typeof transaction.doc) => {
+          const srcs = new Set<string>();
+          doc.descendants((node) => {
+            if (node.type.name === "image" && node.attrs?.src) {
+              srcs.add(node.attrs.src);
+            }
+            return true;
+          });
+          return srcs;
+        };
+        const beforeSrcs = getImageSrcs(transaction.before);
+        const afterSrcs = getImageSrcs(transaction.doc);
+
+        // Find images that were deleted (in before but not in after)
+        const deletedImageSrcs = [...beforeSrcs].filter(
+          (src) => !afterSrcs.has(src),
+        );
+
+        // Process deleted images in parallel
+        if (deletedImageSrcs.length > 0 && currentNote._id) {
+          try {
+            await Promise.all(
+              deletedImageSrcs
+                .map(async (src) => {
+                  const storageId = extractStorageIdFromUrl(src);
+                  if (storageId && currentNoteRef.current) {
+                    console.log("UNLINKING IMAGE:", storageId);
+                    console.log("CURRENT NOTE ID, ", currentNote._id);
+                    return HandleImageDelete(
+                      storageId as Id<"_storage">,
+                      currentNoteRef.current._id!, // Use ! since we checked above
+                      "notes",
+                    );
+                  }
+                })
+                .filter(Boolean), // Remove undefined promises
+            );
+          } catch (error) {
+            console.error("Failed to unlink images:", error);
+          }
+        }
+      }
     },
   });
 

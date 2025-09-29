@@ -87,7 +87,7 @@ export function useNoteEditor() {
   const createNewNote = async (name: string): Promise<FileNode> => {
     const id = uuidv4();
 
-    const userId = await convex.action(api.notes.getUserId);
+    const userId = await convex.action(api.auth.getUserId);
 
     const newNote: FileNode = {
       pointer_id: id,
