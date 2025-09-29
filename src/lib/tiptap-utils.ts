@@ -144,9 +144,15 @@ export const useTiptapImage = () => {
     documentType: "notes" | "whiteboards",
     documentOwner: string,
   ): Promise<string> {
-    // Validate file
+    // Validate inputs
     if (!file) {
       throw new Error("No file provided");
+    }
+    if (!ownerId?.trim()) {
+      throw new Error("Owner ID is required");
+    }
+    if (!documentOwner?.trim()) {
+      throw new Error("Document owner is required");
     }
     if (file.size > MAX_FILE_SIZE) {
       throw new Error(
@@ -156,36 +162,89 @@ export const useTiptapImage = () => {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       throw new Error("Invalid file type. Only images are allowed.");
     }
-    const uploadUrl = await convex.mutation(
-      api.imageReferences.generateUploadUrl,
-    );
-    const uploadResult = await fetch(uploadUrl, {
-      method: "POST",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
 
-    if (!uploadResult.ok) {
-      throw new Error(`Upload failed with status: ${uploadResult.status}`);
+    let storageId: string;
+    let uploadUrl: string;
+
+    try {
+      // Get upload URL
+      uploadUrl = await convex.mutation(api.imageReferences.generateUploadUrl);
+      if (!uploadUrl) {
+        throw new Error("Failed to generate upload URL");
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to get upload URL: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
 
-    const uploadData = await uploadResult.json();
-    if (!uploadData.storageId) {
-      throw new Error("Upload succeeded but no storage ID returned");
+    try {
+      // Upload file
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        const errorText = await uploadResult
+          .text()
+          .catch(() => "Unknown error");
+        throw new Error(
+          `Upload failed with status ${uploadResult.status}: ${errorText}`,
+        );
+      }
+
+      const uploadData = await uploadResult.json();
+      if (!uploadData?.storageId) {
+        throw new Error("Upload succeeded but no storage ID returned");
+      }
+
+      storageId = uploadData.storageId;
+    } catch (error) {
+      throw new Error(
+        `File upload failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
 
-    const { storageId } = uploadData;
-    const getImageUrl = new URL(
-      `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage`,
-    );
-    getImageUrl.searchParams.set("storageId", storageId);
-    await convex.mutation(api.imageReferences.linkImage, {
-      storageId: storageId,
-      tenantId: ownerId,
-      documentOwnerType: documentType,
-      documentOwner: documentOwner,
-    });
-    return getImageUrl.href;
+    try {
+      // Link image to document
+      await convex.mutation(api.imageReferences.linkImage, {
+        storageId: storageId,
+        tenantId: ownerId,
+        documentOwnerType: documentType,
+        documentOwner: documentOwner,
+      });
+    } catch (error) {
+      // If linking fails, we should clean up the uploaded file
+      console.warn(
+        `Failed to link image ${storageId} to document, attempting cleanup:`,
+        error,
+      );
+      try {
+        await convex.mutation(api.imageReferences.unlinkImage, {
+          storageId: storageId as any,
+          documentOwner: documentOwner,
+          documentOwnerType: documentType,
+        });
+      } catch (cleanupError) {
+        console.error("Failed to cleanup orphaned image:", cleanupError);
+      }
+      throw new Error(
+        `Failed to link image to document: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+
+    // Generate and return image URL
+    try {
+      const getImageUrl = new URL(
+        `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage`,
+      );
+      getImageUrl.searchParams.set("storageId", storageId);
+      return getImageUrl.href;
+    } catch (error) {
+      throw new Error("Failed to generate image URL");
+    }
   }
 
   async function HandleImageDelete(
@@ -193,7 +252,20 @@ export const useTiptapImage = () => {
     documentOwner: string,
     documentOwnerType: "notes" | "whiteboards",
   ) {
-    if (!storageId || !documentOwner) return;
+    // Validate inputs
+    if (!storageId) {
+      console.warn("HandleImageDelete: No storage ID provided");
+      return;
+    }
+    if (!documentOwner?.trim()) {
+      console.warn("HandleImageDelete: No document owner provided");
+      return;
+    }
+    if (!documentOwnerType) {
+      console.warn("HandleImageDelete: No document owner type provided");
+      return;
+    }
+
     try {
       console.log("UNLINKING IMAGE ", storageId);
       await convex.mutation(api.imageReferences.unlinkImage, {
@@ -202,7 +274,11 @@ export const useTiptapImage = () => {
         documentOwnerType,
       });
     } catch (error) {
-      console.error("Error unlinking image from document", error);
+      console.error(
+        `Error unlinking image ${storageId} from document ${documentOwner}:`,
+        error,
+      );
+      // Don't throw - deletion failures shouldn't break the UI
     }
   }
 
@@ -213,16 +289,40 @@ export const useTiptapImage = () => {
 };
 
 export const extractStorageIdFromUrl = (url: string): string | null => {
-  try {
-    if (url.includes("convex.cloud") || url.includes("convex.site")) {
-      // For URLs like: https://domain.convex.cloud/getImage?storageId=xyz
-      const urlObj = new URL(url);
-      return urlObj.searchParams.get("storageId");
-    }
-    // For direct Convex URLs, the storage ID might be in the path
-    // Adjust this based on your actual URL structure
+  if (!url || typeof url !== "string") {
     return null;
-  } catch {
+  }
+
+  try {
+    // Handle common Convex URL patterns
+    if (
+      url.includes("convex.cloud") ||
+      url.includes("convex.site") ||
+      url.includes("getImage")
+    ) {
+      const urlObj = new URL(url);
+      const storageId = urlObj.searchParams.get("storageId");
+
+      // Validate storage ID format (basic validation)
+      if (storageId && storageId.length > 0 && !storageId.includes(" ")) {
+        return storageId;
+      }
+    }
+
+    // Handle blob URLs or data URLs
+    if (url.startsWith("blob:") || url.startsWith("data:")) {
+      return null;
+    }
+
+    // Handle direct storage ID patterns in path
+    const pathMatch = url.match(/\/([a-zA-Z0-9_-]+)(?:\?|$)/);
+    if (pathMatch && pathMatch[1]) {
+      return pathMatch[1];
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("Failed to extract storage ID from URL:", url, error);
     return null;
   }
 };

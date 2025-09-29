@@ -93,6 +93,75 @@ export const maybeGc = internalMutation({
   },
 });
 
+// Helper function to safely detect images in TipTap content
+const detectImagesInTiptapContent = (
+  content: any,
+  storageId: string,
+): boolean => {
+  if (!content || typeof content !== "object") return false;
+
+  const searchForImages = (obj: any): boolean => {
+    if (Array.isArray(obj)) {
+      return obj.some(searchForImages);
+    }
+
+    if (typeof obj === "object" && obj !== null) {
+      // Check if this is an image node with matching storage ID
+      if (obj.type === "image" && obj.attrs?.src) {
+        return obj.attrs.src.includes(`storageId=${storageId}`);
+      }
+
+      // Recursively search nested content
+      return Object.values(obj).some(searchForImages);
+    }
+
+    if (typeof obj === "string") {
+      return obj.includes(`storageId=${storageId}`);
+    }
+
+    return false;
+  };
+
+  return searchForImages(content);
+};
+
+// Helper function to safely detect images in whiteboard data
+const detectImagesInWhiteboardData = (
+  data: any,
+  storageId: string,
+): boolean => {
+  if (!data) return false;
+
+  if (typeof data === "string") {
+    try {
+      const parsed = JSON.parse(data);
+      return detectImagesInWhiteboardData(parsed, storageId);
+    } catch {
+      return data.includes(`storageId=${storageId}`);
+    }
+  }
+
+  if (Array.isArray(data)) {
+    return data.some((item) => detectImagesInWhiteboardData(item, storageId));
+  }
+
+  if (typeof data === "object" && data !== null) {
+    // Look for image-related properties
+    if (data.type === "image" || data.element === "image") {
+      if (data.src || data.url || data.href) {
+        const imageUrl = data.src || data.url || data.href;
+        return imageUrl.includes(`storageId=${storageId}`);
+      }
+    }
+
+    return Object.values(data).some((value) =>
+      detectImagesInWhiteboardData(value, storageId),
+    );
+  }
+
+  return false;
+};
+
 export const resolveImageReferences = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -102,10 +171,17 @@ export const resolveImageReferences = internalMutation({
 
     if (imageReferencesCleanup.length === 0) return;
 
-    // Pre-compute the base URL once
-    const baseImageUrl = `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/getImage?storageId=`;
+    // Group cleanup entries by storage ID to handle atomically
+    const storageGroups = new Map<
+      string,
+      Array<{
+        ref: any;
+        document: any;
+        documentType: "notes" | "whiteboards";
+      }>
+    >();
 
-    // Separate notes and whiteboards references
+    // Separate and batch fetch documents
     const noteRefs = imageReferencesCleanup.filter(
       (ref) => ref.documentOwnerType === "notes",
     );
@@ -113,89 +189,132 @@ export const resolveImageReferences = internalMutation({
       (ref) => ref.documentOwnerType === "whiteboards",
     );
 
-    // Batch fetch all documents in parallel
-    const [notes, whiteboards] = await Promise.all([
-      Promise.all(
-        noteRefs.map((ref) =>
-          ctx.db
-            .get(ref.documentOwner as Id<"notes">)
-            .then((note) => ({ ref, note })),
+    try {
+      // Batch fetch all documents with error handling
+      const [notes, whiteboards] = await Promise.all([
+        Promise.all(
+          noteRefs.map(async (ref) => {
+            try {
+              const note = await ctx.db.get(ref.documentOwner as Id<"notes">);
+              return { ref, note };
+            } catch (error) {
+              console.error(
+                `Failed to fetch note ${ref.documentOwner}:`,
+                error,
+              );
+              return { ref, note: null };
+            }
+          }),
         ),
-      ),
-      Promise.all(
-        whiteboardRefs.map((ref) =>
-          ctx.db
-            .get(ref.documentOwner as Id<"whiteboards">)
-            .then((whiteboard) => ({ ref, whiteboard })),
+        Promise.all(
+          whiteboardRefs.map(async (ref) => {
+            try {
+              const whiteboard = await ctx.db.get(
+                ref.documentOwner as Id<"whiteboards">,
+              );
+              return { ref, whiteboard };
+            } catch (error) {
+              console.error(
+                `Failed to fetch whiteboard ${ref.documentOwner}:`,
+                error,
+              );
+              return { ref, whiteboard: null };
+            }
+          }),
         ),
-      ),
-    ]);
+      ]);
 
-    // Process all references in memory
-    const toInsert: Array<{
-      storageId: string;
-      tenantId: string;
-      documentOwnerType: "notes" | "whiteboards";
-      documentOwner: Id<"notes" | "whiteboards">;
-      format: "image";
-      createdAt: string;
-    }> = [];
-    const toDelete: Array<Id<"_storage">> = [];
-    const allCleanupIds = imageReferencesCleanup.map((ref) => ref._id);
+      // Group by storage ID for atomic processing
+      [...notes, ...whiteboards].forEach(({ ref, note, whiteboard }) => {
+        const document = note || whiteboard;
+        const documentType = note ? "notes" : "whiteboards";
 
-    // Process notes
-    for (const { ref, note } of notes) {
-      const imageUrl = baseImageUrl + ref.storageId;
-      if (
-        note?.content.tiptap &&
-        JSON.stringify(note.content.tiptap).includes(imageUrl)
-      ) {
-        toInsert.push({
-          storageId: ref.storageId,
-          tenantId: ref.tenantId,
-          documentOwnerType: ref.documentOwnerType,
-          documentOwner: ref.documentOwner,
-          format: "image" as const,
-          createdAt: new Date().toISOString(),
+        if (!storageGroups.has(ref.storageId)) {
+          storageGroups.set(ref.storageId, []);
+        }
+
+        storageGroups.get(ref.storageId)!.push({
+          ref,
+          document,
+          documentType: documentType as "notes" | "whiteboards",
         });
-      } else {
-        toDelete.push(ref.storageId as Id<"_storage">);
-      }
+      });
+
+      // Process each storage ID atomically
+      const results = await Promise.allSettled(
+        Array.from(storageGroups.entries()).map(async ([storageId, group]) => {
+          let isStillUsed = false;
+
+          // Check if storage ID is still used in any document
+          for (const { document, documentType } of group) {
+            if (!document) continue;
+
+            if (documentType === "notes" && document.content?.tiptap) {
+              if (
+                detectImagesInTiptapContent(document.content.tiptap, storageId)
+              ) {
+                isStillUsed = true;
+                break;
+              }
+            } else if (
+              documentType === "whiteboards" &&
+              document.serializedData
+            ) {
+              if (
+                detectImagesInWhiteboardData(document.serializedData, storageId)
+              ) {
+                isStillUsed = true;
+                break;
+              }
+            }
+          }
+
+          if (isStillUsed) {
+            // Re-insert references for this storage ID
+            const insertPromises = group.map(({ ref }) =>
+              ctx.db.insert("imageReferences", {
+                storageId: ref.storageId,
+                tenantId: ref.tenantId,
+                documentOwnerType: ref.documentOwnerType,
+                documentOwner: ref.documentOwner,
+                format: "image" as const,
+                createdAt: new Date().toISOString(),
+              }),
+            );
+            await Promise.all(insertPromises);
+          } else {
+            // Delete unused storage
+            await ctx.storage.delete(storageId as Id<"_storage">);
+          }
+
+          return { storageId, processed: true };
+        }),
+      );
+
+      // Log any failures
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          console.error(
+            `Failed to process storage group ${index}:`,
+            result.reason,
+          );
+        }
+      });
+
+      // Always clean up the cleanup records, even if some operations failed
+      const cleanupPromises = imageReferencesCleanup.map(async (ref) => {
+        try {
+          await ctx.db.delete(ref._id);
+        } catch (error) {
+          console.error(`Failed to delete cleanup record ${ref._id}:`, error);
+        }
+      });
+
+      await Promise.allSettled(cleanupPromises);
+    } catch (error) {
+      console.error("Critical error in resolveImageReferences:", error);
+      // Don't delete cleanup records if there was a critical error
+      throw error;
     }
-
-    // Process whiteboards
-    for (const { ref, whiteboard } of whiteboards) {
-      const imageUrl = baseImageUrl + ref.storageId;
-      if (
-        whiteboard?.serializedData &&
-        JSON.stringify(whiteboard.serializedData).includes(imageUrl)
-      ) {
-        toInsert.push({
-          storageId: ref.storageId,
-          tenantId: ref.tenantId,
-          documentOwnerType: ref.documentOwnerType,
-          documentOwner: ref.documentOwner,
-          format: "image" as const,
-          createdAt: new Date().toISOString(),
-        });
-      } else {
-        toDelete.push(ref.storageId as Id<"_storage">);
-      }
-    }
-
-    // Execute operations in proper sequence to avoid race conditions
-    // First insert all imageReferences
-    await Promise.all(
-      toInsert.map((data) => ctx.db.insert("imageReferences", data)),
-    );
-
-    // Then delete unused storage (deduplicate to avoid double deletion)
-    const uniqueStorageIds = [...new Set(toDelete)];
-    await Promise.all(
-      uniqueStorageIds.map((storageId) => ctx.storage.delete(storageId)),
-    );
-
-    // Finally delete cleanup records
-    await Promise.all(allCleanupIds.map((id) => ctx.db.delete(id)));
   },
 });
