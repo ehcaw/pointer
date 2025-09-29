@@ -195,10 +195,8 @@ class SlashCommandRegistryImpl implements SlashCommandRegistry {
       category: 'media',
       priority: 10,
       command: ({ editor, range }) => {
-        const url = window.prompt('Enter image URL')
-        if (url) {
-          editor.chain().focus().deleteRange(range).setImage({ src: url }).run()
-        }
+        // Image upload is handled in the slash command popup
+        editor.chain().focus().deleteRange(range).run()
       },
     })
 
