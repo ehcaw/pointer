@@ -48,7 +48,7 @@ import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { ThemeToggle } from "../theme-toggle";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);

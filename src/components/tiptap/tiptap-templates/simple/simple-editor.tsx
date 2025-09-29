@@ -12,6 +12,8 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import { Underline } from "@tiptap/extension-underline";
+import { Placeholder } from "@tiptap/extensions";
+import Emoji, { emojis } from "@tiptap/extension-emoji";
 
 // --- Custom Extensions ---
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
@@ -175,6 +177,9 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
           depth: 15,
         },
       }),
+      Placeholder.configure({
+        placeholder: "Start writing something...",
+      }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Underline,
       TaskList,
@@ -201,6 +206,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
           char: "/",
           startOfLine: false,
         },
+      }),
+      Emoji.configure({
+        emojis: emojis,
+        enableEmoticons: true,
       }),
     ],
     content: initialContent,

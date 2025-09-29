@@ -55,9 +55,7 @@ export function useNoteEditor() {
     setIsLoading(true);
     try {
       const notes = await convex.query(api.notes.readNotesFromDb, {});
-
       const treeStructure = notes;
-
       setUserNotes(notes);
       setTreeStructure(treeStructure);
     } catch (error) {

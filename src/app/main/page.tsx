@@ -12,22 +12,26 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
-import { Node } from "@/types/note";
-import { api } from "../../../convex/_generated/api";
-import { useQuery } from "convex/react";
 import AppSidebar from "@/components/navigation/sidebar";
 
 import DefaultHeader from "@/components/views/headers/DefaultHeader";
 import NoteViewHeader from "@/components/views/headers/NoteViewHeader";
 import WhiteboardViewHeader from "@/components/views/headers/WhiteboardViewHeader";
 
+import { createDataFetchers } from "@/lib/utils/dataFetchers";
+
+import useSWR from "swr";
+import { useConvex } from "convex/react";
+
 export default function MainPage() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded, user } = useUser();
   const router = useRouter();
 
   const { setUserNotes, setDBSavedNotes } = useNotesStore();
   const { currentView } = usePreferencesStore();
-  const notes: Node[] | undefined = useQuery(api.notes.readNotesFromDb);
+
+  const convex = useConvex();
+  const dataFetchers = createDataFetchers(convex);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -36,15 +40,25 @@ export default function MainPage() {
     }
   }, [isSignedIn, isLoaded, router]);
 
-  useEffect(() => {
-    if (notes && notes.length > 0) {
-      setUserNotes(notes);
-      setDBSavedNotes(notes);
-    }
-  }, [notes, setUserNotes, setDBSavedNotes]);
+  const shouldFetch = isLoaded && isSignedIn && user?.id;
+  const { isLoading } = useSWR(
+    shouldFetch ? user.id : null,
+    async (userId: string) => {
+      const result = await dataFetchers.fetchUserNotes(userId);
+      return result;
+    },
+    {
+      onSuccess: (data) => {
+        setUserNotes(data);
+        setDBSavedNotes(data);
+      },
+      revalidateIfStale: true,
+      dedupingInterval: 60000,
+    },
+  );
 
   // Show loading while authentication is being checked
-  if (!isLoaded) {
+  if (!isLoaded || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>

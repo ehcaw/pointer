@@ -384,7 +384,7 @@
 .is-empty[data-placeholder]:has(
     > .ProseMirror-trailingBreak:only-child
   )::before {
-  content: "Write, type '/' for commands…";
+  content: "Write something, type '/' for commands…";
 }
 
 .is-empty[data-placeholder]:has(

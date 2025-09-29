@@ -12,7 +12,7 @@ import { TimelineView } from "../graph/TimelineView";
 import { SearchOverlay } from "../graph/SearchOverlay";
 import { TagExplorer } from "../graph/TagExplorer";
 import { mockNodes, mockEdges } from "@/lib/mock-data";
-import { ThemeToggle } from "../theme-toggle";
+import { ThemeToggle } from "../navigation/ThemeToggle";
 import type { NodeType } from "@/lib/types";
 
 export default function GraphView() {
