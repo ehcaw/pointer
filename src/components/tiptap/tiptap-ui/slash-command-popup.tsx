@@ -178,9 +178,8 @@ const SlashCommandContent: React.FC<{
 
                   // Replace placeholder with image using unique identifier
                   const doc = editor.state.doc;
-                  let placeholderPos = -1;
                   doc.descendants((node, pos) => {
-                    if (node.isText && node.text === placeholderText) {
+                    if (node.isText && node.text?.includes(`[${uniqueId}]`)) {
                       placeholderPos = pos;
                       return false;
                     }
