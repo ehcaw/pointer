@@ -244,7 +244,7 @@ export const useTiptapImage = () => {
       return getImageUrl.href;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      throw new Error("Failed to generate image URL, ", error);
+      throw new Error(`Failed to generate image URL: ${error}`);
     }
   }
 

@@ -290,7 +290,7 @@ export const resolveImageReferences = internalMutation({
                 createdAt: new Date().toISOString(),
               }),
             );
-            await Promise.all(insertPromises);
+            await Promise.allSettled(insertPromises);
           } else {
             // Delete unused storage
             await ctx.storage.delete(storageId as Id<"_storage">);
