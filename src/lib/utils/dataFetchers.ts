@@ -6,9 +6,11 @@ const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 // Pure data fetching functions for use with SWR
 export const dataFetchers = {
   // Fetch user notes
-  fetchUserNotes: async () => {
+  fetchUserNotes: async (userId: string) => {
     try {
-      const notes = await convex.query(api.notes.readNotesFromDb);
+      const notes = await convex.query(api.notes.readNotesFromDbByUserId, {
+        userId,
+      });
       return notes;
     } catch (error) {
       throw new Error(`Failed to fetch user notes: ${error}`);

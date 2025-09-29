@@ -12,9 +12,6 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
-import { Node } from "@/types/note";
-import { api } from "../../../convex/_generated/api";
-import { useQuery } from "convex/react";
 import AppSidebar from "@/components/navigation/sidebar";
 
 import DefaultHeader from "@/components/views/headers/DefaultHeader";
@@ -26,7 +23,7 @@ import { dataFetchers } from "@/lib/utils/dataFetchers";
 import useSWR from "swr";
 
 export default function MainPage() {
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded, user } = useUser();
   const router = useRouter();
 
   const { setUserNotes, setDBSavedNotes } = useNotesStore();
@@ -40,14 +37,25 @@ export default function MainPage() {
   }, [isSignedIn, isLoaded, router]);
 
   //
-  const { isLoading } = useSWR([], async () => dataFetchers.fetchUserNotes(), {
-    onSuccess: (notes) => {
-      setUserNotes(notes);
-      setDBSavedNotes(notes);
+  const shouldFetch = isLoaded && isSignedIn && user?.id;
+  const { data, isLoading, error } = useSWR(
+    shouldFetch ? "user-notes" : null,
+    async () => {
+      const result = dataFetchers.fetchUserNotes(user!.id!);
+      return result;
     },
-    revalidateIfStale: true,
-    dedupingInterval: 60000, // 1 minute
-  });
+    {
+      onSuccess: (data) => {
+        setUserNotes(data);
+        setDBSavedNotes(data);
+      },
+      revalidateIfStale: true,
+      dedupingInterval: 60000,
+    },
+  );
+
+  // Add this to see what's happening
+  console.log("SWR state:", { data, isLoading, error });
 
   // Show loading while authentication is being checked
   if (!isLoaded || isLoading) {
