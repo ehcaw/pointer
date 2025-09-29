@@ -113,11 +113,11 @@ const SlashCommandContent: React.FC<{
           editor.chain().toggleCodeBlock().run();
         } else if (item.icon === "image") {
           // Create hidden file input for image selection
-          const fileInput = document.createElement('input');
-          fileInput.type = 'file';
-          fileInput.accept = 'image/*';
+          const fileInput = document.createElement("input");
+          fileInput.type = "file";
+          fileInput.accept = "image/*";
           fileInput.multiple = true;
-          fileInput.style.display = 'none';
+          fileInput.style.display = "none";
 
           fileInput.onchange = async (e) => {
             const files = (e.target as HTMLInputElement).files;
@@ -127,7 +127,8 @@ const SlashCommandContent: React.FC<{
                   console.error(`${file.name} is not an image file`);
                   return false;
                 }
-                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                if (file.size > 5 * 1024 * 1024) {
+                  // 5MB limit
                   console.error(`${file.name} exceeds maximum size of 5MB`);
                   return false;
                 }
@@ -141,8 +142,10 @@ const SlashCommandContent: React.FC<{
               try {
                 for (let i = 0; i < validFiles.length; i++) {
                   const file = validFiles[i];
-                  const filename = file.name.replace(/\.[^/.]+$/, "") || `image-${i + 1}`;
-                  const placeholderText = `Uploading ${filename}...`;
+                  const filename =
+                    file.name.replace(/\.[^/.]+$/, "") || `image-${i + 1}`;
+                  const uniqueId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+                  const placeholderText = `Uploading ${filename}... [${uniqueId}]`;
 
                   // Insert placeholder
                   const placeholderPosition = currentPosition + i * 2;
@@ -158,14 +161,22 @@ const SlashCommandContent: React.FC<{
                     .run();
 
                   const userId = await getUserId(convex);
+                  if (!userId) {
+                    console.error("User ID is required for image upload");
+                    return;
+                  }
+                  if (!currentNote?._id) {
+                    console.error("Current note is required for image upload");
+                    return;
+                  }
                   const imageUrl = await HandleImageUpload(
                     file,
-                    userId || "",
+                    userId,
                     "notes",
-                    (currentNote?._id as string) || "",
+                    currentNote._id as string,
                   );
 
-                  // Replace placeholder with image
+                  // Replace placeholder with image using unique identifier
                   const doc = editor.state.doc;
                   let placeholderPos = -1;
                   doc.descendants((node, pos) => {
@@ -238,7 +249,15 @@ const SlashCommandContent: React.FC<{
 
       onClose();
     },
-    [editor, onClose, HandleImageUpload, convex, currentNote?._id, getUserId, saveCurrentNote],
+    [
+      editor,
+      onClose,
+      HandleImageUpload,
+      convex,
+      currentNote?._id,
+      getUserId,
+      saveCurrentNote,
+    ],
   );
 
   // Handle click outside to close
