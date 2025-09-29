@@ -225,18 +225,27 @@ export const resolveImageReferences = internalMutation({
       ]);
 
       // Group by storage ID for atomic processing
-      [...notes, ...whiteboards].forEach(({ ref, note, whiteboard }) => {
-        const document = note || whiteboard;
-        const documentType = note ? "notes" : "whiteboards";
-
+      notes.forEach(({ ref, note }) => {
         if (!storageGroups.has(ref.storageId)) {
           storageGroups.set(ref.storageId, []);
         }
 
         storageGroups.get(ref.storageId)!.push({
           ref,
-          document,
-          documentType: documentType as "notes" | "whiteboards",
+          document: note,
+          documentType: "notes" as const,
+        });
+      });
+
+      whiteboards.forEach(({ ref, whiteboard }) => {
+        if (!storageGroups.has(ref.storageId)) {
+          storageGroups.set(ref.storageId, []);
+        }
+
+        storageGroups.get(ref.storageId)!.push({
+          ref,
+          document: whiteboard,
+          documentType: "whiteboards" as const,
         });
       });
 

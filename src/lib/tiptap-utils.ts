@@ -210,7 +210,7 @@ export const useTiptapImage = () => {
     try {
       // Link image to document
       await convex.mutation(api.imageReferences.linkImage, {
-        storageId: storageId,
+        storageId: storageId as Id<"_storage">,
         tenantId: ownerId,
         documentOwnerType: documentType,
         documentOwner: documentOwner,
@@ -223,7 +223,7 @@ export const useTiptapImage = () => {
       );
       try {
         await convex.mutation(api.imageReferences.unlinkImage, {
-          storageId: storageId as any,
+          storageId: storageId as Id<"_storage">,
           documentOwner: documentOwner,
           documentOwnerType: documentType,
         });
@@ -242,8 +242,9 @@ export const useTiptapImage = () => {
       );
       getImageUrl.searchParams.set("storageId", storageId);
       return getImageUrl.href;
-    } catch (error) {
-      throw new Error("Failed to generate image URL");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      throw new Error("Failed to generate image URL, ", error);
     }
   }
 
