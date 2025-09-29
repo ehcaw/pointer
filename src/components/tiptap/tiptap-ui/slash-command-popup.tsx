@@ -22,6 +22,13 @@ import { LinkIcon } from "@/components/tiptap/tiptap-icons/link-icon";
 import { BlockQuoteIcon } from "@/components/tiptap/tiptap-icons/block-quote-icon";
 import { CodeBlockIcon } from "@/components/tiptap/tiptap-icons/code-block-icon";
 
+// Image upload hooks
+import { useTiptapImage } from "@/lib/tiptap-utils";
+import { useUserStore } from "@/lib/stores/user-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
+import { useNoteEditor } from "@/hooks/use-note-editor";
+import { useConvex } from "convex/react";
+
 interface SlashCommandPopupProps {
   editor: Editor | null;
   onClose: () => void;
@@ -36,6 +43,13 @@ const SlashCommandContent: React.FC<{
   const [selectedIndex, setSelectedIndex] = useState(0);
   const popupRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Image upload hooks
+  const { HandleImageUpload } = useTiptapImage();
+  const { getUserId } = useUserStore();
+  const { currentNote } = useNotesStore();
+  const { saveCurrentNote } = useNoteEditor();
+  const convex = useConvex();
 
   // Get items from registry and filter by query
   const items = query ? searchSlashCommands(query) : searchSlashCommands("");
@@ -98,10 +112,114 @@ const SlashCommandContent: React.FC<{
         } else if (item.icon === "codeBlock") {
           editor.chain().toggleCodeBlock().run();
         } else if (item.icon === "image") {
-          const url = window.prompt("Enter image URL");
-          if (url) {
-            editor.chain().setImage({ src: url }).run();
-          }
+          // Create hidden file input for image selection
+          const fileInput = document.createElement("input");
+          fileInput.type = "file";
+          fileInput.accept = "image/*";
+          fileInput.multiple = true;
+          fileInput.style.display = "none";
+
+          fileInput.onchange = async (e) => {
+            const files = (e.target as HTMLInputElement).files;
+            if (files && files.length > 0) {
+              const validFiles = Array.from(files).filter((file) => {
+                if (!file.type.startsWith("image/")) {
+                  console.error(`${file.name} is not an image file`);
+                  return false;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                  // 5MB limit
+                  console.error(`${file.name} exceeds maximum size of 5MB`);
+                  return false;
+                }
+                return true;
+              });
+
+              if (validFiles.length === 0) return;
+
+              const currentPosition = editor.state.selection.from;
+
+              try {
+                for (let i = 0; i < validFiles.length; i++) {
+                  const file = validFiles[i];
+                  const filename =
+                    file.name.replace(/\.[^/.]+$/, "") || `image-${i + 1}`;
+                  const uniqueId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+                  const placeholderText = `Uploading ${filename}... [${uniqueId}]`;
+
+                  // Insert placeholder
+                  const placeholderPosition = currentPosition + i * 2;
+                  editor
+                    .chain()
+                    .focus()
+                    .insertContentAt(placeholderPosition, [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: placeholderText }],
+                      },
+                    ])
+                    .run();
+
+                  const userId = await getUserId(convex);
+                  if (!userId) {
+                    console.error("User ID is required for image upload");
+                    return;
+                  }
+                  if (!currentNote?._id) {
+                    console.error("Current note is required for image upload");
+                    return;
+                  }
+                  const imageUrl = await HandleImageUpload(
+                    file,
+                    userId,
+                    "notes",
+                    currentNote._id as string,
+                  );
+
+                  // Replace placeholder with image using unique identifier
+                  const doc = editor.state.doc;
+                  let placeholderPos = -1;
+                  doc.descendants((node, pos) => {
+                    if (node.isText && node.text?.includes(`[${uniqueId}]`)) {
+                      placeholderPos = pos;
+                      return false;
+                    }
+                    return true;
+                  });
+
+                  if (placeholderPos !== -1) {
+                    const $pos = doc.resolve(placeholderPos);
+                    const paragraphStart = $pos.start($pos.depth);
+                    const paragraphEnd = $pos.end($pos.depth);
+
+                    editor
+                      .chain()
+                      .focus()
+                      .deleteRange({ from: paragraphStart, to: paragraphEnd })
+                      .insertContentAt(paragraphStart, [
+                        {
+                          type: "image",
+                          attrs: {
+                            src: imageUrl,
+                            alt: filename,
+                            title: filename,
+                          },
+                        },
+                      ])
+                      .run();
+                  }
+                }
+
+                await saveCurrentNote();
+              } catch (error) {
+                console.error("Failed to upload image:", error);
+              }
+            }
+          };
+
+          document.body.appendChild(fileInput);
+          fileInput.click();
+          document.body.removeChild(fileInput);
         } else if (item.icon === "link") {
           const url = window.prompt("Enter URL");
           if (url) {
@@ -131,7 +249,15 @@ const SlashCommandContent: React.FC<{
 
       onClose();
     },
-    [editor, onClose],
+    [
+      editor,
+      onClose,
+      HandleImageUpload,
+      convex,
+      currentNote?._id,
+      getUserId,
+      saveCurrentNote,
+    ],
   );
 
   // Handle click outside to close
