@@ -12,6 +12,7 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import { Underline } from "@tiptap/extension-underline";
+import { Placeholder } from "@tiptap/extensions";
 
 // --- Custom Extensions ---
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
@@ -174,6 +175,9 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         history: {
           depth: 15,
         },
+      }),
+      Placeholder.configure({
+        placeholder: "Start writing something...",
       }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Underline,
