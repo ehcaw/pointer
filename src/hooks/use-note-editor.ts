@@ -166,7 +166,6 @@ export function useNoteEditor() {
       clearUnsavedNote(note.pointer_id.toString());
       dbSavedNotes.set(note.pointer_id, savedNote);
 
-      console.log("note saved");
       return true;
     } catch (error) {
       console.error("Error saving note:", error);
