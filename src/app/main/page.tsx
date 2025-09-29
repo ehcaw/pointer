@@ -40,7 +40,6 @@ export default function MainPage() {
     }
   }, [isSignedIn, isLoaded, router]);
 
-  //
   const shouldFetch = isLoaded && isSignedIn && user?.id;
   const { isLoading } = useSWR(
     shouldFetch ? user.id : null,
