@@ -1,0 +1,147 @@
+/* Table styles for TipTap editor with light/dark mode support */
+
+.tiptap.ProseMirror table {
+  border-collapse: collapse;
+  margin: 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.tiptap.ProseMirror table td,
+.tiptap.ProseMirror table th {
+  border: 1px solid #e5e7eb;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 8px 12px;
+  position: relative;
+  vertical-align: top;
+  background-color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.tiptap.ProseMirror table th {
+  font-weight: 600;
+  text-align: left;
+  background-color: #f9fafb;
+  color: #374151;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.tiptap.ProseMirror table td:hover,
+.tiptap.ProseMirror table th:hover {
+  background-color: #f3f4f6;
+}
+
+/* Selected cells */
+.tiptap.ProseMirror table .selectedCell {
+  background-color: #dbeafe !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Column resize handle */
+.tiptap.ProseMirror table .column-resize-handle {
+  background-color: #3b82f6;
+  bottom: -2px;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tiptap.ProseMirror table:hover .column-resize-handle {
+  opacity: 1;
+}
+
+/* Empty table cells placeholder */
+.tiptap.ProseMirror table td:empty::before,
+.tiptap.ProseMirror table th:empty::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Dark mode styles */
+html.dark .tiptap.ProseMirror table,
+.dark .tiptap.ProseMirror table {
+  border-color: #374151;
+  background-color: #1f2937;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+html.dark .tiptap.ProseMirror table td,
+html.dark .tiptap.ProseMirror table th,
+.dark .tiptap.ProseMirror table td,
+.dark .tiptap.ProseMirror table th {
+  border-color: #374151;
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+html.dark .tiptap.ProseMirror table th,
+.dark .tiptap.ProseMirror table th {
+  background-color: #111827;
+  color: #f3f4f6;
+  border-bottom-color: #4b5563;
+}
+
+html.dark .tiptap.ProseMirror table td:hover,
+html.dark .tiptap.ProseMirror table th:hover,
+.dark .tiptap.ProseMirror table td:hover,
+.dark .tiptap.ProseMirror table th:hover {
+  background-color: #374151;
+}
+
+/* Selected cells in dark mode */
+html.dark .tiptap.ProseMirror table .selectedCell,
+.dark .tiptap.ProseMirror table .selectedCell {
+  background-color: #1e40af !important;
+  border-color: #60a5fa !important;
+}
+
+/* Empty table cells placeholder in dark mode */
+html.dark .tiptap.ProseMirror table td:empty::before,
+html.dark .tiptap.ProseMirror table th:empty::before,
+.dark .tiptap.ProseMirror table td:empty::before,
+.dark .tiptap.ProseMirror table th:empty::before {
+  color: #6b7280;
+}
+
+/* Table wrapper for scrolling on small screens */
+.tiptap.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+/* Responsive table styles */
+@media (max-width: 768px) {
+  .tiptap.ProseMirror table {
+    font-size: 14px;
+  }
+
+  .tiptap.ProseMirror table td,
+  .tiptap.ProseMirror table th {
+    padding: 6px 8px;
+    min-width: 80px;
+  }
+}
+
+/* Focus styles for table */
+.tiptap.ProseMirror table:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+html.dark .tiptap.ProseMirror table:focus-within,
+.dark .tiptap.ProseMirror table:focus-within {
+  outline-color: #60a5fa;
+}

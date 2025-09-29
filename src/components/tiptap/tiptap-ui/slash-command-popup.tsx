@@ -21,6 +21,7 @@ import { ImagePlusIcon } from "@/components/tiptap/tiptap-icons/image-plus-icon"
 import { LinkIcon } from "@/components/tiptap/tiptap-icons/link-icon";
 import { BlockQuoteIcon } from "@/components/tiptap/tiptap-icons/block-quote-icon";
 import { CodeBlockIcon } from "@/components/tiptap/tiptap-icons/code-block-icon";
+import { TableIcon } from "@/components/tiptap/tiptap-icons/table-icon";
 
 // Image upload hooks
 import { useTiptapImage } from "@/lib/tiptap-utils";
@@ -225,6 +226,11 @@ const SlashCommandContent: React.FC<{
           if (url) {
             editor.chain().setLink({ href: url }).run();
           }
+        } else if (item.icon === "table") {
+          editor
+            .chain()
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run();
         } else {
           // For inline formatting (bold, italic, etc.)
           switch (item.icon) {
@@ -358,6 +364,8 @@ const SlashCommandContent: React.FC<{
         return <BlockQuoteIcon {...iconProps} />;
       case "codeBlock":
         return <CodeBlockIcon {...iconProps} />;
+      case "table":
+        return <TableIcon {...iconProps} />;
       default:
         return null;
     }

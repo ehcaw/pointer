@@ -14,6 +14,11 @@ import { Superscript } from "@tiptap/extension-superscript";
 import { Underline } from "@tiptap/extension-underline";
 import { Placeholder } from "@tiptap/extensions";
 import Emoji, { emojis } from "@tiptap/extension-emoji";
+import { TableKit } from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableHeader from "@tiptap/extension-table-header";
+import TableCell from "@tiptap/extension-table-cell";
 
 // --- Custom Extensions ---
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
@@ -32,6 +37,7 @@ import "@/components/tiptap/tiptap-node/code-block-node/code-block-node.scss";
 import "@/components/tiptap/tiptap-node/list-node/list-node.scss";
 import "@/components/tiptap/tiptap-node/image-node/image-node.scss";
 import "@/components/tiptap/tiptap-node/paragraph-node/paragraph-node.scss";
+import "@/components/tiptap/tiptap-node/table-node/table-node.scss";
 
 // --- Hooks ---
 import { useMobile } from "@/hooks/use-tiptap-mobile";
@@ -211,6 +217,18 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         emojis: emojis,
         enableEmoticons: true,
       }),
+      TableKit.configure({
+        table: { resizable: true },
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: "tiptap-table",
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates
