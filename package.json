@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/groq": "^1.2.9",
     "@auth/core": "0.37.0",
+    "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/nextjs": "^6.32.0",
     "@convex-dev/auth": "^0.0.88",
     "@excalidraw/excalidraw": "^0.18.0",

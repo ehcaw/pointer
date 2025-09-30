@@ -14,6 +14,20 @@ export const createDataFetchers = (convex: ConvexReactClient) => ({
       throw new Error(`Failed to fetch user notes: ${error}`);
     }
   },
+  fetchSharedUsers: async (documentId: string) => {
+    try {
+      const { api } = await import("../../../convex/_generated/api");
+      const collaborators = await convex.query(
+        api.shared.getCollaboratorsByDocId,
+        {
+          docId: documentId,
+        },
+      );
+      return collaborators;
+    } catch (error) {
+      throw new Error(`Failed to fetch user notes: ${error}`);
+    }
+  },
 });
 
 // Type for the data fetchers
