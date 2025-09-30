@@ -1,5 +1,6 @@
 import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { generateText } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 
@@ -86,6 +87,7 @@ export const createNoteInDb = mutation({
       lastEdited: args.lastEdited || new Date().toISOString(),
       createdAt: args.createdAt,
       updatedAt: args.updatedAt,
+      collaborative: false,
     });
     return noteId;
   },
@@ -294,5 +296,89 @@ export const generateAutocompleteSuggestion = action({
     //   });
     //   console.log(text);
     return text;
+  },
+});
+
+export const shareNote = mutation({
+  args: {
+    dId: v.string(),
+    users: v.array(
+      v.object({
+        userEmail: v.string(),
+        userId: v.string(),
+      }),
+    ),
+    ownerEmail: v.string(),
+    ownerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const documentId = ctx.db.normalizeId("notes", args.dId);
+
+    // Create documentShare objects for each user
+    if (documentId) {
+      const sharePromises = args.users.map((user) =>
+        ctx.db.insert("documentShares", {
+          documentId: documentId,
+          userEmail: user.userEmail,
+          userId: user.userId,
+          ownerEmail: args.ownerEmail,
+          ownerId: args.ownerId,
+        }),
+      );
+      await Promise.all(sharePromises);
+    }
+
+    // Execute all insertions in parallel
+    else {
+      return {
+        success: false,
+        sharedWithCount: 0,
+      };
+    }
+
+    return {
+      success: true,
+      sharedWithCount: args.users.length,
+    };
+  },
+});
+
+export const unshareNote = mutation({
+  args: { dId: v.string(), userEmail: v.string(), ownerEmail: v.string() },
+  handler: async (ctx, args) => {
+    const documentId = args.dId as Id<"notes">;
+
+    // Find the document that matches all three conditions
+    const noteToDelete = await ctx.db
+      .query("documentShares")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("documentId"), documentId),
+          q.eq(q.field("userEmail"), args.userEmail),
+          q.eq(q.field("ownerEmail"), args.ownerEmail),
+        ),
+      )
+      .first();
+
+    if (!noteToDelete) {
+      throw new Error(
+        "Note not found or you don't have permission to delete it",
+      );
+    }
+
+    // Delete the found document
+    await ctx.db.delete(noteToDelete._id);
+
+    return { success: true, deletedId: noteToDelete._id };
+  },
+});
+
+export const toggleCollaboration = mutation({
+  args: { docId: v.string(), collaborative: v.boolean() },
+  handler: async (ctx, { docId, collaborative }) => {
+    const documentId = ctx.db.normalizeId("notes", docId);
+    if (documentId) {
+      await ctx.db.patch(documentId, { collaborative });
+    }
   },
 });
