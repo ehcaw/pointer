@@ -2,40 +2,20 @@
 // import { SimpleEditor } from "../tiptap/tiptap-templates/simple/simple-editor";
 import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/collaborative-editor";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useEffect, use } from "react";
+import { useEffect } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { usePreferencesStore } from "@/lib/stores/preferences-store";
-
-import useSWR from "swr";
-import { useConvex } from "convex/react";
-import { createDataFetchers } from "@/lib/utils/dataFetchers";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-export const CollaborativeNotebookView = ({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) => {
-  const { slug } = use(params);
-  console.log("SLUG ", slug);
-  const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
-    useNoteEditor(); // Imported handleEditorUpdate
+export const CollaborativeNotebookView = ({}) => {
+  const { currentNote, editorRef, saveCurrentNote } = useNoteEditor(); // Imported handleEditorUpdate
 
-  const {
-    saveDBSavedNote,
-    removeUnsavedNote,
-    setCurrentNote,
-    userNotes,
-    setUserNotes,
-    setDBSavedNotes,
-  } = useNotesStore();
-  const { currentView } = usePreferencesStore();
+  const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
+  // const { currentView } = usePreferencesStore();
 
-  const convex = useConvex();
-  const dataFetchers = createDataFetchers(convex);
+  // const dataFetchers = createDataFetchers(convex);
 
   const { isSignedIn, isLoaded, user } = useUser();
   const router = useRouter();
@@ -45,45 +25,6 @@ export const CollaborativeNotebookView = ({
       router.push("/");
     }
   }, [isSignedIn, isLoaded, router]);
-
-  const shouldFetch = isLoaded && isSignedIn && user?.id;
-  const { isLoading } = useSWR(
-    shouldFetch ? user.id : null,
-    async (userId: string) => {
-      const result = await dataFetchers.fetchUserNotes(userId);
-      return result;
-    },
-    {
-      onSuccess: (data) => {
-        setUserNotes(data);
-        setDBSavedNotes(data);
-      },
-      revalidateIfStale: true,
-      dedupingInterval: 60000,
-    },
-  );
-
-  // Handle note loading based on slug
-  useEffect(() => {
-    if (slug && !isLoading && userNotes.length > 0) {
-      console.log("userNotes:", userNotes);
-      const foundNote = userNotes.find((a) => a.pointer_id === slug);
-      if (foundNote) {
-        console.log("Setting currentNote:", foundNote);
-        console.log("foundNote.content.tiptap:", foundNote.content.tiptap);
-        setCurrentNote(foundNote);
-      } else {
-        console.log("No note found for slug:", slug);
-      }
-    }
-  }, [slug, userNotes, setCurrentNote, isLoading]);
-
-  // Create empty note only if no slug and no current note
-  useEffect(() => {
-    if (!slug && !currentNote && currentView === "note" && !isLoading) {
-      createEmptyNote("Untitled Note");
-    }
-  }, [slug, createEmptyNote, currentView, isLoading]);
 
   useHotkeys(
     "meta+s",
@@ -115,9 +56,6 @@ export const CollaborativeNotebookView = ({
         ],
       };
 
-  console.log("Current note:", currentNote);
-  console.log("Note content being passed to editor:", noteContent);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Main Editor */}
@@ -126,8 +64,8 @@ export const CollaborativeNotebookView = ({
           <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="w-full min-h-[calc(100vh-240px)]">
               <CollaborativeEditor
-                id={slug || currentNote?.pointer_id || "default-doc"}
-                key={slug || currentNote?.pointer_id || "default-doc"}
+                id={currentNote?.pointer_id || "default-doc"}
+                key={currentNote?.pointer_id || "default-doc"}
                 content={noteContent}
                 editorRef={editorRef}
               />

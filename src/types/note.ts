@@ -26,6 +26,8 @@ export interface BaseNode {
 
   /** Last time this note was edited (differs from updatedAt which includes metadata changes) */
   lastEdited?: string;
+
+  collaborative: boolean;
 }
 
 /**

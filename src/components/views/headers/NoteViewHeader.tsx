@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import CollaborationModal from "./CollaborationModal";
 
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
-import { FileText, Home, Clock, Share2 } from "lucide-react";
+import { FileText, Home, Clock, Share2, Users } from "lucide-react";
 
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -22,6 +24,8 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 export default function NoteViewHeader() {
   const [title, setTitle] = useState("");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isCollaborationModalOpen, setIsCollaborationModalOpen] =
+    useState(false);
 
   const { markNoteAsUnsaved, unsavedNotes } = useNotesStore();
   const { currentNote } = useNoteEditor();
@@ -128,15 +132,21 @@ export default function NoteViewHeader() {
         )}
 
         {currentNote && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={handleShareNote}
-            title="Share preview link"
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleShareNote}
+              title="Share preview link"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <CollaborationModal
+              isOpen={isCollaborationModalOpen}
+              onOpenChange={setIsCollaborationModalOpen}
+            />
+          </div>
         )}
 
         <UserButton />

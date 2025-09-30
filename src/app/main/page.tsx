@@ -12,6 +12,7 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
+import { CollaborativeNotebookView } from "@/components/views/CollaborativeNotebookView";
 import AppSidebar from "@/components/navigation/sidebar";
 
 import DefaultHeader from "@/components/views/headers/DefaultHeader";
@@ -27,7 +28,7 @@ export default function MainPage() {
   const { isSignedIn, isLoaded, user } = useUser();
   const router = useRouter();
 
-  const { setUserNotes, setDBSavedNotes } = useNotesStore();
+  const { setUserNotes, setDBSavedNotes, currentNote } = useNotesStore();
   const { currentView } = usePreferencesStore();
 
   const convex = useConvex();
@@ -94,6 +95,9 @@ export default function MainPage() {
             className={`overflow-y-auto ${currentView === "note" ? "h-[calc(100vh-4rem)]" : "h-[calc(100vh-4rem)]"}`}
           >
             {currentView === "home" && <HomeView />}
+            {currentView === "note" &&
+              currentNote &&
+              currentNote.collaborative && <CollaborativeNotebookView />}
             {currentView === "note" && <NotebookView />}
             {currentView === "graph" && <GraphView />}
             {currentView === "whiteboard" && <WhiteboardView />}
