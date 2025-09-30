@@ -9,6 +9,7 @@ import {
   GitGraph,
   Trash,
   LineSquiggle,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -52,9 +53,9 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
-
   const {
     userNotes,
+    sharedNotes,
     unsavedNotes,
     openUserNotes,
     setCurrentNote,
@@ -338,6 +339,80 @@ export default function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          {/* Shared with me */}
+          {sharedNotes.length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+                <Users className="h-3 w-3" />
+                Shared with me
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {sharedNotes.map((note) => {
+                    const isActive =
+                      currentNote?.pointer_id === note.pointer_id;
+
+                    const noteButton = (
+                      <SidebarMenuButton
+                        onClick={() => handleNoteClick(note)}
+                        data-active={isActive}
+                        className={cn(
+                          "rounded-lg transition-all my-1.5 w-full",
+                          "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0",
+                          isActive
+                            ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 group-data-[collapsible=icon]:bg-slate-200 dark:group-data-[collapsible=icon]:bg-slate-700 group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 group-data-[collapsible=icon]:hover:bg-slate-200 dark:group-data-[collapsible=icon]:hover:bg-slate-700",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded group-data-[collapsible=icon]:h-full group-data-[collapsible=icon]:w-full",
+                            "bg-transparent",
+                          )}
+                        >
+                          <FileText
+                            className={cn(
+                              "h-3 w-3 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4",
+                              isActive
+                                ? "text-primary group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
+                                : "text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:text-slate-600 dark:group-data-[collapsible=icon]:text-slate-300",
+                            )}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 pr-6 group-data-[collapsible=icon]:hidden">
+                          <div className="truncate font-medium">
+                            {note.name}
+                          </div>
+                        </div>
+                      </SidebarMenuButton>
+                    );
+
+                    return (
+                      <SidebarMenuItem
+                        key={String(note.pointer_id)}
+                        className="relative group"
+                      >
+                        <div className="group-data-[collapsible=icon]:hidden">
+                          {noteButton}
+                        </div>
+                        <div className="hidden group-data-[collapsible=icon]:block">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {noteButton}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" sideOffset={10}>
+                              <p className="font-medium">{note.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
 
           {/* All Notes (collapsed by default) */}
           {userNotes.length > 5 && (

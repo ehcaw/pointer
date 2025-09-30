@@ -111,6 +111,7 @@ export const updateNoteInDb = mutation({
     lastEdited: v.optional(v.string()),
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
+    collaborative: v.boolean(),
   },
   handler: async (ctx, args) => {
     const { pointer_id, ...fields } = args;
@@ -160,6 +161,7 @@ export const updateNoteInDb = mutation({
         updatedAt: fields.updatedAt || now,
         lastAccessed: fields.lastAccessed || now,
         lastEdited: fields.lastEdited || now,
+        collaborative: fields.collaborative || false,
       };
 
       // Insert the new document
@@ -299,6 +301,21 @@ export const generateAutocompleteSuggestion = action({
   },
 });
 
+export const getSharedUsers = query({
+  args: { documentId: v.string() },
+  handler: async (ctx, args) => {
+    const docId = ctx.db.normalizeId("notes", args.documentId);
+    if (!docId) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("documentShares")
+      .withIndex("by_document_user", (q) => q.eq("documentId", docId))
+      .collect();
+  },
+});
+
 export const shareNote = mutation({
   args: {
     dId: v.string(),
@@ -314,9 +331,37 @@ export const shareNote = mutation({
   handler: async (ctx, args) => {
     const documentId = ctx.db.normalizeId("notes", args.dId);
 
-    // Create documentShare objects for each user
-    if (documentId) {
-      const sharePromises = args.users.map((user) =>
+    if (!documentId) {
+      return {
+        success: false,
+        sharedWithCount: 0,
+      };
+    }
+
+    // Check for existing shares and filter out duplicates
+    const usersToShare = [];
+
+    for (const user of args.users) {
+      // Check if this user is already shared with this document
+      const existingShare = await ctx.db
+        .query("documentShares")
+        .withIndex("by_document_user", (q) =>
+          q
+            .eq("documentId", documentId)
+            .eq("userId", user.userId)
+            .eq("userEmail", user.userEmail),
+        )
+        .first();
+
+      // Only add if not already shared
+      if (!existingShare) {
+        usersToShare.push(user);
+      }
+    }
+
+    // Create documentShare objects for new users only
+    if (usersToShare.length > 0) {
+      const sharePromises = usersToShare.map((user) =>
         ctx.db.insert("documentShares", {
           documentId: documentId,
           userEmail: user.userEmail,
@@ -328,17 +373,11 @@ export const shareNote = mutation({
       await Promise.all(sharePromises);
     }
 
-    // Execute all insertions in parallel
-    else {
-      return {
-        success: false,
-        sharedWithCount: 0,
-      };
-    }
-
     return {
       success: true,
-      sharedWithCount: args.users.length,
+      sharedWithCount: usersToShare.length,
+      totalUsersRequested: args.users.length,
+      duplicatesSkipped: args.users.length - usersToShare.length,
     };
   },
 });
@@ -380,5 +419,28 @@ export const toggleCollaboration = mutation({
     if (documentId) {
       await ctx.db.patch(documentId, { collaborative });
     }
+  },
+});
+
+export const getSharedDocumentsByUserId = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // 1. Find all document shares for the user
+    const shares = await ctx.db
+      .query("documentShares")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // 2. Extract the documentIds
+    const documentIds = shares.map((share) => share.documentId);
+
+    // 3. Fetch the documents for those Ids
+    const documents = await Promise.all(
+      documentIds.map((docId) => ctx.db.get(docId)),
+    );
+
+    // 4. Filter out any null results (if a document was deleted)
+    // and return the documents
+    return documents.filter((doc) => doc !== null);
   },
 });

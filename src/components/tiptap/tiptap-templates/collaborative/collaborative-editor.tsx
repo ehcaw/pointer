@@ -105,7 +105,10 @@ export function CollaborativeEditor({
   const yDoc = yDocRef.current;
 
   const provider = useYProvider({
-    host: "localhost:1999",
+    host:
+      process.env.NODE_ENV == "development"
+        ? "localhost:1999"
+        : "https://pointer-collaborative-editor.ehcaw.partykit.dev",
     room: `document-${id}`,
     doc: yDoc,
   });

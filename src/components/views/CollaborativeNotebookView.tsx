@@ -13,11 +13,8 @@ export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef, saveCurrentNote } = useNoteEditor(); // Imported handleEditorUpdate
 
   const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
-  // const { currentView } = usePreferencesStore();
 
-  // const dataFetchers = createDataFetchers(convex);
-
-  const { isSignedIn, isLoaded, user } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
   useEffect(() => {

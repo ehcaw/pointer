@@ -69,5 +69,7 @@ export default defineSchema({
     userId: v.string(),
     ownerEmail: v.string(),
     ownerId: v.string(),
-  }),
+  })
+    .index("by_document_user", ["documentId", "userId", "userEmail"])
+    .index("by_userId", ["userId"]),
 });

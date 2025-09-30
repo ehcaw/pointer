@@ -11,12 +11,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import CollaborationModal from "./CollaborationModal";
 
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
-import { FileText, Home, Clock, Share2, Users } from "lucide-react";
+import { FileText, Home, Clock, Share2 } from "lucide-react";
 
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";

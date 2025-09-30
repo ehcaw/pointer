@@ -98,6 +98,7 @@ export function useNoteEditor() {
         tiptap: "",
         text: "",
       },
+      collaborative: true,
     };
 
     // Add to store as unsaved
@@ -150,6 +151,7 @@ export function useNoteEditor() {
           tiptap: serializedTiptapContent,
           text: (noteData as FileNode).content.text,
         },
+        collaborative: noteData.collaborative,
       };
 
       const doesNoteExist = await fetchNoteById(note.pointer_id);

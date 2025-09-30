@@ -4,6 +4,7 @@ import type { Node } from "@/types/note";
 interface NotesStore {
   // Core note collections
   userNotes: Node[];
+  sharedNotes: Node[];
   treeStructure: Node[];
 
   // UI state
@@ -18,6 +19,7 @@ interface NotesStore {
 
   // Basic state setters
   setUserNotes: (notes: Node[]) => void;
+  setSharedNotes: (notes: Node[]) => void;
   setOpenUserNotes: (notes: Node[]) => void;
   setTreeStructure: (structure: Node[]) => void;
   setCurrentNote: (note: Node | null) => void;
@@ -50,6 +52,7 @@ interface NotesStore {
 export const useNotesStore = create<NotesStore>((set, get) => ({
   // Core note collections
   userNotes: [],
+  sharedNotes: [],
   treeStructure: [],
 
   // UI state
@@ -64,6 +67,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
   // Basic state setters
   setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
+  setSharedNotes: (notes: Node[]) => set({ sharedNotes: notes }),
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
   setCurrentNote: (note: Node | null) => {

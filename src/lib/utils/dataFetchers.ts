@@ -14,6 +14,21 @@ export const createDataFetchers = (convex: ConvexReactClient) => ({
       throw new Error(`Failed to fetch user notes: ${error}`);
     }
   },
+  fetchSharedNotes: async (userId: string) => {
+    try {
+      const { api } = await import("../../../convex/_generated/api");
+      const sharedNotes = await convex.query(
+        api.notes.getSharedDocumentsByUserId,
+        {
+          userId,
+        },
+      );
+      return sharedNotes;
+    } catch (error) {
+      throw new Error(`Failed to fetch shared notes: ${error}`);
+    }
+  },
+
   fetchSharedUsers: async (documentId: string) => {
     try {
       const { api } = await import("../../../convex/_generated/api");
