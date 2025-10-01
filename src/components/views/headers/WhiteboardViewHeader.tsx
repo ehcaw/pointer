@@ -30,7 +30,6 @@ export default function WhiteboardViewHeader() {
     setTitle(e.target.value);
     if (whiteboard) {
       whiteboard.title = e.target.value;
-      console.log(whiteboard);
     }
   };
 

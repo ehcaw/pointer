@@ -120,7 +120,6 @@ export function useNoteEditor() {
     try {
       const success = await saveNote(currentNote);
       if (success) {
-        console.log("Note saved successfully");
       }
       return success;
     } catch (error) {
