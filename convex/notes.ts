@@ -237,13 +237,56 @@ export const deleteNoteByPointerId = mutation({
       throw new Error(`Note with pointer_id ${args.pointer_id} not found`);
     }
 
-    // Delete using the Convex ID
-    await ctx.db.delete(note._id);
+    // Validate user owns the note (add this check for security)
+    if (note.tenantId !== args.user_id) {
+      throw new Error("Unauthorized: You don't own this note");
+    }
 
+    // Batch all queries in parallel for better performance
+    const [documentShares, imageReferences] = await Promise.all([
+      ctx.db
+        .query("documentShares")
+        .filter((q) => q.eq(q.field("documentId"), note._id))
+        .collect(),
+      ctx.db
+        .query("imageReferences")
+        .filter((q) => q.eq(q.field("documentOwner"), note._id))
+        .collect(),
+    ]);
+
+    // Batch all deletes in parallel
+    const deletePromises = [
+      // Delete the main note
+      ctx.db.delete(note._id),
+
+      // Delete all document shares
+      ...documentShares.map((share) => ctx.db.delete(share._id)),
+
+      // Delete all image references
+      ...imageReferences.map((imgRef) => ctx.db.delete(imgRef._id)),
+    ];
+
+    // Prepare cleanup records for image references
+    const cleanupPromises = imageReferences.map((imgRef) =>
+      ctx.db.insert("imageReferencesCleanup", {
+        tenantId: args.user_id,
+        documentOwner: imgRef.documentOwner,
+        storageId: imgRef.storageId,
+        documentOwnerType: "notes",
+        createdAt: new Date().toISOString(),
+      }),
+    );
+
+    // Execute all operations in parallel
+    await Promise.all([...deletePromises, ...cleanupPromises]);
+
+    // Only return updated notes if needed - consider making this optional
+    // or move to a separate query function if the caller needs it
     const notes = await ctx.db
       .query("notes")
       .filter((q) => q.eq(q.field("tenantId"), args.user_id))
       .collect();
+
     return notes;
   },
 });
