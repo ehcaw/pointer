@@ -29,6 +29,7 @@ interface Collaborator {
   email: string;
   id: string;
   isSaved: boolean;
+  markedForDeletion?: boolean;
 }
 
 interface CollaborationModalProps {
@@ -213,7 +214,23 @@ export default function CollaborationModal({
   };
 
   const handleRemoveCollaborator = (id: string) => {
-    setLocalCollaborators(localCollaborators.filter((c) => c.id !== id));
+    setLocalCollaborators(
+      (prev) =>
+        prev
+          .map((collaborator) => {
+            if (collaborator.id === id) {
+              if (collaborator.isSaved) {
+                // Mark existing collaborator for deletion instead of removing
+                return { ...collaborator, markedForDeletion: true };
+              } else {
+                // Remove unsaved collaborator completely
+                return null;
+              }
+            }
+            return collaborator;
+          })
+          .filter(Boolean) as Collaborator[],
+    );
   };
 
   const handleSave = async () => {
@@ -243,6 +260,21 @@ export default function CollaborationModal({
         ownerEmail: user.emailAddresses[0]?.emailAddress || "",
         ownerId: user.id,
       });
+
+      const removedUsers = localCollaborators.filter(
+        (collaborator) => collaborator.markedForDeletion,
+      );
+      if (removedUsers.length > 0) {
+        await Promise.allSettled(
+          removedUsers.map((collaborator) =>
+            convex.mutation(api.notes.unshareNote, {
+              userEmail: collaborator.email,
+              ownerEmail: user.emailAddresses[0]?.emailAddress || "",
+              dId: currentNote._id || "",
+            }),
+          ),
+        );
+      }
 
       // Mark all collaborators as saved after successful save
       setLocalCollaborators((prev) =>
@@ -338,10 +370,17 @@ export default function CollaborationModal({
                           <Badge variant="secondary">
                             {collaborator.email}
                           </Badge>
-                          {!collaborator.isSaved && (
+                          {!collaborator.isSaved &&
+                            !collaborator.markedForDeletion && (
+                              <div
+                                className="w-2 h-2 bg-orange-500 rounded-full"
+                                title="Unsaved changes"
+                              />
+                            )}
+                          {collaborator.markedForDeletion && (
                             <div
-                              className="w-2 h-2 bg-orange-500 rounded-full"
-                              title="Unsaved changes"
+                              className="w-2 h-2 bg-red-500 rounded-full"
+                              title="Will be removed"
                             />
                           )}
                         </div>
