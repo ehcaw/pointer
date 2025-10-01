@@ -62,6 +62,7 @@ export const createNoteInDb = mutation({
     updatedAt: v.string(),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
+    collaborative: v.boolean(),
   },
   handler: async (ctx, args) => {
     // Store the pointer_id along with other fields
@@ -87,7 +88,7 @@ export const createNoteInDb = mutation({
       lastEdited: args.lastEdited || new Date().toISOString(),
       createdAt: args.createdAt,
       updatedAt: args.updatedAt,
-      collaborative: false,
+      collaborative: args.collaborative || false,
     });
     return noteId;
   },

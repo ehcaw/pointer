@@ -85,6 +85,8 @@ export function CollaborativeEditor({
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const isRemoteChange = useRef(false);
+  const ignoreFirstUpdate = useRef(true);
 
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
@@ -278,6 +280,7 @@ export function CollaborativeEditor({
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates
     onUpdate: async ({ editor, transaction }) => {
+      isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
       // Handle slash command (lightweight)
       const { selection } = editor.state;
       const { $from } = selection;
@@ -358,6 +361,13 @@ export function CollaborativeEditor({
   const debouncedContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
+    // On the very first update after mounting, just update the last content ref and ignore
+    if (ignoreFirstUpdate.current) {
+      ignoreFirstUpdate.current = false;
+      lastContentRef.current = JSON.stringify(editor.getJSON());
+      return;
+    }
+
     const currentEditorJson = editor.getJSON();
     const currentEditorText = editor.getText();
     const currentContentHash = JSON.stringify(currentEditorJson);
@@ -371,8 +381,10 @@ export function CollaborativeEditor({
       currentNote.content.text = currentEditorText;
       currentNote.updatedAt = new Date().toISOString();
 
-      // Mark as unsaved
-      markNoteAsUnsaved(currentNote);
+      // Mark as unsaved only if the change is not remote
+      if (!isRemoteChange.current) {
+        markNoteAsUnsaved(currentNote);
+      }
 
       // Setup auto-save timer
       if (autoSaveTimeoutRef.current) {

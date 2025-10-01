@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
   const {
@@ -99,9 +100,9 @@ export default function AppSidebar() {
     setNoteToDelete(note);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (noteToDelete) {
-      deleteNote(noteToDelete.pointer_id || "", noteToDelete.tenantId);
+      await deleteNote(noteToDelete.pointer_id || "", noteToDelete.tenantId);
       setNoteToDelete(null); // Close the dialog
     }
   };
