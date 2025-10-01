@@ -28,7 +28,7 @@ export default defineSchema({
     content: v.optional(v.string()),
     title: v.optional(v.string()),
     link: v.optional(v.string()),
-    description: v.string(),
+    description: v.optional(v.string()),
   }),
   tags: defineTable({
     tenantId: v.string(),
