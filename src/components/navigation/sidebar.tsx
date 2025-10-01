@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
   const {
@@ -62,16 +63,18 @@ export default function AppSidebar() {
     unsetCurrentNote,
     currentNote,
     dbSavedNotes,
+    setUserNotes,
   } = useNotesStore();
 
   const { currentView, setCurrentView } = usePreferencesStore();
 
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
 
-  const handleCreateNote = () => {
+  const handleCreateNote = async () => {
     const title = `Note ${openUserNotes.length + 1}`;
     setCurrentView("note");
-    createNewNote(title);
+    const newNote = await createNewNote(title);
+    setUserNotes([newNote, ...userNotes]);
   };
 
   const handleNavClick = (view: "home" | "graph" | "whiteboard" | "note") => {
@@ -99,9 +102,9 @@ export default function AppSidebar() {
     setNoteToDelete(note);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (noteToDelete) {
-      deleteNote(noteToDelete.pointer_id || "", noteToDelete.tenantId);
+      await deleteNote(noteToDelete.pointer_id || "", noteToDelete.tenantId);
       setNoteToDelete(null); // Close the dialog
     }
   };
