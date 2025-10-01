@@ -85,9 +85,11 @@ export default function CollaborationModal({
     isOpen && currentNote?._id ? `collaborators-${currentNote._id}` : null,
     async () => {
       if (!currentNote?._id) return [];
-      const collaborators = await dataFetchers.fetchSharedUsers(
-        currentNote._id,
-      );
+      const c = await dataFetchers.fetchSharedUsers(currentNote._id);
+      const collaborators = c.map((c) => ({
+        ...c,
+        isSaved: true,
+      }));
       return collaborators;
     },
     {
