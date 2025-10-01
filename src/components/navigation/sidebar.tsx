@@ -63,18 +63,16 @@ export default function AppSidebar() {
     unsetCurrentNote,
     currentNote,
     dbSavedNotes,
-    setUserNotes,
   } = useNotesStore();
 
   const { currentView, setCurrentView } = usePreferencesStore();
 
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
 
-  const handleCreateNote = async () => {
+  const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
     setCurrentView("note");
-    const newNote = await createNewNote(title);
-    setUserNotes([newNote, ...userNotes]);
+    createNewNote(title);
   };
 
   const handleNavClick = (view: "home" | "graph" | "whiteboard" | "note") => {

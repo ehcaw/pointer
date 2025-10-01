@@ -31,7 +31,7 @@ export default function NoteViewHeader() {
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
 
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+  const AUTO_SAVE_INTERVAL = 2500; // 2.5 seconds
 
   const handleTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -59,17 +59,26 @@ export default function NoteViewHeader() {
     }
   };
 
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
     setTitle(currentNote?.name || "Untitled Note");
   }, [currentNote]);
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
 
     autoSaveTimeoutRef.current = setTimeout(() => {
-      if (currentNote && unsavedNotes.has(currentNote.pointer_id)) {
+      const { currentNote: latestNote, unsavedNotes: latestUnsaved } =
+        useNotesStore.getState();
+      if (latestNote && latestUnsaved.has(latestNote.pointer_id)) {
         saveCurrentNote();
       }
     }, AUTO_SAVE_INTERVAL);
@@ -79,7 +88,7 @@ export default function NoteViewHeader() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [title, currentNote, saveCurrentNote, unsavedNotes]);
+  }, [title, saveCurrentNote]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">
