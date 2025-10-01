@@ -28,6 +28,8 @@ import { createDataFetchers } from "@/lib/utils/dataFetchers";
 interface Collaborator {
   email: string;
   id: string;
+  isSaved: boolean;
+  markedForDeletion?: boolean;
 }
 
 interface CollaborationModalProps {
@@ -84,9 +86,11 @@ export default function CollaborationModal({
     isOpen && currentNote?._id ? `collaborators-${currentNote._id}` : null,
     async () => {
       if (!currentNote?._id) return [];
-      const collaborators = await dataFetchers.fetchSharedUsers(
-        currentNote._id,
-      );
+      const c = await dataFetchers.fetchSharedUsers(currentNote._id);
+      const collaborators = c.map((c) => ({
+        ...c,
+        isSaved: true,
+      }));
       return collaborators;
     },
     {
@@ -103,7 +107,12 @@ export default function CollaborationModal({
       const prevCollaboratorsString = JSON.stringify(prevCollaborators.current);
 
       if (collaboratorsString !== prevCollaboratorsString) {
-        setLocalCollaborators(collaborators);
+        // Mark all collaborators from server as saved
+        const savedCollaborators = collaborators.map((c) => ({
+          ...c,
+          isSaved: true,
+        }));
+        setLocalCollaborators(savedCollaborators);
         prevCollaborators.current = collaborators;
       }
     } else if (!isLoading && !collaborators) {
@@ -192,6 +201,7 @@ export default function CollaborationModal({
       const newCollaborator: Collaborator = {
         email: trimmedEmail,
         id: userId,
+        isSaved: false,
       };
 
       setLocalCollaborators([...localCollaborators, newCollaborator]);
@@ -200,17 +210,30 @@ export default function CollaborationModal({
     } catch (err) {
       console.error("Error adding collaborator:", err);
       setError("Failed to add collaborator. Please try again.");
-    } finally {
-      setIsAddingCollaborator(false);
     }
   };
 
   const handleRemoveCollaborator = (id: string) => {
-    setLocalCollaborators(localCollaborators.filter((c) => c.id !== id));
+    setLocalCollaborators(
+      (prev) =>
+        prev
+          .map((collaborator) => {
+            if (collaborator.id === id) {
+              if (collaborator.isSaved) {
+                // Mark existing collaborator for deletion instead of removing
+                return { ...collaborator, markedForDeletion: true };
+              } else {
+                // Remove unsaved collaborator completely
+                return null;
+              }
+            }
+            return collaborator;
+          })
+          .filter(Boolean) as Collaborator[],
+    );
   };
 
   const handleSave = async () => {
-    // Here you would typically save the collaboration settings
     if (
       currentNote &&
       currentNote._id &&
@@ -223,11 +246,13 @@ export default function CollaborationModal({
           userEmail: collaborator.email,
           userId: collaborator.id,
         }));
-
-      await convex.mutation(api.notes.toggleCollaboration, {
-        docId: currentNote._id,
-        collaborative: isCollaborationEnabled,
-      });
+      if (isCollaborationEnabled !== currentNote.collaborative) {
+        await convex.mutation(api.notes.toggleCollaboration, {
+          docId: currentNote._id,
+          collaborative: isCollaborationEnabled,
+        });
+        currentNote.collaborative = isCollaborationEnabled;
+      }
 
       await convex.mutation(api.notes.shareNote, {
         dId: currentNote._id,
@@ -236,7 +261,25 @@ export default function CollaborationModal({
         ownerId: user.id,
       });
 
-      onOpenChange(false);
+      const removedUsers = localCollaborators.filter(
+        (collaborator) => collaborator.markedForDeletion,
+      );
+      if (removedUsers.length > 0) {
+        await Promise.allSettled(
+          removedUsers.map((collaborator) =>
+            convex.mutation(api.notes.unshareNote, {
+              userEmail: collaborator.email,
+              ownerEmail: user.emailAddresses[0]?.emailAddress || "",
+              dId: currentNote._id || "",
+            }),
+          ),
+        );
+      }
+
+      // Mark all collaborators as saved after successful save
+      setLocalCollaborators((prev) =>
+        prev.map((c) => ({ ...c, isSaved: true })),
+      );
     }
   };
 
@@ -323,7 +366,24 @@ export default function CollaborationModal({
                         key={collaborator.id}
                         className="flex items-center justify-between"
                       >
-                        <Badge variant="secondary">{collaborator.email}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {collaborator.email}
+                          </Badge>
+                          {!collaborator.isSaved &&
+                            !collaborator.markedForDeletion && (
+                              <div
+                                className="w-2 h-2 bg-orange-500 rounded-full"
+                                title="Unsaved changes"
+                              />
+                            )}
+                          {collaborator.markedForDeletion && (
+                            <div
+                              className="w-2 h-2 bg-red-500 rounded-full"
+                              title="Will be removed"
+                            />
+                          )}
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"

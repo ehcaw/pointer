@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Node } from "@/types/note";
+import { usePreferencesStore } from "./preferences-store";
 
 interface NotesStore {
   // Core note collections
@@ -66,15 +67,34 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   dbSavedNotes: new Map([]),
 
   // Basic state setters
-  setUserNotes: (notes: Node[]) => set({ userNotes: notes }),
+  setUserNotes: (notes: Node[]) => {
+    set({ userNotes: notes });
+
+    // Check if we should restore the current note from preferences
+    const currentNoteId = usePreferencesStore.getState().currentNoteId;
+    if (currentNoteId && !get().currentNote) {
+      const noteToRestore = notes.find(
+        (n) => n.pointer_id.toString() === currentNoteId,
+      );
+      if (noteToRestore) {
+        set({ currentNote: noteToRestore });
+      }
+    }
+  },
   setSharedNotes: (notes: Node[]) => set({ sharedNotes: notes }),
   setOpenUserNotes: (notes: Node[]) => set({ openUserNotes: notes }),
   setTreeStructure: (structure: Node[]) => set({ treeStructure: structure }),
   setCurrentNote: (note: Node | null) => {
     set({ currentNote: note });
+    // Persist current note ID to preferences
+    usePreferencesStore
+      .getState()
+      .setCurrentNoteId(note?.pointer_id.toString() ?? null);
   },
   unsetCurrentNote: () => {
     set({ currentNote: null });
+    // Clear persisted note ID
+    usePreferencesStore.getState().setCurrentNoteId(null);
   },
   setIsLoading: (isLoading: boolean) => set({ isLoading }),
   setDBSavedNotes: (notes: Node[]) => {

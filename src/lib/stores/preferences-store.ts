@@ -4,9 +4,11 @@ import { persist, createJSONStorage } from "zustand/middleware";
 interface PreferencesStore {
   // UI state preferences
   currentView: "home" | "note" | "graph" | "whiteboard";
+  currentNoteId: string | null;
 
   // Preference setters
   setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") => void;
+  setCurrentNoteId: (noteId: string | null) => void;
 }
 
 export const usePreferencesStore = create<PreferencesStore>()(
@@ -14,10 +16,14 @@ export const usePreferencesStore = create<PreferencesStore>()(
     (set) => ({
       // UI state preferences
       currentView: "home",
+      currentNoteId: null,
 
       // Preference setters
       setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") => {
         set({ currentView: view });
+      },
+      setCurrentNoteId: (noteId: string | null) => {
+        set({ currentNoteId: noteId });
       },
     }),
     {
@@ -26,6 +32,7 @@ export const usePreferencesStore = create<PreferencesStore>()(
       partialize: (state) => ({
         // Only persist the preferences we want to save
         currentView: state.currentView,
+        currentNoteId: state.currentNoteId,
       }),
     },
   ),
