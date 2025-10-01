@@ -81,7 +81,7 @@ export default function CollaborationModal({
   }, [email]);
 
   const { data: collaborators = [], isLoading } = useSWR(
-    currentNote?._id ? `collaborators-${currentNote._id}` : null,
+    isOpen && currentNote?._id ? `collaborators-${currentNote._id}` : null,
     async () => {
       if (!currentNote?._id) return [];
       const collaborators = await dataFetchers.fetchSharedUsers(
