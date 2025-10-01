@@ -98,7 +98,7 @@ export function useNoteEditor() {
         tiptap: "",
         text: "",
       },
-      collaborative: true,
+      collaborative: false,
     };
 
     // Add to store as unsaved
