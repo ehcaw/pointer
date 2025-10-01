@@ -25,10 +25,9 @@ import { TableIcon } from "@/components/tiptap/tiptap-icons/table-icon";
 
 // Image upload hooks
 import { useTiptapImage } from "@/lib/tiptap-utils";
-import { useUserStore } from "@/lib/stores/user-store";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useConvex } from "convex/react";
+import { useUser } from "@clerk/nextjs";
 
 interface SlashCommandPopupProps {
   editor: Editor | null;
@@ -47,10 +46,9 @@ const SlashCommandContent: React.FC<{
 
   // Image upload hooks
   const { HandleImageUpload } = useTiptapImage();
-  const { getUserId } = useUserStore();
   const { currentNote } = useNotesStore();
   const { saveCurrentNote } = useNoteEditor();
-  const convex = useConvex();
+  const { user } = useUser();
 
   // Get items from registry and filter by query
   const items = query ? searchSlashCommands(query) : searchSlashCommands("");
@@ -163,7 +161,7 @@ const SlashCommandContent: React.FC<{
                     ])
                     .run();
 
-                  const userId = await getUserId(convex);
+                  const userId = user?.id;
                   if (!userId) {
                     console.error("User ID is required for image upload");
                     return;
@@ -258,10 +256,9 @@ const SlashCommandContent: React.FC<{
       editor,
       onClose,
       HandleImageUpload,
-      convex,
       currentNote?._id,
-      getUserId,
       saveCurrentNote,
+      user?.id,
     ],
   );
 

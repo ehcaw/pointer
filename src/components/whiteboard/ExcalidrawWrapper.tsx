@@ -144,7 +144,6 @@ const ExcalidrawWrapper: React.FC = () => {
       }
 
       isInitializingRef.current = true;
-      console.log("Initializing whiteboard data for:", whiteboard._id);
 
       try {
         let deserializedData = null;
@@ -167,8 +166,6 @@ const ExcalidrawWrapper: React.FC = () => {
         if (deserializedData?.elements) {
           elementsHashRef.current = hashElements(deserializedData.elements);
         }
-
-        console.log("Whiteboard initialization complete");
       } catch (error) {
         console.error("Failed to initialize whiteboard:", error);
         setInitialData(createDefaultWhiteboardState());
@@ -191,7 +188,6 @@ const ExcalidrawWrapper: React.FC = () => {
           serializedData: serializedData,
         });
         setPendingChanges(false);
-        console.log("Whiteboard auto-saved successfully");
       } catch (error) {
         console.error("Auto save failed:", error);
       }

@@ -14,11 +14,10 @@ import type { ButtonProps } from "@/components/tiptap/tiptap-ui-primitive/button
 import { Button } from "@/components/tiptap/tiptap-ui-primitive/button";
 
 import { useTiptapImage } from "@/lib/tiptap-utils";
-import { useUserStore } from "@/lib/stores/user-store";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { useConvex } from "convex/react";
+import { useUser } from "@clerk/nextjs";
 
 export interface ImageUploadButtonProps extends ButtonProps {
   editor?: Editor | null;
@@ -41,12 +40,11 @@ export function useImageUploadButton(
   } = {},
 ) {
   const { HandleImageUpload } = useTiptapImage();
-  const { getUserId } = useUserStore();
+  const { user } = useUser();
   const { currentNote } = useNotesStore();
   const { saveCurrentNote } = useNoteEditor();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = React.useState(false);
-  const convex = useConvex();
 
   const {
     maxFileSize = 5 * 1024 * 1024, // 5MB default
@@ -107,7 +105,7 @@ export function useImageUploadButton(
               ])
               .run();
 
-            const userId = await getUserId(convex); // Upload to Convex
+            const userId = user?.id; // Upload to Convex
             const imageUrl = await HandleImageUpload(
               file,
               userId || "",

@@ -268,7 +268,6 @@ export const useTiptapImage = () => {
     }
 
     try {
-      console.log("UNLINKING IMAGE ", storageId);
       await convex.mutation(api.imageReferences.unlinkImage, {
         storageId,
         documentOwner,

@@ -285,8 +285,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
                 .map(async (src) => {
                   const storageId = extractStorageIdFromUrl(src);
                   if (storageId && currentNoteRef.current) {
-                    console.log("UNLINKING IMAGE:", storageId);
-                    console.log("CURRENT NOTE ID, ", currentNote._id);
                     return HandleImageDelete(
                       storageId as Id<"_storage">,
                       currentNoteRef.current._id!, // Use ! since we checked above

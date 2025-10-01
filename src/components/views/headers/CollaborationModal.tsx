@@ -87,12 +87,6 @@ export default function CollaborationModal({
       const collaborators = await dataFetchers.fetchSharedUsers(
         currentNote._id,
       );
-      console.log(
-        "COLLABORATORS FETCHED:",
-        collaborators,
-        "for note:",
-        currentNote._id,
-      );
       return collaborators;
     },
     {
@@ -103,30 +97,18 @@ export default function CollaborationModal({
 
   // Sync SWR data with local state for modifications
   useEffect(() => {
-    console.log("SWR SYNC:", {
-      collaborators,
-      isLoading,
-      currentNoteId: currentNote?._id,
-      prevLength: prevCollaborators.current.length,
-      newLength: collaborators.length,
-    });
-
     // Only update if we're not loading and have valid data
     if (!isLoading && Array.isArray(collaborators)) {
       const collaboratorsString = JSON.stringify(collaborators);
       const prevCollaboratorsString = JSON.stringify(prevCollaborators.current);
 
       if (collaboratorsString !== prevCollaboratorsString) {
-        console.log("UPDATING LOCAL COLLABORATORS:", collaborators);
         setLocalCollaborators(collaborators);
         prevCollaborators.current = collaborators;
       }
     } else if (!isLoading && !collaborators) {
       // Handle case where API returns null/undefined (should be empty array)
       if (prevCollaborators.current.length !== 0) {
-        console.log(
-          "CLEARING LOCAL COLLABORATORS - API returned null/undefined",
-        );
         setLocalCollaborators([]);
         prevCollaborators.current = [];
       }
@@ -253,9 +235,6 @@ export default function CollaborationModal({
         ownerEmail: user.emailAddresses[0]?.emailAddress || "",
         ownerId: user.id,
       });
-
-      console.log("Collaboration enabled:", isCollaborationEnabled);
-      console.log("Collaborators:", localCollaborators);
 
       onOpenChange(false);
     }

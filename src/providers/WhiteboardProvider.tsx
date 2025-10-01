@@ -44,8 +44,6 @@ export function WhiteboardProvider({ children }: WhiteboardProviderProps) {
     setError(null);
 
     try {
-      console.log("Fetching whiteboard...");
-
       // First try to get existing whiteboard only
       const existingWhiteboard = await convex.query(
         api.whiteboards.getWhiteboard,
@@ -56,7 +54,6 @@ export function WhiteboardProvider({ children }: WhiteboardProviderProps) {
 
       // Only create if no existing whiteboard found
       if (!existingWhiteboard) {
-        console.log("No existing whiteboard, creating new one");
         rawWhiteboard = await convex.mutation(
           api.whiteboards.getOrCreateWhiteboard,
           {},
@@ -69,7 +66,6 @@ export function WhiteboardProvider({ children }: WhiteboardProviderProps) {
         const normalizedWhiteboard = transformConvexWhiteboard(rawWhiteboard);
         if (normalizedWhiteboard) {
           setWhiteboard(normalizedWhiteboard);
-          console.log("Whiteboard set in store");
         }
       }
     } catch (err) {
