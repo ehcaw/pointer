@@ -28,6 +28,7 @@ import { createDataFetchers } from "@/lib/utils/dataFetchers";
 interface Collaborator {
   email: string;
   id: string;
+  isSaved: boolean;
 }
 
 interface CollaborationModalProps {
@@ -103,7 +104,12 @@ export default function CollaborationModal({
       const prevCollaboratorsString = JSON.stringify(prevCollaborators.current);
 
       if (collaboratorsString !== prevCollaboratorsString) {
-        setLocalCollaborators(collaborators);
+        // Mark all collaborators from server as saved
+        const savedCollaborators = collaborators.map((c) => ({
+          ...c,
+          isSaved: true,
+        }));
+        setLocalCollaborators(savedCollaborators);
         prevCollaborators.current = collaborators;
       }
     } else if (!isLoading && !collaborators) {
@@ -192,6 +198,7 @@ export default function CollaborationModal({
       const newCollaborator: Collaborator = {
         email: trimmedEmail,
         id: userId,
+        isSaved: false,
       };
 
       setLocalCollaborators([...localCollaborators, newCollaborator]);
@@ -200,8 +207,6 @@ export default function CollaborationModal({
     } catch (err) {
       console.error("Error adding collaborator:", err);
       setError("Failed to add collaborator. Please try again.");
-    } finally {
-      setIsAddingCollaborator(false);
     }
   };
 
@@ -210,7 +215,6 @@ export default function CollaborationModal({
   };
 
   const handleSave = async () => {
-    // Here you would typically save the collaboration settings
     if (
       currentNote &&
       currentNote._id &&
@@ -223,11 +227,13 @@ export default function CollaborationModal({
           userEmail: collaborator.email,
           userId: collaborator.id,
         }));
-
-      await convex.mutation(api.notes.toggleCollaboration, {
-        docId: currentNote._id,
-        collaborative: isCollaborationEnabled,
-      });
+      if (isCollaborationEnabled !== currentNote.collaborative) {
+        await convex.mutation(api.notes.toggleCollaboration, {
+          docId: currentNote._id,
+          collaborative: isCollaborationEnabled,
+        });
+        currentNote.collaborative = isCollaborationEnabled;
+      }
 
       await convex.mutation(api.notes.shareNote, {
         dId: currentNote._id,
@@ -236,7 +242,10 @@ export default function CollaborationModal({
         ownerId: user.id,
       });
 
-      onOpenChange(false);
+      // Mark all collaborators as saved after successful save
+      setLocalCollaborators((prev) =>
+        prev.map((c) => ({ ...c, isSaved: true })),
+      );
     }
   };
 
@@ -323,7 +332,17 @@ export default function CollaborationModal({
                         key={collaborator.id}
                         className="flex items-center justify-between"
                       >
-                        <Badge variant="secondary">{collaborator.email}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {collaborator.email}
+                          </Badge>
+                          {!collaborator.isSaved && (
+                            <div
+                              className="w-2 h-2 bg-orange-500 rounded-full"
+                              title="Unsaved changes"
+                            />
+                          )}
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
