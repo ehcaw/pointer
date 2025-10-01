@@ -276,9 +276,11 @@ export default function CollaborationModal({
         );
       }
 
-      // Mark all collaborators as saved after successful save
+      // Remove deleted collaborators and mark remaining ones as saved
       setLocalCollaborators((prev) =>
-        prev.map((c) => ({ ...c, isSaved: true })),
+        prev
+          .filter((c) => !c.markedForDeletion)
+          .map((c) => ({ ...c, isSaved: true })),
       );
     }
   };
