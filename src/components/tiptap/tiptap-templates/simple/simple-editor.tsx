@@ -15,9 +15,6 @@ import { Underline } from "@tiptap/extension-underline";
 import { Placeholder } from "@tiptap/extensions";
 import Emoji, { emojis } from "@tiptap/extension-emoji";
 import { TableKit } from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableHeader from "@tiptap/extension-table-header";
-import TableCell from "@tiptap/extension-table-cell";
 
 // --- Custom Extensions ---
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -220,9 +217,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       TableKit.configure({
         table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
       }),
-      TableRow,
-      TableHeader,
-      TableCell,
     ],
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates
