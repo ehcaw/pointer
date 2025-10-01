@@ -288,6 +288,28 @@ export const useTiptapImage = () => {
   };
 };
 
+/**
+ * Normalizes Convex image URLs to always use .convex.site instead of .convex.cloud
+ * @param url - The URL to normalize
+ * @returns The normalized URL with .convex.site domain
+ */
+export const normalizeConvexImageUrl = (url: string): string => {
+  if (!url || typeof url !== "string") {
+    return url;
+  }
+
+  try {
+    // Replace .convex.cloud with .convex.site
+    if (url.includes("convex.cloud")) {
+      return url.replace(/\.convex\.cloud/g, ".convex.site");
+    }
+    return url;
+  } catch (error) {
+    console.warn("Failed to normalize Convex URL:", url, error);
+    return url;
+  }
+};
+
 export const extractStorageIdFromUrl = (url: string): string | null => {
   if (!url || typeof url !== "string") {
     return null;
