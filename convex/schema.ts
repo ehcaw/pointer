@@ -17,6 +17,7 @@ export default defineSchema({
     pointer_id: v.string(),
     tenantId: v.string(),
     updatedAt: v.string(),
+    collaborative: v.boolean(),
   }).searchIndex("notes_full_text_search_index", {
     searchField: "content.text",
     filterFields: ["name"],
@@ -62,4 +63,13 @@ export default defineSchema({
     .index("by_doc", ["documentOwner"])
     .index("by_storage", ["storageId"])
     .index("by_doc_storage", ["documentOwner", "storageId"]),
+  documentShares: defineTable({
+    documentId: v.id("notes"),
+    userEmail: v.string(),
+    userId: v.string(),
+    ownerEmail: v.string(),
+    ownerId: v.string(),
+  })
+    .index("by_document_user", ["documentId", "userId", "userEmail"])
+    .index("by_userId", ["userId"]),
 });

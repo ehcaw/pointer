@@ -19,6 +19,11 @@ import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCaret from "@tiptap/extension-collaboration-caret";
+import * as Y from "yjs";
+import useYProvider from "y-partykit/react";
+
 // --- Custom Extensions ---
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap/tiptap-extension/selection-extension";
@@ -57,7 +62,8 @@ import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 
 import { Id } from "../../../../../convex/_generated/dataModel";
 
-interface SimpleEditorProps {
+interface CollaborativeEditorProps {
+  id: string;
   content: string | Record<string, unknown> | null | undefined;
   editorRef?: React.RefObject<{
     getJSON: () => Record<string, unknown>;
@@ -66,7 +72,11 @@ interface SimpleEditorProps {
   } | null>;
 }
 
-export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
+export function CollaborativeEditor({
+  id,
+  content,
+  editorRef,
+}: CollaborativeEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
@@ -79,7 +89,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
     useNotesStore();
-
   const currentNoteRef = useRef(currentNote);
 
   const { HandleImageDelete } = useTiptapImage();
@@ -87,6 +96,22 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+
+  // Collaboration - use useRef to prevent recreation on every render
+  const yDocRef = useRef<Y.Doc | null>(null);
+  if (!yDocRef.current) {
+    yDocRef.current = new Y.Doc();
+  }
+  const yDoc = yDocRef.current;
+
+  const provider = useYProvider({
+    host:
+      process.env.NODE_ENV == "development"
+        ? "localhost:1999"
+        : "https://pointer-collaborative-editor.ehcaw.partykit.dev",
+    room: `document-${id}`,
+    doc: yDoc,
+  });
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -112,6 +137,12 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
       }
       return content;
     }
+
+    // If content is already an object, use it directly
+    if (typeof content === "object") {
+      return content;
+    }
+
     // Fallback
     return "";
   }, [content]);
@@ -120,6 +151,17 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
+    enableContentCheck: true,
+    onContentError: ({ disableCollaboration }) => {
+      disableCollaboration();
+    },
+    onCreate: ({ editor: currentEditor }) => {
+      provider.on("synced", () => {
+        if (currentEditor.isEmpty) {
+          currentEditor.commands.setContent(initialContent || "");
+        }
+      });
+    },
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -178,9 +220,8 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     },
     extensions: [
       StarterKit.configure({
-        history: {
-          depth: 15,
-        },
+        // Disable history for collaborative editing - Y.js handles this
+        history: false,
       }),
       Placeholder.configure({
         placeholder: "Start writing something...",
@@ -217,11 +258,22 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         enableEmoticons: true,
       }),
       TableKit.configure({
-        table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
+        table: {
+          resizable: true,
+          HTMLAttributes: {
+            class: "tiptap-table",
+          },
+        },
       }),
       TableRow,
       TableHeader,
       TableCell,
+      Collaboration.configure({
+        document: yDoc,
+      }),
+      CollaborationCaret.extend().configure({
+        provider,
+      }),
     ],
     content: initialContent,
     // Lightweight onUpdate - only handles UI updates

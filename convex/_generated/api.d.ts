@@ -19,6 +19,7 @@ import type * as graph from "../graph.js";
 import type * as http from "../http.js";
 import type * as imageReferences from "../imageReferences.js";
 import type * as notes from "../notes.js";
+import type * as shared from "../shared.js";
 import type * as whiteboards from "../whiteboards.js";
 
 /**
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   imageReferences: typeof imageReferences;
   notes: typeof notes;
+  shared: typeof shared;
   whiteboards: typeof whiteboards;
 }>;
 export declare const api: FilterApi<

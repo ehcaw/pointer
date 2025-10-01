@@ -1,5 +1,6 @@
 import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { generateText } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 
@@ -86,6 +87,7 @@ export const createNoteInDb = mutation({
       lastEdited: args.lastEdited || new Date().toISOString(),
       createdAt: args.createdAt,
       updatedAt: args.updatedAt,
+      collaborative: false,
     });
     return noteId;
   },
@@ -109,6 +111,7 @@ export const updateNoteInDb = mutation({
     lastEdited: v.optional(v.string()),
     createdAt: v.optional(v.string()),
     updatedAt: v.optional(v.string()),
+    collaborative: v.boolean(),
   },
   handler: async (ctx, args) => {
     const { pointer_id, ...fields } = args;
@@ -158,6 +161,7 @@ export const updateNoteInDb = mutation({
         updatedAt: fields.updatedAt || now,
         lastAccessed: fields.lastAccessed || now,
         lastEdited: fields.lastEdited || now,
+        collaborative: fields.collaborative || false,
       };
 
       // Insert the new document
@@ -294,5 +298,149 @@ export const generateAutocompleteSuggestion = action({
     //   });
     //   console.log(text);
     return text;
+  },
+});
+
+export const getSharedUsers = query({
+  args: { documentId: v.string() },
+  handler: async (ctx, args) => {
+    const docId = ctx.db.normalizeId("notes", args.documentId);
+    if (!docId) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("documentShares")
+      .withIndex("by_document_user", (q) => q.eq("documentId", docId))
+      .collect();
+  },
+});
+
+export const shareNote = mutation({
+  args: {
+    dId: v.string(),
+    users: v.array(
+      v.object({
+        userEmail: v.string(),
+        userId: v.string(),
+      }),
+    ),
+    ownerEmail: v.string(),
+    ownerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const documentId = ctx.db.normalizeId("notes", args.dId);
+
+    if (!documentId) {
+      return {
+        success: false,
+        sharedWithCount: 0,
+      };
+    }
+
+    // Check for existing shares and filter out duplicates
+    const usersToShare = [];
+
+    for (const user of args.users) {
+      // Check if this user is already shared with this document
+      const existingShare = await ctx.db
+        .query("documentShares")
+        .withIndex("by_document_user", (q) =>
+          q
+            .eq("documentId", documentId)
+            .eq("userId", user.userId)
+            .eq("userEmail", user.userEmail),
+        )
+        .first();
+
+      // Only add if not already shared
+      if (!existingShare) {
+        usersToShare.push(user);
+      }
+    }
+
+    // Create documentShare objects for new users only
+    if (usersToShare.length > 0) {
+      const sharePromises = usersToShare.map((user) =>
+        ctx.db.insert("documentShares", {
+          documentId: documentId,
+          userEmail: user.userEmail,
+          userId: user.userId,
+          ownerEmail: args.ownerEmail,
+          ownerId: args.ownerId,
+        }),
+      );
+      await Promise.all(sharePromises);
+    }
+
+    return {
+      success: true,
+      sharedWithCount: usersToShare.length,
+      totalUsersRequested: args.users.length,
+      duplicatesSkipped: args.users.length - usersToShare.length,
+    };
+  },
+});
+
+export const unshareNote = mutation({
+  args: { dId: v.string(), userEmail: v.string(), ownerEmail: v.string() },
+  handler: async (ctx, args) => {
+    const documentId = args.dId as Id<"notes">;
+
+    // Find the document that matches all three conditions
+    const noteToDelete = await ctx.db
+      .query("documentShares")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("documentId"), documentId),
+          q.eq(q.field("userEmail"), args.userEmail),
+          q.eq(q.field("ownerEmail"), args.ownerEmail),
+        ),
+      )
+      .first();
+
+    if (!noteToDelete) {
+      throw new Error(
+        "Note not found or you don't have permission to delete it",
+      );
+    }
+
+    // Delete the found document
+    await ctx.db.delete(noteToDelete._id);
+
+    return { success: true, deletedId: noteToDelete._id };
+  },
+});
+
+export const toggleCollaboration = mutation({
+  args: { docId: v.string(), collaborative: v.boolean() },
+  handler: async (ctx, { docId, collaborative }) => {
+    const documentId = ctx.db.normalizeId("notes", docId);
+    if (documentId) {
+      await ctx.db.patch(documentId, { collaborative });
+    }
+  },
+});
+
+export const getSharedDocumentsByUserId = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // 1. Find all document shares for the user
+    const shares = await ctx.db
+      .query("documentShares")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // 2. Extract the documentIds
+    const documentIds = shares.map((share) => share.documentId);
+
+    // 3. Fetch the documents for those Ids
+    const documents = await Promise.all(
+      documentIds.map((docId) => ctx.db.get(docId)),
+    );
+
+    // 4. Filter out any null results (if a document was deleted)
+    // and return the documents
+    return documents.filter((doc) => doc !== null);
   },
 });

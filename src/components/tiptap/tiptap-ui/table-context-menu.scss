@@ -1,0 +1,44 @@
+.table-context-menu-content {
+  min-width: 200px;
+  max-width: 300px;
+  background-color: white;
+  border: 1px solid var(--tt-gray-light-200);
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+  .dark & {
+    background-color: var(--tt-gray-dark-100);
+    border-color: var(--tt-gray-dark-300);
+  }
+}
+
+.table-context-menu-section {
+  margin-bottom: 8px;
+}
+
+.table-context-menu-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tt-gray-light-a-700);
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  .dark & {
+    color: var(--tt-gray-dark-a-300);
+  }
+}
+
+.table-context-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.table-context-menu-buttons .tiptap-button {
+  justify-content: flex-start;
+  font-size: 14px;
+  padding: 6px 8px;
+  height: auto;
+  min-height: 32px;
+}

@@ -98,6 +98,7 @@ export function useNoteEditor() {
         tiptap: "",
         text: "",
       },
+      collaborative: true,
     };
 
     // Add to store as unsaved
@@ -134,7 +135,6 @@ export function useNoteEditor() {
    * Save a specific note to the database
    */
   const saveNote = async (note: Node): Promise<boolean> => {
-    console.log(note.content);
     try {
       const noteData = note;
       const rawTiptapContent = (noteData as FileNode).content.tiptap;
@@ -151,6 +151,7 @@ export function useNoteEditor() {
           tiptap: serializedTiptapContent,
           text: (noteData as FileNode).content.text,
         },
+        collaborative: noteData.collaborative,
       };
 
       const doesNoteExist = await fetchNoteById(note.pointer_id);

@@ -12,6 +12,7 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
+import { CollaborativeNotebookView } from "@/components/views/CollaborativeNotebookView";
 import AppSidebar from "@/components/navigation/sidebar";
 
 import DefaultHeader from "@/components/views/headers/DefaultHeader";
@@ -27,7 +28,8 @@ export default function MainPage() {
   const { isSignedIn, isLoaded, user } = useUser();
   const router = useRouter();
 
-  const { setUserNotes, setDBSavedNotes } = useNotesStore();
+  const { setUserNotes, setDBSavedNotes, currentNote, setSharedNotes } =
+    useNotesStore();
   const { currentView } = usePreferencesStore();
 
   const convex = useConvex();
@@ -41,16 +43,21 @@ export default function MainPage() {
   }, [isSignedIn, isLoaded, router]);
 
   const shouldFetch = isLoaded && isSignedIn && user?.id;
-  const { isLoading } = useSWR(
+  const { isLoading: isLoading } = useSWR(
     shouldFetch ? user.id : null,
     async (userId: string) => {
-      const result = await dataFetchers.fetchUserNotes(userId);
-      return result;
+      const notes = await dataFetchers.fetchUserNotes(userId);
+      const sharedNotes = await dataFetchers.fetchSharedNotes(userId);
+      return {
+        notes,
+        sharedNotes,
+      };
     },
     {
       onSuccess: (data) => {
-        setUserNotes(data);
-        setDBSavedNotes(data);
+        setUserNotes(data.notes);
+        setDBSavedNotes(data.notes);
+        setSharedNotes(data.sharedNotes);
       },
       revalidateIfStale: true,
       dedupingInterval: 60000,
@@ -94,7 +101,12 @@ export default function MainPage() {
             className={`overflow-y-auto ${currentView === "note" ? "h-[calc(100vh-4rem)]" : "h-[calc(100vh-4rem)]"}`}
           >
             {currentView === "home" && <HomeView />}
-            {currentView === "note" && <NotebookView />}
+            {currentView === "note" &&
+              currentNote &&
+              currentNote.collaborative && <CollaborativeNotebookView />}
+            {currentView === "note" && !currentNote?.collaborative && (
+              <NotebookView />
+            )}
             {currentView === "graph" && <GraphView />}
             {currentView === "whiteboard" && <WhiteboardView />}
           </div>

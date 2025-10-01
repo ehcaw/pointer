@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import CollaborationModal from "./CollaborationModal";
 
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,8 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 export default function NoteViewHeader() {
   const [title, setTitle] = useState("");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isCollaborationModalOpen, setIsCollaborationModalOpen] =
+    useState(false);
 
   const { markNoteAsUnsaved, unsavedNotes } = useNotesStore();
   const { currentNote } = useNoteEditor();
@@ -128,15 +131,21 @@ export default function NoteViewHeader() {
         )}
 
         {currentNote && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={handleShareNote}
-            title="Share preview link"
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleShareNote}
+              title="Share preview link"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <CollaborationModal
+              isOpen={isCollaborationModalOpen}
+              onOpenChange={setIsCollaborationModalOpen}
+            />
+          </div>
         )}
 
         <UserButton />
