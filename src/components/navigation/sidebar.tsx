@@ -188,22 +188,24 @@ export default function AppSidebar() {
                     <Home className="h-4 w-4" />
                     <span>Home</span>
                   </SidebarMenuButton>
-                  <SidebarMenuButton
-                    onClick={() => {
-                      handleNavClick("graph");
-                      unsetCurrentNote();
-                    }}
-                    data-active={currentView === "graph"}
-                    className={cn(
-                      "rounded-lg transition-all",
-                      currentView === "graph"
-                        ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                    )}
-                  >
-                    <GitGraph className="h-4 w-4" />
-                    <span>Jots</span>
-                  </SidebarMenuButton>
+                  {process.env.NODE_ENV !== "production" && (
+                    <SidebarMenuButton
+                      onClick={() => {
+                        handleNavClick("graph");
+                        unsetCurrentNote();
+                      }}
+                      data-active={currentView === "graph"}
+                      className={cn(
+                        "rounded-lg transition-all",
+                        currentView === "graph"
+                          ? "bg-primary/10 text-primary hover:bg-primary/15"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      )}
+                    >
+                      <GitGraph className="h-4 w-4" />
+                      <span>Jots</span>
+                    </SidebarMenuButton>
+                  )}
                   <SidebarMenuButton
                     onClick={() => {
                       handleNavClick("whiteboard");
