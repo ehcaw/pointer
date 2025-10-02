@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@ai-sdk/groq": "^1.2.9",
@@ -52,6 +55,9 @@
     "@tauri-apps/plugin-os": "~2",
     "@tauri-apps/plugin-process": "~2",
     "@tauri-apps/plugin-shell": "~2",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@tiptap/extension-code-block-lowlight": "^3.4.6",
     "@tiptap/extension-collaboration": "^3.6.2",
     "@tiptap/extension-collaboration-caret": "^3.6.2",
@@ -77,6 +83,7 @@
     "@tiptap/react": "^2.12.0",
     "@tiptap/starter-kit": "^2.12.0",
     "@tiptap/suggestion": "^2.24.2",
+    "@types/jest": "^30.0.0",
     "ai": "^4.3.16",
     "child_process": "^1.0.2",
     "class-variance-authority": "^0.7.1",
@@ -89,6 +96,8 @@
     "framer-motion": "^12.16.0",
     "fs": "^0.0.1-security",
     "input-otp": "^1.4.2",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "lucide-react": "^0.542.0",
     "net": "^1.0.2",
     "next": "15.2.2",
@@ -108,6 +117,7 @@
     "timers": "^0.1.1",
     "tippy.js": "^6.3.7",
     "tls": "^0.0.1",
+    "ts-node": "^10.9.2",
     "uuid": "^13.0.0",
     "vaul": "^1.1.2",
     "y-partykit": "^0.0.33",
@@ -115,18 +125,24 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@tauri-apps/cli": "^2.6.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/bun": "latest",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "babel-jest": "^30.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.2.2",
     "sass": "^1.89.1",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.3",
-    "typescript": "^5",
-    "@types/bun": "latest"
+    "typescript": "^5"
   }
 }
