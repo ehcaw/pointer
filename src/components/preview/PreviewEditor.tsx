@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -11,7 +12,8 @@ import { Highlight } from "@tiptap/extension-highlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import { Underline } from "@tiptap/extension-underline";
-import { useEffect } from "react";
+import Emoji, { emojis } from "@tiptap/extension-emoji";
+import { TableKit } from "@tiptap/extension-table";
 
 // Import the same Link extension as simple editor
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
@@ -21,6 +23,7 @@ import "@/components/tiptap/tiptap-node/code-block-node/code-block-node.scss";
 import "@/components/tiptap/tiptap-node/list-node/list-node.scss";
 import "@/components/tiptap/tiptap-node/image-node/image-node.scss";
 import "@/components/tiptap/tiptap-node/paragraph-node/paragraph-node.scss";
+import "@/components/tiptap/tiptap-node/table-node/table-node.scss";
 
 interface PreviewEditorProps {
   content: Record<string, unknown> | string | null | undefined;
@@ -51,6 +54,13 @@ export const PreviewEditor = ({
         openOnClick: true,
         autolink: true,
         defaultProtocol: "https",
+      }),
+      Emoji.configure({
+        emojis: emojis,
+        enableEmoticons: true,
+      }),
+      TableKit.configure({
+        table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
       }),
     ],
     content: content,
