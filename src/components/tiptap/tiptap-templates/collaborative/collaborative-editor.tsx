@@ -59,6 +59,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
+import { useUser } from "@clerk/nextjs";
 
 import { Id } from "../../../../../convex/_generated/dataModel";
 
@@ -92,6 +93,52 @@ export function CollaborativeEditor({
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
     useNotesStore();
   const currentNoteRef = useRef(currentNote);
+
+  // Get authenticated user information for collaboration
+  const { user } = useUser();
+
+  // Generate consistent user color based on user ID
+  const generateUserColor = (userId: string): string => {
+    const colors = [
+      "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4",
+      "#ffeaa7", "#dda0dd", "#98d8c8", "#ff7f50",
+      "#74b9ff", "#a29bfe", "#fd79a8", "#fdcb6e"
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  // Create user info object for PartyKit
+  const userInfo = useMemo(() => {
+    if (!user) {
+      // Fallback for unauthenticated users
+      return {
+        id: `anonymous-${Date.now()}`,
+        name: "Anonymous User",
+        color: "#6b7280", // Gray for anonymous
+      };
+    }
+
+    // Extract email prefix (before @) as fallback display name
+    const getEmailPrefix = (email: string) => {
+      return email.split("@")[0];
+    };
+
+    const displayName = user.fullName ||
+                      (user.emailAddresses?.[0]?.emailAddress ? getEmailPrefix(user.emailAddresses[0].emailAddress) : "Unknown User");
+
+    return {
+      id: user.id,
+      name: displayName,
+      color: generateUserColor(user.id),
+      avatar: user.imageUrl,
+    };
+  }, [user]);
 
   const { HandleImageDelete } = useTiptapImage();
 
@@ -275,6 +322,7 @@ export function CollaborativeEditor({
       }),
       CollaborationCaret.extend().configure({
         provider,
+        user: userInfo,
       }),
     ],
     content: initialContent,
