@@ -20,9 +20,17 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
   );
   const toolbarRef = useRef<HTMLDivElement>(null);
 
+  const [overlayHeight, setOverlayHeight] = useState(0);
+
+  useEffect(() => {
+    if (toolbarRef.current) {
+      setOverlayHeight(toolbarRef.current.getBoundingClientRect().height);
+    }
+  }, []);
+
   const bodyRect = useCursorVisibility({
     editor,
-    overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
+    overlayHeight,
   });
 
   useEffect(() => {
