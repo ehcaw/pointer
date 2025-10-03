@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { EditorContext } from "@tiptap/react";
+import { Editor, EditorContext } from "@tiptap/react";
 import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
 import { MainToolbarContent } from "../toolbar/MainToolbar";
 import { MobileToolbarContent } from "../toolbar/MobileToolbar";
@@ -8,14 +8,16 @@ import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 interface FloatingToolbarProps {
-  editor: any;
-  editorContainerRef?: React.RefObject<HTMLDivElement>;
+  editor: Editor;
+  editorContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function FloatingToolbar({ editor, editorContainerRef }: FloatingToolbarProps) {
+export function FloatingToolbar({ editor }: FloatingToolbarProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
-  const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">("main");
+  const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
+    "main",
+  );
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   const bodyRect = useCursorVisibility({

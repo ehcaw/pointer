@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { Editor, EditorContent, EditorContext, useEditor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -31,22 +31,12 @@ import { TrailingNode } from "@/components/tiptap/tiptap-extension/trailing-node
 import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
 import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command-extension";
 
-// --- UI Primitives ---
-import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
-import { MainToolbarContent } from "../toolbar/MainToolbar";
-import { MobileToolbarContent } from "../toolbar/MobileToolbar";
-
 // --- Tiptap Node ---
 import "@/components/tiptap/tiptap-node/code-block-node/code-block-node.scss";
 import "@/components/tiptap/tiptap-node/list-node/list-node.scss";
 import "@/components/tiptap/tiptap-node/image-node/image-node.scss";
 import "@/components/tiptap/tiptap-node/paragraph-node/paragraph-node.scss";
 import "@/components/tiptap/tiptap-node/table-node/table-node.scss";
-
-// --- Hooks ---
-import { useMobile } from "@/hooks/use-tiptap-mobile";
-import { useWindowSize } from "@/hooks/use-window-size";
-import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
 import { SlashCommandPopup } from "@/components/tiptap/tiptap-ui/slash-command-popup";
@@ -71,21 +61,19 @@ interface CollaborativeEditorProps {
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
   } | null>;
+  onEditorReady?: (editor: Editor) => void;
 }
 
 export function CollaborativeEditor({
   id,
   content,
   editorRef,
+  onEditorReady,
 }: CollaborativeEditorProps) {
-  const isMobile = useMobile();
-  const windowSize = useWindowSize();
-  const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
-    "main",
-  );
+  // const isMobile = useMobile();
+  // const [editor, setEditor] = useState<any>(null);
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
-  const toolbarRef = useRef<HTMLDivElement>(null);
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
 
@@ -100,9 +88,18 @@ export function CollaborativeEditor({
   // Generate consistent user color based on user ID
   const generateUserColor = (userId: string): string => {
     const colors = [
-      "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4",
-      "#ffeaa7", "#dda0dd", "#98d8c8", "#ff7f50",
-      "#74b9ff", "#a29bfe", "#fd79a8", "#fdcb6e"
+      "#ff6b6b",
+      "#4ecdc4",
+      "#45b7d1",
+      "#96ceb4",
+      "#ffeaa7",
+      "#dda0dd",
+      "#98d8c8",
+      "#ff7f50",
+      "#74b9ff",
+      "#a29bfe",
+      "#fd79a8",
+      "#fdcb6e",
     ];
 
     let hash = 0;
@@ -129,8 +126,11 @@ export function CollaborativeEditor({
       return email.split("@")[0];
     };
 
-    const displayName = user.fullName ||
-                      (user.emailAddresses?.[0]?.emailAddress ? getEmailPrefix(user.emailAddresses[0].emailAddress) : "Unknown User");
+    const displayName =
+      user.fullName ||
+      (user.emailAddresses?.[0]?.emailAddress
+        ? getEmailPrefix(user.emailAddresses[0].emailAddress)
+        : "Unknown User");
 
     return {
       id: user.id,
@@ -457,11 +457,6 @@ export function CollaborativeEditor({
     removeUnsavedNote,
   ]);
 
-  const bodyRect = useCursorVisibility({
-    editor,
-    overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
-  });
-
   // Calculate position for slash command popup - position relative to viewport
   const getSlashCommandPosition = () => {
     if (!editor) return { top: 0, left: 0, position: "fixed" as const };
@@ -512,9 +507,6 @@ export function CollaborativeEditor({
   }, [showSlashCommand]);
 
   useEffect(() => {
-    if (!isMobile && mobileView !== "main") {
-      setMobileView("main");
-    }
     if (editor && editorRef && "current" in editorRef) {
       editorRef.current = {
         getJSON: () => editor.getJSON(),
@@ -524,7 +516,10 @@ export function CollaborativeEditor({
         },
       };
     }
-  }, [isMobile, mobileView, editor, editorRef]);
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, editorRef, onEditorReady]);
 
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   useEffect(() => {
@@ -555,53 +550,30 @@ export function CollaborativeEditor({
 
   return (
     <EditorContext.Provider value={{ editor }}>
-      <Toolbar
-        ref={toolbarRef}
-        style={
-          isMobile
-            ? {
-                bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
-              }
-            : {}
-        }
-      >
-        {mobileView === "main" ? (
-          <MainToolbarContent
-            onHighlighterClick={() => setMobileView("highlighter")}
-            onLinkClick={() => setMobileView("link")}
-            isMobile={isMobile}
-            editor={editor ?? undefined}
+      <div style={{ position: "relative", height: "100%" }}>
+        <div className="content-wrapper">
+          <EditorContent
+            editor={editor}
+            role="presentation"
+            className="simple-editor-content"
           />
-        ) : (
-          <MobileToolbarContent
-            type={mobileView === "highlighter" ? "highlighter" : "link"}
-            onBack={() => setMobileView("main")}
-          />
-        )}
-      </Toolbar>
-
-      <div className="content-wrapper">
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
-        {showSlashCommand && editor && (
-          <div
-            style={{
-              position: "fixed",
-              top: getSlashCommandPosition().top,
-              left: getSlashCommandPosition().left,
-              zIndex: 1000, // High z-index to ensure it's above everything
-            }}
-          >
-            <SlashCommandPopup
-              editor={editor}
-              onClose={() => setShowSlashCommand(false)}
-              query={slashCommandQuery}
-            />
-          </div>
-        )}
+          {showSlashCommand && editor && (
+            <div
+              style={{
+                position: "fixed",
+                top: getSlashCommandPosition().top,
+                left: getSlashCommandPosition().left,
+                zIndex: 1000, // High z-index to ensure it's above everything
+              }}
+            >
+              <SlashCommandPopup
+                editor={editor}
+                onClose={() => setShowSlashCommand(false)}
+                query={slashCommandQuery}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </EditorContext.Provider>
   );

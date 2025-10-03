@@ -7,6 +7,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
+import { Editor } from "@tiptap/react";
 
 export const NotebookView = () => {
   const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
@@ -14,8 +15,8 @@ export const NotebookView = () => {
 
   const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
   const { currentView } = usePreferencesStore();
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [editor, setEditor] = useState<any>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   // Create an empty note if there isn\'t one already
   useEffect(() => {
@@ -61,14 +62,17 @@ export const NotebookView = () => {
       <div className="px-6 py-8 pb-20">
         <div className="mx-auto max-w-[80%]">
           {/* Floating Toolbar */}
-          {editor && (
+          {editor && editorContainerRef.current && (
             <FloatingToolbar
               editor={editor}
               editorContainerRef={editorContainerRef}
             />
           )}
           <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="w-full min-h-[calc(100vh-240px)]" ref={editorContainerRef}>
+            <div
+              className="w-full min-h-[calc(100vh-240px)]"
+              ref={editorContainerRef}
+            >
               <SimpleEditor
                 key={currentNote?.pointer_id || "new-note"}
                 content={noteContent}
