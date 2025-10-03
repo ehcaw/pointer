@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { Editor, EditorContent, EditorContext, useEditor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -24,11 +24,6 @@ import { TrailingNode } from "@/components/tiptap/tiptap-extension/trailing-node
 import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
 import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command-extension";
 
-// --- UI Primitives ---
-import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
-import { MainToolbarContent } from "../toolbar/MainToolbar";
-import { MobileToolbarContent } from "../toolbar/MobileToolbar";
-
 // --- Tiptap Node ---
 import "@/components/tiptap/tiptap-node/code-block-node/code-block-node.scss";
 import "@/components/tiptap/tiptap-node/list-node/list-node.scss";
@@ -38,8 +33,6 @@ import "@/components/tiptap/tiptap-node/table-node/table-node.scss";
 
 // --- Hooks ---
 import { useMobile } from "@/hooks/use-tiptap-mobile";
-import { useWindowSize } from "@/hooks/use-window-size";
-import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
 import { SlashCommandPopup } from "@/components/tiptap/tiptap-ui/slash-command-popup";
@@ -62,17 +55,20 @@ interface SimpleEditorProps {
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
   } | null>;
+  onEditorReady?: (editor: Editor) => void;
 }
 
-export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
+export function SimpleEditor({
+  content,
+  editorRef,
+  onEditorReady,
+}: SimpleEditorProps) {
   const isMobile = useMobile();
-  const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
     "main",
   );
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
-  const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
@@ -340,11 +336,6 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
     removeUnsavedNote,
   ]);
 
-  const bodyRect = useCursorVisibility({
-    editor,
-    overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
-  });
-
   // Calculate position for slash command popup - position relative to viewport
   const getSlashCommandPosition = () => {
     if (!editor) return { top: 0, left: 0, position: "fixed" as const };
@@ -407,7 +398,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         },
       };
     }
-  }, [isMobile, mobileView, editor, editorRef]);
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [isMobile, mobileView, editor, editorRef, onEditorReady]);
 
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   useEffect(() => {
@@ -438,53 +432,30 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
   return (
     <EditorContext.Provider value={{ editor }}>
-      <Toolbar
-        ref={toolbarRef}
-        style={
-          isMobile
-            ? {
-                bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
-              }
-            : {}
-        }
-      >
-        {mobileView === "main" ? (
-          <MainToolbarContent
-            onHighlighterClick={() => setMobileView("highlighter")}
-            onLinkClick={() => setMobileView("link")}
-            isMobile={isMobile}
-            editor={editor ?? undefined}
+      <div style={{ position: "relative", height: "100%" }}>
+        <div className="content-wrapper">
+          <EditorContent
+            editor={editor}
+            role="presentation"
+            className="simple-editor-content"
           />
-        ) : (
-          <MobileToolbarContent
-            type={mobileView === "highlighter" ? "highlighter" : "link"}
-            onBack={() => setMobileView("main")}
-          />
-        )}
-      </Toolbar>
-
-      <div className="content-wrapper">
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
-        {showSlashCommand && editor && (
-          <div
-            style={{
-              position: "fixed",
-              top: getSlashCommandPosition().top,
-              left: getSlashCommandPosition().left,
-              zIndex: 1000, // High z-index to ensure it's above everything
-            }}
-          >
-            <SlashCommandPopup
-              editor={editor}
-              onClose={() => setShowSlashCommand(false)}
-              query={slashCommandQuery}
-            />
-          </div>
-        )}
+          {showSlashCommand && editor && (
+            <div
+              style={{
+                position: "fixed",
+                top: getSlashCommandPosition().top,
+                left: getSlashCommandPosition().left,
+                zIndex: 1000, // High z-index to ensure it's above everything
+              }}
+            >
+              <SlashCommandPopup
+                editor={editor}
+                onClose={() => setShowSlashCommand(false)}
+                query={slashCommandQuery}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </EditorContext.Provider>
   );

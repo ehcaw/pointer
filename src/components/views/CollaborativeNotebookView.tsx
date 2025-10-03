@@ -1,21 +1,23 @@
 "use client";
-// import { SimpleEditor } from "../tiptap/tiptap-templates/simple/simple-editor";
 import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/collaborative-editor";
+import { FloatingToolbar } from "../tiptap/tiptap-templates/simple/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { Editor } from "@tiptap/react";
 
 export const CollaborativeNotebookView = ({}) => {
-  const { currentNote, editorRef, saveCurrentNote } = useNoteEditor(); // Imported handleEditorUpdate
+  const { currentNote, editorRef, saveCurrentNote } = useNoteEditor();
 
   const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
-
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -58,13 +60,24 @@ export const CollaborativeNotebookView = ({}) => {
       {/* Main Editor */}
       <div className="px-6 py-8 pb-20">
         <div className="mx-auto max-w-[80%]">
+          {/* Floating Toolbar */}
+          {editor && editorContainerRef.current && (
+            <FloatingToolbar
+              editor={editor}
+              editorContainerRef={editorContainerRef}
+            />
+          )}
           <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="w-full min-h-[calc(100vh-240px)]">
+            <div
+              className="w-full min-h-[calc(100vh-240px)]"
+              ref={editorContainerRef}
+            >
               <CollaborativeEditor
                 id={currentNote?.pointer_id || "default-doc"}
                 key={currentNote?.pointer_id || "default-doc"}
                 content={noteContent}
                 editorRef={editorRef}
+                onEditorReady={setEditor}
               />
             </div>
           </div>
