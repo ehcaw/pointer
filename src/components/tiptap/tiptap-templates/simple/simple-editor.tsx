@@ -62,9 +62,10 @@ interface SimpleEditorProps {
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
   } | null>;
+  onEditorReady?: (editor: any) => void;
 }
 
-export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
+export function SimpleEditor({ content, editorRef, onEditorReady }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
@@ -407,7 +408,10 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
         },
       };
     }
-  }, [isMobile, mobileView, editor, editorRef]);
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [isMobile, mobileView, editor, editorRef, onEditorReady]);
 
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   useEffect(() => {
@@ -438,53 +442,30 @@ export function SimpleEditor({ content, editorRef }: SimpleEditorProps) {
 
   return (
     <EditorContext.Provider value={{ editor }}>
-      <Toolbar
-        ref={toolbarRef}
-        style={
-          isMobile
-            ? {
-                bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
-              }
-            : {}
-        }
-      >
-        {mobileView === "main" ? (
-          <MainToolbarContent
-            onHighlighterClick={() => setMobileView("highlighter")}
-            onLinkClick={() => setMobileView("link")}
-            isMobile={isMobile}
-            editor={editor ?? undefined}
+      <div style={{ position: "relative", height: "100%" }}>
+            <div className="content-wrapper">
+          <EditorContent
+            editor={editor}
+            role="presentation"
+            className="simple-editor-content"
           />
-        ) : (
-          <MobileToolbarContent
-            type={mobileView === "highlighter" ? "highlighter" : "link"}
-            onBack={() => setMobileView("main")}
-          />
-        )}
-      </Toolbar>
-
-      <div className="content-wrapper">
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
-        {showSlashCommand && editor && (
-          <div
-            style={{
-              position: "fixed",
-              top: getSlashCommandPosition().top,
-              left: getSlashCommandPosition().left,
-              zIndex: 1000, // High z-index to ensure it's above everything
-            }}
-          >
-            <SlashCommandPopup
-              editor={editor}
-              onClose={() => setShowSlashCommand(false)}
-              query={slashCommandQuery}
-            />
-          </div>
-        )}
+          {showSlashCommand && editor && (
+            <div
+              style={{
+                position: "fixed",
+                top: getSlashCommandPosition().top,
+                left: getSlashCommandPosition().left,
+                zIndex: 1000, // High z-index to ensure it's above everything
+              }}
+            >
+              <SlashCommandPopup
+                editor={editor}
+                onClose={() => setShowSlashCommand(false)}
+                query={slashCommandQuery}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </EditorContext.Provider>
   );
