@@ -72,4 +72,13 @@ export default defineSchema({
   })
     .index("by_document_user", ["documentId", "userId", "userEmail"])
     .index("by_userId", ["userId"]),
+  userTasks: defineTable({
+    tenantId: v.string(),
+    taskName: v.string(),
+    taskDescription: v.optional(v.string()),
+    category: v.optional(v.string()),
+    completed: v.boolean(),
+    createdAt: v.string(),
+    dueBy: v.optional(v.string()),
+  }).index("by_tenant", ["tenantId"]),
 });

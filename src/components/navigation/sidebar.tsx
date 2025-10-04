@@ -180,7 +180,7 @@ export default function AppSidebar() {
                     )}
                   >
                     <Home className="h-4 w-4" />
-                    <span>Home</span>
+                    <span>home</span>
                   </SidebarMenuButton>
                   {process.env.NODE_ENV !== "production" && (
                     <SidebarMenuButton
@@ -197,7 +197,7 @@ export default function AppSidebar() {
                       )}
                     >
                       <GitGraph className="h-4 w-4" />
-                      <span>Jots</span>
+                      <span>jots</span>
                     </SidebarMenuButton>
                   )}
                   <SidebarMenuButton
@@ -214,7 +214,7 @@ export default function AppSidebar() {
                     )}
                   >
                     <LineSquiggle className="h-4 w-4" />
-                    <span>Whiteboard</span>
+                    <span>whiteboard</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
