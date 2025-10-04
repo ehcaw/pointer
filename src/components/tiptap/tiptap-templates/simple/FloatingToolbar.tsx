@@ -45,6 +45,7 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
     <EditorContext.Provider value={{ editor }}>
       <Toolbar
         ref={toolbarRef}
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
         style={{
           position: "sticky",
           top: isMobile ? "auto" : "20px",
@@ -55,8 +56,6 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
             ? `calc(100% - ${windowSize.height - bodyRect.y}px)`
             : "auto",
           zIndex: 1000,
-          backgroundColor: "white",
-          border: "1px solid #e5e7eb",
           borderRadius: "8px",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           padding: "8px",

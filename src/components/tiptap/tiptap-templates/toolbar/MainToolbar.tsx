@@ -22,8 +22,9 @@ import {
   LinkButton,
 } from "@/components/tiptap/tiptap-ui/link-popover";
 import { MarkButton } from "@/components/tiptap/tiptap-ui/mark-button";
-import { TextAlignButton } from "@/components/tiptap/tiptap-ui/text-align-button";
+import TextAlignDropdownMenu from "../../tiptap-ui/text-align-dropdown-menu/text-align-dropdown-menu";
 import { UndoRedoButton } from "@/components/tiptap/tiptap-ui/undo-redo-button";
+import ScriptDropdownMenu from "../../tiptap-ui/script-dropdown-menu/script-dropdown-menu";
 import { TableContextMenu } from "@/components/tiptap/tiptap-ui/table-context-menu";
 import { Editor } from "@tiptap/react";
 
@@ -107,25 +108,21 @@ export const MainToolbarContent = ({
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <MarkButton type="superscript" />
-        <MarkButton type="subscript" />
+        <ScriptDropdownMenu editor={editor} />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <TextAlignButton align="left" />
-        <TextAlignButton align="center" />
-        <TextAlignButton align="right" />
-        <TextAlignButton align="justify" />
+        <TextAlignDropdownMenu editor={editor} />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
-       <ToolbarGroup>
-         <ImageUploadButton />
-         <TableContextMenu editor={editor} />
-       </ToolbarGroup>
+      <ToolbarGroup>
+        <ImageUploadButton />
+        <TableContextMenu editor={editor} />
+      </ToolbarGroup>
 
       <Spacer />
 
@@ -133,7 +130,11 @@ export const MainToolbarContent = ({
 
       <ToolbarGroup>
         <Button onClick={handleMicToggle}>
-          {isRecording ? <Mic /> : <MicOff />}
+          {isRecording ? (
+            <Mic className="h-4 w-4" />
+          ) : (
+            <MicOff className="h-4 w-4" />
+          )}
         </Button>
       </ToolbarGroup>
     </>
