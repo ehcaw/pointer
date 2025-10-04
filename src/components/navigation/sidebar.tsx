@@ -37,11 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
@@ -51,7 +46,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
   const {
@@ -332,9 +326,7 @@ export default function AppSidebar() {
                       currentNote?.pointer_id === note.pointer_id;
 
                     return (
-                      <SidebarMenuItem
-                        key={String(note.pointer_id)}
-                      >
+                      <SidebarMenuItem key={String(note.pointer_id)}>
                         <SidebarMenuButton
                           onClick={() => handleNoteClick(note)}
                           data-active={isActive}
@@ -369,22 +361,22 @@ export default function AppSidebar() {
                       currentNote?.pointer_id === note.pointer_id;
 
                     const noteButton = (
-                    <SidebarMenuButton
-                      onClick={() => handleNoteClick(note)}
-                      data-active={isActive}
-                      className={cn(
-                        "rounded-lg transition-all w-full",
-                        isActive
-                          ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                      )}
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>{note.name}</span>
-                    </SidebarMenuButton>
-                  );
+                      <SidebarMenuButton
+                        onClick={() => handleNoteClick(note)}
+                        data-active={isActive}
+                        className={cn(
+                          "rounded-lg transition-all w-full",
+                          isActive
+                            ? "bg-primary/10 text-primary hover:bg-primary/15"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        )}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>{note.name}</span>
+                      </SidebarMenuButton>
+                    );
 
-                  return (
+                    return (
                       <SidebarMenuItem
                         key={String(note.pointer_id)}
                         className="relative group"
