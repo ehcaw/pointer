@@ -15,6 +15,11 @@ import { Underline } from "@tiptap/extension-underline";
 import { Placeholder } from "@tiptap/extensions";
 import Emoji, { emojis } from "@tiptap/extension-emoji";
 import { TableKit } from "@tiptap/extension-table";
+import {
+  getHierarchicalIndexes,
+  TableOfContents,
+} from "@tiptap/extension-table-of-contents";
+import { MemorizedToC } from "../../tiptap-extension/table-of-contents";
 
 // --- Custom Extensions ---
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -122,53 +127,6 @@ export function SimpleEditor({
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
       },
-      //   handleDrop: (view, event, slice, moved) => {
-      //     // Check if files are being dropped
-      //     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-      //       const files = Array.from(event.dataTransfer.files);
-
-      //       // Filter for image files
-      //       const imageFiles = files.filter((file) =>
-      //         file.type.startsWith("image/"),
-      //       );
-
-      //       if (imageFiles.length > 0) {
-      //         event.preventDefault();
-
-      //         // Get the drop position
-      //         const coordinates = view.posAtCoords({
-      //           left: event.clientX,
-      //           top: event.clientY,
-      //         });
-
-      //         if (coordinates) {
-      //           handleImageDrop(imageFiles, coordinates.pos);
-      //         }
-
-      //         return true; // Handled
-      //       }
-      //     }
-
-      //     return false; // Not handled, let TipTap handle it
-      //   },
-      //   handleDOMEvents: {
-      //     dragover: (view, event) => {
-      //       // Check if dragging files
-      //       if (event.dataTransfer?.types.includes("Files")) {
-      //         event.preventDefault();
-      //         // You could add visual feedback here, like highlighting the editor
-      //         view.dom.classList.add("dragging-files");
-      //       }
-      //     },
-      //     dragleave: (view, _event) => {
-      //       // Remove visual feedback
-      //       view.dom.classList.remove("dragging-files");
-      //     },
-      //     drop: (view, _event) => {
-      //       // Clean up visual feedback
-      //       view.dom.classList.remove("dragging-files");
-      //     },
-      //   },
     },
     extensions: [
       StarterKit.configure({
@@ -189,14 +147,6 @@ export function SimpleEditor({
       Superscript,
       Subscript,
       Selection,
-      // Image,
-      // ImageUploadNode.configure({
-      //   accept: "image/*",
-      //   maxSize: MAX_FILE_SIZE,
-      //   limit: 3,
-      //   upload: handleImageUpload,
-      //   onError: (error) => console.error("Upload failed:", error),
-      // }),
       TrailingNode,
       Link.configure({ openOnClick: false }),
       AutocompleteExtension,
@@ -212,6 +162,9 @@ export function SimpleEditor({
       }),
       TableKit.configure({
         table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
+      }),
+      TableOfContents.configure({
+        getIndex: getHierarchicalIndexes,
       }),
     ],
     content: initialContent,

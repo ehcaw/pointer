@@ -8,6 +8,7 @@ import { Clock } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Editor } from "@tiptap/react";
+import { MemorizedToC } from "../tiptap/tiptap-extension/table-of-contents";
 
 export const NotebookView = () => {
   const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
@@ -82,6 +83,7 @@ export const NotebookView = () => {
             </div>
           </div>
         </div>
+        <MemorizedToC currentNote={currentNote} editor={editor} />
       </div>
 
       {/* Footer with note info */}
