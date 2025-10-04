@@ -127,11 +127,11 @@ export default function AppSidebar() {
                   />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-med font-serif text-slate-900 dark:text-slate-100">
                     pointer
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Your digital workspace
+                  <p className="text-xs font-serif text-slate-500 dark:text-slate-400">
+                    your digital workspace
                   </p>
                 </div>
               </div>
