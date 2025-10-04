@@ -121,7 +121,6 @@ export function TextAlignDropdownMenu({
                 editor={editor}
                 align={align}
                 text={align.charAt(0).toUpperCase() + align.slice(1)}
-                tooltip=""
               />
             </DropdownMenuItem>
           ))}

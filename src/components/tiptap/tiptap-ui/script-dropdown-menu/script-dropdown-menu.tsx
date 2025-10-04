@@ -121,7 +121,6 @@ export function ScriptDropdownMenu({
                 editor={editor}
                 type={type}
                 text={type.charAt(0).toUpperCase() + type.slice(1)}
-                tooltip=""
               />
             </DropdownMenuItem>
           ))}
