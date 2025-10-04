@@ -283,31 +283,14 @@ export default function AppSidebar() {
                       onClick={() => handleNoteClick(note)}
                       data-active={isActive}
                       className={cn(
-                        "rounded-lg transition-all my-1.5 w-full",
-                        "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0",
+                        "rounded-lg transition-all w-full",
                         isActive
-                          ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 group-data-[collapsible=icon]:bg-slate-200 dark:group-data-[collapsible=icon]:bg-slate-700 group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 group-data-[collapsible=icon]:hover:bg-slate-200 dark:group-data-[collapsible=icon]:hover:bg-slate-700",
+                          ? "bg-primary/10 text-primary hover:bg-primary/15"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
                       )}
                     >
-                      <div
-                        className={cn(
-                          "flex h-6 w-6 items-center justify-center rounded group-data-[collapsible=icon]:h-full group-data-[collapsible=icon]:w-full",
-                          "bg-transparent",
-                        )}
-                      >
-                        <FileText
-                          className={cn(
-                            "h-3 w-3 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4",
-                            isActive
-                              ? "text-primary group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
-                              : "text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:text-slate-600 dark:group-data-[collapsible=icon]:text-slate-300",
-                          )}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0 pr-6 group-data-[collapsible=icon]:hidden">
-                        <div className="truncate font-medium">{note.name}</div>
-                      </div>
+                      <FileText className="h-4 w-4" />
+                      <span>{note.name}</span>
                     </SidebarMenuButton>
                   );
 
@@ -316,26 +299,18 @@ export default function AppSidebar() {
                       key={String(note.pointer_id)}
                       className="relative group"
                     >
-                      <div className="group-data-[collapsible=icon]:hidden">
+                      <div className="relative group/item">
                         {noteButton}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => handleOpenDeleteDialog(e, note)}
+                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                        >
+                          <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                          <span className="sr-only">Delete note</span>
+                        </Button>
                       </div>
-                      <div className="hidden group-data-[collapsible=icon]:block">
-                        <Tooltip>
-                          <TooltipTrigger asChild>{noteButton}</TooltipTrigger>
-                          <TooltipContent side="right" sideOffset={10}>
-                            <p className="font-medium">{note.name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => handleOpenDeleteDialog(e, note)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
-                      >
-                        <Trash className="h-3 w-3 text-slate-500 group-hover:text-red-500" />
-                        <span className="sr-only">Delete note</span>
-                      </Button>
                     </SidebarMenuItem>
                   );
                 })}
@@ -356,59 +331,23 @@ export default function AppSidebar() {
                     const isActive =
                       currentNote?.pointer_id === note.pointer_id;
 
-                    const noteButton = (
-                      <SidebarMenuButton
-                        onClick={() => handleNoteClick(note)}
-                        data-active={isActive}
-                        className={cn(
-                          "rounded-lg transition-all my-1.5 w-full",
-                          "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0",
-                          isActive
-                            ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 group-data-[collapsible=icon]:bg-slate-200 dark:group-data-[collapsible=icon]:bg-slate-700 group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 group-data-[collapsible=icon]:hover:bg-slate-200 dark:group-data-[collapsible=icon]:hover:bg-slate-700",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-6 w-6 items-center justify-center rounded group-data-[collapsible=icon]:h-full group-data-[collapsible=icon]:w-full",
-                            "bg-transparent",
-                          )}
-                        >
-                          <FileText
-                            className={cn(
-                              "h-3 w-3 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4",
-                              isActive
-                                ? "text-primary group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
-                                : "text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:text-slate-600 dark:group-data-[collapsible=icon]:text-slate-300",
-                            )}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0 pr-6 group-data-[collapsible=icon]:hidden">
-                          <div className="truncate font-medium">
-                            {note.name}
-                          </div>
-                        </div>
-                      </SidebarMenuButton>
-                    );
-
                     return (
                       <SidebarMenuItem
                         key={String(note.pointer_id)}
-                        className="relative group"
                       >
-                        <div className="group-data-[collapsible=icon]:hidden">
-                          {noteButton}
-                        </div>
-                        <div className="hidden group-data-[collapsible=icon]:block">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              {noteButton}
-                            </TooltipTrigger>
-                            <TooltipContent side="right" sideOffset={10}>
-                              <p className="font-medium">{note.name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
+                        <SidebarMenuButton
+                          onClick={() => handleNoteClick(note)}
+                          data-active={isActive}
+                          className={cn(
+                            "rounded-lg transition-all",
+                            isActive
+                              ? "bg-primary/10 text-primary hover:bg-primary/15"
+                              : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                          )}
+                        >
+                          <FileText className="h-4 w-4" />
+                          <span>{note.name}</span>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   })}
@@ -430,65 +369,38 @@ export default function AppSidebar() {
                       currentNote?.pointer_id === note.pointer_id;
 
                     const noteButton = (
-                      <SidebarMenuButton
-                        onClick={() => handleNoteClick(note)}
-                        size="sm"
-                        className={cn(
-                          "rounded-lg transition-all my-1.5 w-full",
-                          "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:p-0",
-                          isActive
-                            ? "bg-primary/10 text-primary hover:bg-primary/15 group-data-[collapsible=icon]:bg-slate-200 dark:group-data-[collapsible=icon]:bg-slate-700 group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 group-data-[collapsible=icon]:hover:bg-slate-200 dark:group-data-[collapsible=icon]:hover:bg-slate-700",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-6 w-6 items-center justify-center rounded group-data-[collapsible=icon]:h-full group-data-[collapsible=icon]:w-full",
-                            "bg-transparent",
-                          )}
-                        >
-                          <FileText
-                            className={cn(
-                              "h-3 w-3 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4",
-                              isActive
-                                ? "text-primary group-data-[collapsible=icon]:text-slate-900 dark:group-data-[collapsible=icon]:text-slate-100"
-                                : "text-slate-500 dark:text-slate-400 group-data-[collapsible=icon]:text-slate-600 dark:group-data-[collapsible=icon]:text-slate-300",
-                            )}
-                          />
-                        </div>
-                        <span className="truncate text-xs group-data-[collapsible=icon]:hidden">
-                          {note.name}
-                        </span>
-                      </SidebarMenuButton>
-                    );
+                    <SidebarMenuButton
+                      onClick={() => handleNoteClick(note)}
+                      data-active={isActive}
+                      className={cn(
+                        "rounded-lg transition-all w-full",
+                        isActive
+                          ? "bg-primary/10 text-primary hover:bg-primary/15"
+                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      )}
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>{note.name}</span>
+                    </SidebarMenuButton>
+                  );
 
-                    return (
+                  return (
                       <SidebarMenuItem
                         key={String(note.pointer_id)}
                         className="relative group"
                       >
-                        <div className="group-data-[collapsible=icon]:hidden">
+                        <div className="relative group/item">
                           {noteButton}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => handleOpenDeleteDialog(e, note)}
+                            className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                          >
+                            <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                            <span className="sr-only">Delete note</span>
+                          </Button>
                         </div>
-                        <div className="hidden group-data-[collapsible=icon]:block">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              {noteButton}
-                            </TooltipTrigger>
-                            <TooltipContent side="right" sideOffset={10}>
-                              <p className="font-medium">{note.name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => handleOpenDeleteDialog(e, note)}
-                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
-                        >
-                          <Trash className="h-3 w-3 text-slate-500 group-hover:text-red-500" />
-                          <span className="sr-only">Delete note</span>
-                        </Button>
                       </SidebarMenuItem>
                     );
                   })}
