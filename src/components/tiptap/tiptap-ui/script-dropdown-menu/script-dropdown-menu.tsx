@@ -43,7 +43,10 @@ export function ScriptDropdownMenu({
   const [isOpen, setIsOpen] = React.useState(false);
   const editor = useTiptapEditor(providedEditor);
 
-  const scriptTypes: Mark[] = ["superscript", "subscript"];
+  const scriptTypes = React.useMemo<Mark[]>(
+    () => ["superscript", "subscript"],
+    [],
+  );
 
   const handleOnOpenChange = React.useCallback(
     (open: boolean) => {
@@ -56,11 +59,10 @@ export function ScriptDropdownMenu({
   const getActiveIcon = React.useCallback(() => {
     if (!editor) return <SuperscriptIcon className="tiptap-button-icon" />;
 
-    const activeScript = scriptTypes.find((type) =>
-      editor.isActive(type),
-    );
+    const activeScript = scriptTypes.find((type) => editor.isActive(type));
 
-    if (!activeScript) return <SuperscriptIcon className="tiptap-button-icon" />;
+    if (!activeScript)
+      return <SuperscriptIcon className="tiptap-button-icon" />;
 
     const ActiveIcon = markIcons[activeScript];
     return <ActiveIcon className="tiptap-button-icon" />;
@@ -72,9 +74,7 @@ export function ScriptDropdownMenu({
   }, [editor, scriptTypes]);
 
   const isDisabled = !canToggleAnyScript();
-  const isAnyScriptActive = scriptTypes.some((type) =>
-    editor?.isActive(type)
-  );
+  const isAnyScriptActive = scriptTypes.some((type) => editor?.isActive(type));
 
   const show = React.useMemo(() => {
     if (!editor) {
