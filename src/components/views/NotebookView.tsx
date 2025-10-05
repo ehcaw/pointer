@@ -5,15 +5,12 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Editor } from "@tiptap/react";
 
 export const NotebookView = () => {
-  const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
-    useNoteEditor(); // Imported handleEditorUpdate
+  const { currentNote, editorRef, createEmptyNote } = useNoteEditor(); // Imported handleEditorUpdate
 
-  const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
   const { currentView } = usePreferencesStore();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -24,25 +21,6 @@ export const NotebookView = () => {
       createEmptyNote("Untitled Note");
     }
   }, [currentNote, currentView, createEmptyNote]); // Added createEmptyNote to deps
-
-  useHotkeys(
-    "meta+s",
-    async (e) => {
-      console.log("Save hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      const successful = await saveCurrentNote();
-      if (successful && mostCurrentNote) {
-        saveDBSavedNote(mostCurrentNote);
-        removeUnsavedNote(mostCurrentNote.pointer_id);
-      }
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
 
   const mostCurrentNote = useNotesStore.getState().currentNote;
   const noteContent = mostCurrentNote

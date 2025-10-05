@@ -336,7 +336,7 @@ export function SimpleEditor({
     removeUnsavedNote,
   ]);
 
-  // Calculate position for slash command popup - position relative to viewport
+  // Calculate position for slash command popup - position relative to viewport with awareness
   const getSlashCommandPosition = () => {
     if (!editor) return { top: 0, left: 0, position: "fixed" as const };
 
@@ -344,11 +344,40 @@ export function SimpleEditor({
     const { $from } = selection;
     const coords = editor.view.coordsAtPos($from.pos);
 
-    // Position relative to viewport (fixed positioning)
+    // Estimate popup height (rough estimate based on typical content)
+    const estimatedPopupHeight = 300;
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - coords.bottom;
+    const spaceAbove = coords.top;
+
+    let topPosition;
+    let shouldFlip = false;
+
+    // Decide whether to show above or below
+    if (spaceBelow < estimatedPopupHeight && spaceAbove > estimatedPopupHeight) {
+      // Not enough space below, but enough space above - show above
+      topPosition = coords.top - estimatedPopupHeight - 4;
+      shouldFlip = true;
+    } else if (spaceBelow < estimatedPopupHeight && spaceAbove <= estimatedPopupHeight) {
+      // Not enough space in either direction - show in the larger space
+      if (spaceBelow > spaceAbove) {
+        // More space below, show below even if it might be cut off
+        topPosition = coords.bottom + 4;
+      } else {
+        // More space above, show above even if it might be cut off
+        topPosition = Math.max(4, coords.top - estimatedPopupHeight - 4);
+        shouldFlip = true;
+      }
+    } else {
+      // Enough space below, show below (default behavior)
+      topPosition = coords.bottom + 4;
+    }
+
     return {
-      top: coords.bottom + 4, // 4px below the cursor
+      top: topPosition,
       left: coords.left,
       position: "fixed" as const,
+      shouldFlip,
     };
   };
 
@@ -439,22 +468,26 @@ export function SimpleEditor({
             role="presentation"
             className="simple-editor-content"
           />
-          {showSlashCommand && editor && (
-            <div
-              style={{
-                position: "fixed",
-                top: getSlashCommandPosition().top,
-                left: getSlashCommandPosition().left,
-                zIndex: 1000, // High z-index to ensure it's above everything
-              }}
-            >
-              <SlashCommandPopup
-                editor={editor}
-                onClose={() => setShowSlashCommand(false)}
-                query={slashCommandQuery}
-              />
-            </div>
-          )}
+          {showSlashCommand && editor && (() => {
+            const position = getSlashCommandPosition();
+            return (
+              <div
+                style={{
+                  position: "fixed",
+                  top: position.top,
+                  left: position.left,
+                  zIndex: 1000, // High z-index to ensure it's above everything
+                }}
+              >
+                <SlashCommandPopup
+                  editor={editor}
+                  onClose={() => setShowSlashCommand(false)}
+                  query={slashCommandQuery}
+                  shouldFlip={position.shouldFlip}
+                />
+              </div>
+            );
+          })()}
         </div>
       </div>
     </EditorContext.Provider>

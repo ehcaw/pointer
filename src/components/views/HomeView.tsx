@@ -22,6 +22,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Store
 import { useTasksStore } from "@/lib/stores/tasks-store";
@@ -166,7 +172,8 @@ export function HomeView() {
   };
 
   return (
-    <div className="w-full p-4">
+    <TooltipProvider>
+      <div className="w-full p-4">
       <form onSubmit={handleCreateTask} className="mb-6">
         <div className="flex gap-2">
           <Input
@@ -324,10 +331,13 @@ export function HomeView() {
                 onChange={(e) => {
                   const inputValue = e.target.value;
                   setTagsInput(inputValue);
-                  const tags = inputValue.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
-                  setEditForm((prev) => ({ 
-                    ...prev, 
-                    tags: tags
+                  const tags = inputValue
+                    .split(",")
+                    .map((tag) => tag.trim())
+                    .filter((tag) => tag.length > 0);
+                  setEditForm((prev) => ({
+                    ...prev,
+                    tags: tags,
                   }));
                 }}
                 placeholder="urgent, work, personal (comma separated)"
@@ -377,6 +387,7 @@ export function HomeView() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
 
@@ -392,67 +403,145 @@ function TaskItem({
   onEditTask: (task: Doc<"userTasks">) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-900 group">
-      <input
-        type="checkbox"
-        checked={task.completed}
-        onChange={(e) =>
-          onToggleComplete(task._id.toString(), e.target.checked)
-        }
-        className="h-5 w-5 rounded-full border-slate-300 text-slate-900 focus:ring-slate-900"
-      />
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <div className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-900 group w-full text-left">
+          <input
+            type="checkbox"
+            checked={task.completed}
+            onChange={(e) =>
+              onToggleComplete(task._id.toString(), e.target.checked)
+            }
+            className="h-5 w-5 rounded-full border-slate-300 text-slate-900 focus:ring-slate-900"
+          />
 
-      <div className="flex-1">
-        <span
-          className={cn(
-            "cursor-pointer",
-            task.completed && "line-through text-slate-400",
-          )}
-          onClick={() => onToggleComplete(task._id.toString(), !task.completed)}
-        >
-          {task.taskName}
-        </span>
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex gap-1 mt-1">
-            {task.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="inline-block px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded"
-              >
-                {tag}
-              </span>
-            ))}
+          <div className="flex-1">
+            <span
+              className={cn(
+                "cursor-pointer",
+                task.completed && "line-through text-slate-400",
+              )}
+              onClick={() =>
+                onToggleComplete(task._id.toString(), !task.completed)
+              }
+            >
+              {task.taskName}
+            </span>
+            {task.tags && task.tags.length > 0 && (
+              <div className="flex gap-1 mt-1">
+                {task.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-block px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => onEditTask(task)}
-          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-        </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onEditTask(task)}
+              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
 
-        <button
-          onClick={() => onDeleteTask(task._id.toString())}
-          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500"
-        >
-          <Trash2 className="h-5 w-5" />
-        </button>
-      </div>
-    </div>
+            <button
+              onClick={() => onDeleteTask(task._id.toString())}
+              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent
+        side="bottom"
+        align="start"
+        className="max-w-md p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg"
+        sideOffset={8}
+      >
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-semibold text-base text-slate-900 dark:text-slate-100 mb-2">
+              {task.taskName}
+            </h4>
+            {task.completed && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                Completed
+              </span>
+            )}
+          </div>
+
+          {task.taskDescription && (
+            <div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                Description
+              </p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                {task.taskDescription}
+              </p>
+            </div>
+          )}
+
+          {task.tags && task.tags.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+                Tags
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {task.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <div>
+              <span className="font-medium">Created:</span>{" "}
+              {format(new Date(task.createdAt), "MMM d, yyyy 'at' h:mm a")}
+            </div>
+            {task.dueBy && (
+              <div>
+                <span className="font-medium">Due:</span>{" "}
+                {format(new Date(task.dueBy), "MMM d, yyyy")}
+                {isPast(new Date(task.dueBy)) &&
+                  !isToday(new Date(task.dueBy)) && (
+                    <span className="ml-2 text-red-600 dark:text-red-400 font-medium">
+                      Overdue
+                    </span>
+                  )}
+                {isToday(new Date(task.dueBy)) && (
+                  <span className="ml-2 text-orange-600 dark:text-orange-400 font-medium">
+                    Today
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
