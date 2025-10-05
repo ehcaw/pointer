@@ -77,6 +77,7 @@ export default defineSchema({
     taskName: v.string(),
     taskDescription: v.optional(v.string()),
     category: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
     completed: v.boolean(),
     createdAt: v.string(),
     dueBy: v.optional(v.string()),

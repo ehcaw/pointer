@@ -93,11 +93,38 @@ export function useTaskManager() {
     }
   };
 
+  // Update a task
+  const updateTask = async (
+    taskId: string,
+    updates: {
+      taskName: string;
+      taskDescription?: string;
+      category?: string;
+      dueBy?: string;
+      tags?: string[];
+    }
+  ) => {
+    try {
+      await convex.mutation(api.taskManagement.updateTask, {
+        taskId: taskId as Id<"userTasks">,
+        ...updates,
+      });
+
+      // Refetch tasks to get updated data
+      await fetchTasks();
+      return true;
+    } catch (error) {
+      console.error("Error updating task:", error);
+      return false;
+    }
+  };
+
   return {
     isCreating,
     fetchTasks,
     createTask,
     toggleTaskCompletion,
     deleteTask,
+    updateTask,
   };
 }

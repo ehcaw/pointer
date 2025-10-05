@@ -67,6 +67,41 @@ export const toggleTaskComplete = mutation({
   },
 });
 
+export const updateTask = mutation({
+  args: {
+    taskId: v.id("userTasks"),
+    taskName: v.string(),
+    taskDescription: v.optional(v.string()),
+    category: v.optional(v.string()),
+    dueBy: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task || task.tenantId !== identity.subject) {
+      throw new Error("Task not found");
+    }
+
+    const updateData: any = {
+      taskName: args.taskName,
+    };
+
+    if (args.taskDescription !== undefined) updateData.taskDescription = args.taskDescription;
+    if (args.category !== undefined) updateData.category = args.category;
+    if (args.dueBy !== undefined) updateData.dueBy = args.dueBy;
+    if (args.tags !== undefined) updateData.tags = args.tags;
+
+    await ctx.db.patch(args.taskId, updateData);
+
+    return args.taskId;
+  },
+});
+
 export const deleteTask = mutation({
   args: {
     taskId: v.id("userTasks"),

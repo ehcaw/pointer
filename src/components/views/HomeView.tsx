@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Trash2, Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday, isPast, addDays } from "date-fns";
 
 // UI Components
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ export function HomeView() {
     createTask,
     toggleTaskCompletion,
     deleteTask,
+    updateTask,
     isCreating,
   } = useTaskManager();
 
@@ -45,9 +46,10 @@ export function HomeView() {
   const [editForm, setEditForm] = React.useState({
     taskName: "",
     taskDescription: "",
-    category: "",
     dueBy: "",
+    tags: [] as string[],
   });
+  const [tagsInput, setTagsInput] = React.useState("");
   const [dueDatePickerOpen, setDueDatePickerOpen] = React.useState(false);
 
   // Fetch tasks on component mount
@@ -55,9 +57,39 @@ export function HomeView() {
     fetchTasks();
   }, []);
 
-  // Show all tasks - don't filter out completed ones
-  const visibleTasks = React.useMemo(() => {
-    return userTasks;
+  // Sort and organize tasks
+  const organizedTasks = React.useMemo(() => {
+    const today: Doc<"userTasks">[] = [];
+    const general: Doc<"userTasks">[] = [];
+    const thisWeek: Doc<"userTasks">[] = [];
+
+    const sortedTasks = [...userTasks].sort((a, b) => {
+      // Sort by completion status first (incomplete first)
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      // Then sort by creation date (newest first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    sortedTasks.forEach((task) => {
+      if (task.dueBy) {
+        const dueDate = new Date(task.dueBy);
+        const weekFromNow = addDays(new Date(), 7);
+
+        if (isToday(dueDate)) {
+          today.push(task);
+        } else if (dueDate <= weekFromNow && !isPast(dueDate)) {
+          thisWeek.push(task);
+        } else {
+          general.push(task);
+        }
+      } else {
+        general.push(task);
+      }
+    });
+
+    return { today, general, thisWeek };
   }, [userTasks]);
 
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -83,23 +115,32 @@ export function HomeView() {
     setEditForm({
       taskName: task.taskName,
       taskDescription: task.taskDescription || "",
-      category: task.category || "",
       dueBy: task.dueBy || "",
+      tags: task.tags || [],
     });
+    setTagsInput((task.tags || []).join(", "));
   };
 
   const handleSaveEdit = async () => {
     if (!editingTask) return;
 
-    // Here you would update the task via your task manager
-    // For now, just close the modal
-    setEditingTask(null);
-    setEditForm({
-      taskName: "",
-      taskDescription: "",
-      category: "",
-      dueBy: "",
+    const success = await updateTask(editingTask._id.toString(), {
+      taskName: editForm.taskName,
+      taskDescription: editForm.taskDescription || undefined,
+      dueBy: editForm.dueBy || undefined,
+      tags: editForm.tags.length > 0 ? editForm.tags : undefined,
     });
+
+    if (success) {
+      setEditingTask(null);
+      setEditForm({
+        taskName: "",
+        taskDescription: "",
+        dueBy: "",
+        tags: [],
+      });
+      setTagsInput("");
+    }
   };
 
   const handleCloseEdit = () => {
@@ -107,9 +148,10 @@ export function HomeView() {
     setEditForm({
       taskName: "",
       taskDescription: "",
-      category: "",
       dueBy: "",
+      tags: [],
     });
+    setTagsInput("");
     setDueDatePickerOpen(false);
   };
 
@@ -124,7 +166,7 @@ export function HomeView() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="w-full p-4">
       <form onSubmit={handleCreateTask} className="mb-6">
         <div className="flex gap-2">
           <Input
@@ -140,18 +182,69 @@ export function HomeView() {
       {isLoading ? (
         <div className="text-center py-8 text-slate-400">Loading...</div>
       ) : (
-        <div className="space-y-1">
-          {visibleTasks.map((task) => (
-            <TaskItem
-              key={task._id.toString()}
-              task={task}
-              onToggleComplete={handleToggleComplete}
-              onDeleteTask={handleDeleteTask}
-              onEditTask={handleEditTask}
-            />
-          ))}
+        <div className="space-y-6">
+          {/* Today Section */}
+          {organizedTasks.today.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+                Today
+              </h3>
+              <div className="space-y-1">
+                {organizedTasks.today.map((task) => (
+                  <TaskItem
+                    key={task._id.toString()}
+                    task={task}
+                    onToggleComplete={handleToggleComplete}
+                    onDeleteTask={handleDeleteTask}
+                    onEditTask={handleEditTask}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-          {visibleTasks.length === 0 && (
+          {/* General Section */}
+          {organizedTasks.general.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+                General
+              </h3>
+              <div className="space-y-1">
+                {organizedTasks.general.map((task) => (
+                  <TaskItem
+                    key={task._id.toString()}
+                    task={task}
+                    onToggleComplete={handleToggleComplete}
+                    onDeleteTask={handleDeleteTask}
+                    onEditTask={handleEditTask}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* This Week Section */}
+          {organizedTasks.thisWeek.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+                This Week
+              </h3>
+              <div className="space-y-1">
+                {organizedTasks.thisWeek.map((task) => (
+                  <TaskItem
+                    key={task._id.toString()}
+                    task={task}
+                    onToggleComplete={handleToggleComplete}
+                    onDeleteTask={handleDeleteTask}
+                    onEditTask={handleEditTask}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {userTasks.length === 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-3 p-2 rounded">
                 <input
@@ -224,14 +317,20 @@ export function HomeView() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="category">Category (optional)</Label>
+              <Label htmlFor="tags">Tags (optional)</Label>
               <Input
-                id="category"
-                value={editForm.category}
-                onChange={(e) =>
-                  setEditForm((prev) => ({ ...prev, category: e.target.value }))
-                }
-                placeholder="Personal, Work, etc."
+                id="tags"
+                value={tagsInput}
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  setTagsInput(inputValue);
+                  const tags = inputValue.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
+                  setEditForm((prev) => ({ 
+                    ...prev, 
+                    tags: tags
+                  }));
+                }}
+                placeholder="urgent, work, personal (comma separated)"
               />
             </div>
 
@@ -303,23 +402,37 @@ function TaskItem({
         className="h-5 w-5 rounded-full border-slate-300 text-slate-900 focus:ring-slate-900"
       />
 
-      <span
-        className={cn(
-          "flex-1 cursor-pointer",
-          task.completed && "line-through text-slate-400",
+      <div className="flex-1">
+        <span
+          className={cn(
+            "cursor-pointer",
+            task.completed && "line-through text-slate-400",
+          )}
+          onClick={() => onToggleComplete(task._id.toString(), !task.completed)}
+        >
+          {task.taskName}
+        </span>
+        {task.tags && task.tags.length > 0 && (
+          <div className="flex gap-1 mt-1">
+            {task.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-block px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         )}
-        onClick={() => onToggleComplete(task._id.toString(), !task.completed)}
-      >
-        {task.taskName}
-      </span>
+      </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => onEditTask(task)}
           className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600"
         >
           <svg
-            className="h-4 w-4"
+            className="h-5 w-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -337,7 +450,7 @@ function TaskItem({
           onClick={() => onDeleteTask(task._id.toString())}
           className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-5 w-5" />
         </button>
       </div>
     </div>
