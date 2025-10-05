@@ -5,15 +5,13 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Editor } from "@tiptap/react";
 
 export const CollaborativeNotebookView = ({}) => {
-  const { currentNote, editorRef, saveCurrentNote } = useNoteEditor();
+  const { currentNote, editorRef } = useNoteEditor();
 
-  const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
@@ -24,25 +22,6 @@ export const CollaborativeNotebookView = ({}) => {
       router.push("/");
     }
   }, [isSignedIn, isLoaded, router]);
-
-  useHotkeys(
-    "meta+s",
-    async (e) => {
-      console.log("Save hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      const successful = await saveCurrentNote();
-      if (successful && currentNote) {
-        saveDBSavedNote(currentNote);
-        removeUnsavedNote(currentNote.pointer_id);
-      }
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
 
   const noteContent = currentNote
     ? currentNote.content.tiptap
