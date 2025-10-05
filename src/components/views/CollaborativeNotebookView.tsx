@@ -3,7 +3,6 @@ import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/co
 import { FloatingToolbar } from "../tiptap/tiptap-templates/simple/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect, useRef, useState } from "react";
-import { useNotesStore } from "@/lib/stores/notes-store";
 import { Clock } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
