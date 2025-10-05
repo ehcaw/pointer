@@ -25,6 +25,7 @@ import {
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -171,7 +172,8 @@ export function HomeView() {
   };
 
   return (
-    <div className="w-full p-4">
+    <TooltipProvider>
+      <div className="w-full p-4">
       <form onSubmit={handleCreateTask} className="mb-6">
         <div className="flex gap-2">
           <Input
@@ -385,6 +387,7 @@ export function HomeView() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
 
