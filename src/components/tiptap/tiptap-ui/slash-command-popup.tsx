@@ -33,13 +33,15 @@ interface SlashCommandPopupProps {
   editor: Editor | null;
   onClose: () => void;
   query?: string;
+  shouldFlip?: boolean;
 }
 
 const SlashCommandContent: React.FC<{
   editor: Editor;
   onClose: () => void;
   query?: string;
-}> = ({ editor, onClose, query = "" }) => {
+  shouldFlip?: boolean;
+}> = ({ editor, onClose, query = "", shouldFlip = false }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const popupRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -374,7 +376,9 @@ const SlashCommandContent: React.FC<{
       style={{
         backgroundColor: "white",
         borderRadius: "8px",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)",
+        boxShadow: shouldFlip 
+          ? "0 -10px 40px rgba(0,0,0,0.15), 0 -2px 8px rgba(0,0,0,0.08)"
+          : "0 10px 40px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)",
         border: "1px solid #e5e7eb",
         minWidth: "280px",
         maxWidth: "360px",
@@ -383,6 +387,8 @@ const SlashCommandContent: React.FC<{
         fontFamily: "system-ui, -apple-system, sans-serif",
         backdropFilter: "blur(10px)",
         background: "rgba(255, 255, 255, 0.95)",
+        transform: shouldFlip ? "translateY(-4px)" : "translateY(0)",
+        transition: "all 0.15s ease",
       }}
     >
       <div
@@ -475,12 +481,18 @@ export const SlashCommandPopup: React.FC<SlashCommandPopupProps> = ({
   editor,
   onClose,
   query,
+  shouldFlip,
 }) => {
   if (!editor) {
     return null;
   }
 
   return (
-    <SlashCommandContent editor={editor} onClose={onClose} query={query} />
+    <SlashCommandContent 
+      editor={editor} 
+      onClose={onClose} 
+      query={query} 
+      shouldFlip={shouldFlip} 
+    />
   );
 };
