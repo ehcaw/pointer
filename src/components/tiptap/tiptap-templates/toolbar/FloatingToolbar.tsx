@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from "react";
 import { Editor, EditorContext } from "@tiptap/react";
 import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
-import { MainToolbarContent } from "../toolbar/MainToolbar";
-import { MobileToolbarContent } from "../toolbar/MobileToolbar";
+import { MainToolbarContent } from "./MainToolbar";
+import { MobileToolbarContent } from "./MobileToolbar";
 import { useMobile } from "@/hooks/use-tiptap-mobile";
 import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
