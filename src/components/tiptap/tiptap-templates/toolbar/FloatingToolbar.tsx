@@ -55,7 +55,7 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
           bottom: isMobile
             ? `calc(100% - ${windowSize.height - bodyRect.y}px)`
             : "auto",
-          zIndex: 10,
+          zIndex: 40,
           borderRadius: "8px",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           padding: "8px",

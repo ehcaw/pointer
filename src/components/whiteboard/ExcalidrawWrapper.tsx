@@ -174,7 +174,13 @@ const ExcalidrawWrapper: React.FC = () => {
         }
 
         if (!deserializedData) {
-          deserializedData = createDefaultWhiteboardState();
+          deserializedData = {
+            ...createDefaultWhiteboardState(),
+            appState: {
+              ...createDefaultWhiteboardState()?.appState,
+              currentItemFontFamily: FONT_FAMILY.Nunito,
+            },
+          };
         }
 
         setInitialData(deserializedData);
