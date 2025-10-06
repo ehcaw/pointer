@@ -17,6 +17,7 @@ import {
   createDefaultWhiteboardState,
   serializeWhiteboardData,
 } from "./whiteboard-utils";
+import { FONT_FAMILY } from "@excalidraw/excalidraw";
 
 import "@excalidraw/excalidraw/index.css";
 
@@ -97,6 +98,7 @@ const ExcalidrawWrapper: React.FC = () => {
     useState<ExcalidrawImperativeAPI | null>(null);
   const [initialData, setInitialData] =
     useState<ExcalidrawInitialDataState | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   const { whiteboard, isLoading: whiteboardLoading } = useWhiteboardContext();
   const { setPendingChanges } = useWhiteboardStore();
@@ -129,10 +131,20 @@ const ExcalidrawWrapper: React.FC = () => {
     [],
   );
 
+  // Set mounted state when component is client-side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Initialize whiteboard data
   useEffect(() => {
     const initializeWhiteboard = async () => {
-      if (isInitializingRef.current || whiteboardLoading || !whiteboard) {
+      if (
+        !isMounted ||
+        isInitializingRef.current ||
+        whiteboardLoading ||
+        !whiteboard
+      ) {
         return;
       }
 
@@ -152,6 +164,13 @@ const ExcalidrawWrapper: React.FC = () => {
           deserializedData = await deserializeWhiteboardData(
             whiteboard.serializedData,
           );
+          deserializedData = {
+            ...deserializedData,
+            appState: {
+              ...deserializedData?.appState,
+              currentItemFontFamily: FONT_FAMILY.Nunito,
+            },
+          };
         }
 
         if (!deserializedData) {
@@ -175,7 +194,7 @@ const ExcalidrawWrapper: React.FC = () => {
     };
 
     initializeWhiteboard();
-  }, [whiteboard?._id, whiteboardLoading, hashElements]);
+  }, [whiteboard?._id, whiteboardLoading, hashElements, isMounted]);
 
   // Optimized auto-save function
   const performAutoSave = useCallback(
@@ -297,8 +316,8 @@ const ExcalidrawWrapper: React.FC = () => {
     );
   }, [initialData, handleChange, resolvedTheme]);
 
-  // Show loading until we have initial data
-  if (whiteboardLoading || !initialData) {
+  // Show loading until we have initial data and component is mounted
+  if (!isMounted || whiteboardLoading || !initialData) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-50">
         <div className="text-center">
