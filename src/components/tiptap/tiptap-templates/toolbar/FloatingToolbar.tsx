@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from "react";
 import { Editor, EditorContext } from "@tiptap/react";
 import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
-import { MainToolbarContent } from "../toolbar/MainToolbar";
-import { MobileToolbarContent } from "../toolbar/MobileToolbar";
+import { MainToolbarContent } from "./MainToolbar";
+import { MobileToolbarContent } from "./MobileToolbar";
 import { useMobile } from "@/hooks/use-tiptap-mobile";
 import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
@@ -55,7 +55,7 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
           bottom: isMobile
             ? `calc(100% - ${windowSize.height - bodyRect.y}px)`
             : "auto",
-          zIndex: 1000,
+          zIndex: 40,
           borderRadius: "8px",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           padding: "8px",

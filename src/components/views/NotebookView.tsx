@@ -1,6 +1,6 @@
 "use client";
 import { SimpleEditor } from "../tiptap/tiptap-templates/simple/simple-editor";
-import { FloatingToolbar } from "../tiptap/tiptap-templates/simple/FloatingToolbar";
+import { FloatingToolbar } from "../tiptap/tiptap-templates/toolbar/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect, useRef, useState } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
