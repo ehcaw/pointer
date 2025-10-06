@@ -1,6 +1,6 @@
 "use client";
 import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/collaborative-editor";
-import { FloatingToolbar } from "../tiptap/tiptap-templates/simple/FloatingToolbar";
+import { FloatingToolbar } from "../tiptap/tiptap-templates/toolbar/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
