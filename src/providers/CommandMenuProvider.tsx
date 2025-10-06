@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CommandMenu } from "@/components/ui/command-menu";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Node } from "@/types/note";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export function CommandMenuProvider({
   children,
@@ -15,17 +16,10 @@ export function CommandMenuProvider({
   const { userNotes, setCurrentNote } = useNotesStore();
   const { setCurrentView } = usePreferencesStore();
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setIsOpen((open) => !open);
-      }
-    };
-
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, []);
+  useHotkeys("mod+k, ctrl+k", (e) => {
+    e.preventDefault();
+    setIsOpen((open) => !open);
+  });
 
   const handleSelectNote = (note: Node) => {
     setCurrentNote(note);
