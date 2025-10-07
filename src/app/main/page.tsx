@@ -18,6 +18,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
 import { CollaborativeNotebookView } from "@/components/views/CollaborativeNotebookView";
+import { UserSettingsView } from "@/components/views/UserSettingsView";
 import AppSidebar from "@/components/navigation/sidebar";
 
 import DefaultHeader from "@/components/views/headers/DefaultHeader";
@@ -104,7 +105,7 @@ export default function MainPage() {
             {currentView === "whiteboard" && <WhiteboardViewHeader />}
 
             {/* Header for non-note views */}
-            {currentView !== "note" && currentView !== "whiteboard" && (
+            {currentView !== "note" && currentView !== "whiteboard" && currentView !== "settings" && (
               <DefaultHeader />
             )}
 
@@ -118,6 +119,7 @@ export default function MainPage() {
               )}
               {currentView === "graph" && <GraphView />}
               {currentView === "whiteboard" && <WhiteboardView />}
+              {currentView === "settings" && <UserSettingsView />}
             </div>
           </div>
         </ResizablePanel>

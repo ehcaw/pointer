@@ -192,3 +192,169 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* PostHog Survey Styling - Multiple targeting approaches */
+#pointer-survey-container * {
+  font-family: inherit !important;
+}
+
+/* Target any div inside survey container that looks like a survey */
+#pointer-survey-container > div,
+#pointer-survey-container [class*="survey"],
+#pointer-survey-container [class*="Survey"],
+#pointer-survey-container [class*="posthog"],
+#pointer-survey-container [class*="PostHog"] {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Target question text */
+#pointer-survey-container h1,
+#pointer-survey-container h2,
+#pointer-survey-container h3,
+#pointer-survey-container h4,
+#pointer-survey-container h5,
+#pointer-survey-container h6,
+#pointer-survey-container p:first-child,
+#pointer-survey-container [class*="question"],
+#pointer-survey-container [class*="title"] {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: rgb(15 23 42) !important;
+  margin-bottom: 0.75rem !important;
+  margin-top: 0 !important;
+  font-family: inherit !important;
+}
+
+/* Target all input fields and textareas */
+#pointer-survey-container input,
+#pointer-survey-container textarea,
+#pointer-survey-container input[type="text"],
+#pointer-survey-container input[type="email"] {
+  width: 100% !important;
+  padding: 0.75rem !important;
+  border: 1px solid rgb(203 213 225) !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.875rem !important;
+  background: white !important;
+  color: rgb(15 23 42) !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  margin-bottom: 12px !important;
+}
+
+#pointer-survey-container input::placeholder,
+#pointer-survey-container textarea::placeholder {
+  color: rgb(148 163 184) !important;
+}
+
+.dark #pointer-survey-container input::placeholder,
+.dark #pointer-survey-container textarea::placeholder {
+  color: rgb(148 163 184) !important;
+}
+
+#pointer-survey-container input:focus,
+#pointer-survey-container textarea:focus {
+  outline: 2px solid rgb(59 130 246) !important;
+  outline-offset: -2px !important;
+  border-color: rgb(59 130 246) !important;
+}
+
+/* Target all buttons */
+#pointer-survey-container button,
+#pointer-survey-container input[type="submit"],
+#pointer-survey-container [role="button"] {
+  background-color: rgb(15 23 42) !important;
+  color: white !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  margin-top: 0px !important;
+  margin-bottom: 12px !important;
+  font-family: inherit !important;
+  display: block !important;
+  width: auto !important;
+}
+
+#pointer-survey-container button:hover,
+#pointer-survey-container input[type="submit"]:hover {
+  background-color: rgb(30 41 59) !important;
+}
+
+/* Target footer/branding */
+#pointer-survey-container div:last-child,
+#pointer-survey-container [class*="footer"],
+#pointer-survey-container [class*="branding"] {
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid rgb(226 232 240) !important;
+  font-size: 0.75rem !important;
+  color: rgb(100 116 139) !important;
+  display: block !important;
+  text-align: left !important;
+  width: 100% !important;
+}
+
+/* Force vertical layout - override any flex layouts */
+#pointer-survey-container * {
+  display: block !important;
+}
+
+#pointer-survey-container input,
+#pointer-survey-container textarea,
+#pointer-survey-container button {
+  display: block !important;
+}
+
+#pointer-survey-container a {
+  color: rgb(100 116 139) !important;
+  text-decoration: none !important;
+}
+
+/* Dark mode overrides */
+.dark #pointer-survey-container h1,
+.dark #pointer-survey-container h2,
+.dark #pointer-survey-container h3,
+.dark #pointer-survey-container h4,
+.dark #pointer-survey-container h5,
+.dark #pointer-survey-container h6,
+.dark #pointer-survey-container p:first-child {
+  color: rgb(248 250 252) !important;
+}
+
+.dark #pointer-survey-container input,
+.dark #pointer-survey-container textarea {
+  background: rgb(30 41 59) !important;
+  border-color: rgb(71 85 105) !important;
+  color: rgb(248 250 252) !important;
+}
+
+.dark #pointer-survey-container button,
+.dark #pointer-survey-container input[type="submit"] {
+  background-color: rgb(248 250 252) !important;
+  color: rgb(15 23 42) !important;
+}
+
+.dark #pointer-survey-container button:hover,
+.dark #pointer-survey-container input[type="submit"]:hover {
+  background-color: rgb(226 232 240) !important;
+}
+
+.dark #pointer-survey-container div:last-child,
+.dark #pointer-survey-container [class*="footer"],
+.dark #pointer-survey-container [class*="branding"] {
+  border-top-color: rgb(71 85 105) !important;
+  color: rgb(148 163 184) !important;
+}
+
+.dark #pointer-survey-container a {
+  color: rgb(148 163 184) !important;
+}

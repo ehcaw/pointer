@@ -37,13 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
@@ -52,10 +45,13 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import SupportModal from "./SupportModal";
+
+import { DisplaySurveyType } from "posthog-js";
+import { usePostHog } from "posthog-js/react";
 
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const {
     userNotes,
@@ -69,8 +65,9 @@ export default function AppSidebar() {
   } = useNotesStore();
 
   const { currentView, setCurrentView } = usePreferencesStore();
-
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
+
+  const posthog = usePostHog();
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
@@ -78,7 +75,9 @@ export default function AppSidebar() {
     createNewNote(title);
   };
 
-  const handleNavClick = (view: "home" | "graph" | "whiteboard" | "note") => {
+  const handleNavClick = (
+    view: "home" | "graph" | "whiteboard" | "note" | "settings",
+  ) => {
     setCurrentView(view);
   };
 
@@ -117,52 +116,244 @@ export default function AppSidebar() {
     )
     .slice(0, 5);
 
-  const UserSettingsModal = () => (
-    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>
-            Manage your application preferences and account settings.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="text-sm text-muted-foreground">
-            Settings functionality coming soon...
-          </p>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  const handleForceShowInlineSurvey = () => {
+    const waitForPostHogAndDisplaySurvey = () => {
+      const surveyId = process.env.NEXT_PUBLIC_POSTHOG_FEEDBACK_SURVEY_ID;
+      const container = document.getElementById("pointer-survey-container");
 
-  const SupportModal = () => (
-    <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Support</DialogTitle>
-          <DialogDescription>
-            Get help and support for the Pointer application.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            If you need assistance, please reach out to our support team.
-          </p>
-          <div className="space-y-2">
-            <p className="text-sm">
-              <strong>Email:</strong> support@pointer.app
-            </p>
-            <p className="text-sm">
-              <strong>Documentation:</strong> docs.pointer.app
-            </p>
-            <p className="text-sm">
-              <strong>Community:</strong> community.pointer.app
-            </p>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+      console.log("Survey ID:", surveyId);
+      console.log("Container element:", container);
+      console.log("PostHog instance:", posthog);
+      console.log("PostHog loaded:", posthog?.__loaded);
+
+      if (!surveyId) {
+        console.error("Survey ID is not defined");
+        return;
+      }
+
+      if (!container) {
+        console.error("Survey container not found");
+        return;
+      }
+
+      if (!posthog) {
+        console.error("PostHog not initialized");
+        return;
+      }
+
+      // Check if PostHog is fully loaded
+      if (!posthog.__loaded) {
+        console.log("PostHog not fully loaded yet, waiting...");
+        setTimeout(waitForPostHogAndDisplaySurvey, 100);
+        return;
+      }
+
+      // Clear any existing content
+      if (container) {
+        container.innerHTML = "";
+      }
+
+      try {
+        console.log("Attempting to display survey...");
+
+        // Method 1: Try the standard displaySurvey approach
+        posthog.displaySurvey(surveyId, {
+          displayType: DisplaySurveyType.Inline,
+          ignoreConditions: true,
+          ignoreDelay: true,
+          selector: "#pointer-survey-container",
+        });
+
+        // Method 2: If that doesn't work, try getting surveys manually
+        setTimeout(() => {
+          const surveyContainer = document.getElementById(
+            "pointer-survey-container",
+          );
+          if (surveyContainer && surveyContainer.children.length === 0) {
+            console.log("Survey didn't render, trying alternative method...");
+
+            // Check if there are available surveys
+            posthog.getSurveys((surveys) => {
+              console.log("Available surveys:", surveys);
+              const targetSurvey = surveys.find((s) => s.id === surveyId);
+
+              if (targetSurvey) {
+                console.log("Found target survey:", targetSurvey);
+                // Try showing the survey again with different options
+                posthog.displaySurvey(surveyId, {
+                  displayType: DisplaySurveyType.Inline,
+                  selector: "#pointer-survey-container",
+                  ignoreConditions: true,
+                  ignoreDelay: true,
+                });
+              } else {
+                console.error("Target survey not found in available surveys");
+                if (surveyContainer) {
+                  surveyContainer.innerHTML =
+                    '<p class="text-sm text-amber-600">Survey not available. Please check if it is active and published.</p>';
+                }
+              }
+            });
+          } else {
+            // Apply styles with JavaScript as fallback
+            setTimeout(() => {
+              const applySurveyStyles = () => {
+                const isDarkMode =
+                  document.documentElement.classList.contains("dark");
+
+                if (surveyContainer) {
+                  const inputs = surveyContainer.querySelectorAll(
+                    "input, textarea",
+                  ) as NodeListOf<HTMLElement>;
+                  const buttons = surveyContainer.querySelectorAll(
+                    "button, [type='submit']",
+                  ) as NodeListOf<HTMLElement>;
+                  const questions = surveyContainer.querySelectorAll(
+                    "h1, h2, h3, h4, h5, h6, p:first-child",
+                  ) as NodeListOf<HTMLElement>;
+                  const footers = surveyContainer.querySelectorAll(
+                    "div:last-child, [class*='footer'], [class*='branding']",
+                  ) as NodeListOf<HTMLElement>;
+
+                  // Style inputs
+                  inputs.forEach((input) => {
+                    input.style.cssText = `
+                    width: 100% !important;
+                    padding: 12px !important;
+                    border: 1px solid ${isDarkMode ? "#475569" : "#cbd5e1"} !important;
+                    border-radius: 8px !important;
+                    font-size: 14px !important;
+                    background: ${isDarkMode ? "#1e293b" : "white"} !important;
+                    color: ${isDarkMode ? "#f8fafc" : "#0f172a"} !important;
+                    font-family: inherit !important;
+                    box-sizing: border-box !important;
+                    display: block !important;
+                    margin-bottom: 12px !important;
+                  `;
+
+                    // Fix placeholder color for dark mode
+                    if (isDarkMode) {
+                      input.style.setProperty("--placeholder-color", "#94a3b8");
+                      input.setAttribute(
+                        "style",
+                        input.getAttribute("style") +
+                          "; ::placeholder { color: #94a3b8 !important; }",
+                      );
+                    }
+                  });
+
+                  // Style buttons
+                  buttons.forEach((button) => {
+                    const bgColor = isDarkMode ? "#f8fafc" : "#0f172a";
+                    const textColor = isDarkMode ? "#0f172a" : "white";
+                    const hoverColor = isDarkMode ? "#e2e8f0" : "#1e293b";
+
+                    button.style.cssText = `
+                    background-color: ${bgColor} !important;
+                    color: ${textColor} !important;
+                    padding: 12px 24px !important;
+                    border-radius: 8px !important;
+                    border: none !important;
+                    font-weight: 500 !important;
+                    font-size: 14px !important;
+                    cursor: pointer !important;
+                    transition: all 0.2s !important;
+                    margin-top: 0px !important;
+                    margin-bottom: 12px !important;
+                    font-family: inherit !important;
+                    display: block !important;
+                    width: auto !important;
+                  `;
+
+                    // Remove existing event listeners to prevent duplicates
+                    const newButton = button.cloneNode(true) as HTMLElement;
+                    button.parentNode?.replaceChild(newButton, button);
+
+                    newButton.addEventListener("mouseenter", () => {
+                      newButton.style.backgroundColor =
+                        hoverColor + " !important";
+                    });
+
+                    newButton.addEventListener("mouseleave", () => {
+                      newButton.style.backgroundColor = bgColor + " !important";
+                    });
+                  });
+
+                  // Style questions
+                  questions.forEach((question) => {
+                    question.style.cssText = `
+                    font-size: 18px !important;
+                    font-weight: 600 !important;
+                    color: ${isDarkMode ? "#f8fafc" : "#0f172a"} !important;
+                    margin-bottom: 12px !important;
+                    margin-top: 0 !important;
+                    font-family: inherit !important;
+                  `;
+                  });
+
+                  // Style footer/branding to be below button
+                  footers.forEach((footer) => {
+                    footer.style.cssText = `
+                    margin-top: 8px !important;
+                    padding-top: 8px !important;
+                    border-top: 1px solid ${isDarkMode ? "#475569" : "#e2e8f0"} !important;
+                    font-size: 12px !important;
+                    color: ${isDarkMode ? "#94a3b8" : "#64748b"} !important;
+                    display: block !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                  `;
+                  });
+
+                  // Ensure survey container has proper flex layout
+                  const surveyElements = surveyContainer.querySelectorAll(
+                    "*",
+                  ) as NodeListOf<HTMLElement>;
+                  surveyElements.forEach((element) => {
+                    if (
+                      element.style.display === "flex" ||
+                      element.style.display === "inline-flex"
+                    ) {
+                      element.style.display = "block !important";
+                    }
+                  });
+
+                  console.log("Applied JavaScript survey styles", {
+                    isDarkMode,
+                  });
+                }
+              };
+
+              applySurveyStyles();
+
+              // Re-apply styles after a short delay in case PostHog overwrites them
+              setTimeout(applySurveyStyles, 500);
+
+              // Watch for theme changes
+              const observer = new MutationObserver(() => {
+                applySurveyStyles();
+              });
+              observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ["class"],
+              });
+            }, 100);
+          }
+        }, 1000);
+
+        console.log("Survey display attempted successfully");
+      } catch (error) {
+        console.error("Error displaying survey:", error);
+        if (container) {
+          container.innerHTML =
+            '<p class="text-sm text-red-500">Error loading survey. Please try again.</p>';
+        }
+      }
+    };
+
+    // Start checking after modal has time to render
+    setTimeout(waitForPostHogAndDisplaySurvey, 500);
+  };
 
   return (
     <Sidebar
@@ -456,54 +647,78 @@ export default function AppSidebar() {
       <SidebarFooter className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
         <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 h-full w-full">
           {/* Expanded state */}
-          <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
+          <div className="group-data-[collapsible=icon]:hidden flex items-center w-full">
+            <div className="flex-1 flex justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSettingsOpen(true)}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
+              >
+                <ThemeToggle />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </div>
+            <div className="flex-1 flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavClick("settings")}
+                disabled={process.env.NODE_ENV === "production"}
+                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Cog className="h-4 w-4" />
                 <span className="sr-only">Settings</span>
               </Button>
+            </div>
+            <div className="flex-1 flex justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSupportOpen(true)}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                onClick={() => {
+                  setIsSupportOpen(true);
+                }}
+                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer"
               >
                 <HandHelping className="h-4 w-4" />
                 <span className="sr-only">Support</span>
               </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle size="sm" />
-            </div>
           </div>
           {/* Collapsed state */}
-          <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center justify-center gap-2 h-full w-full">
-            <div className="flex items-center gap-1">
+          <div className="hidden group-data-[collapsible=icon]:flex flex-col h-full w-full py-1">
+            <div className="flex-1 flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSettingsOpen(true)}
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
+              >
+                <ThemeToggle />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavClick("settings")}
+                disabled={process.env.NODE_ENV === "production"}
+                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Cog className="h-3 w-3" />
                 <span className="sr-only">Settings</span>
               </Button>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsSupportOpen(true)}
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer"
               >
                 <HandHelping className="h-3 w-3" />
                 <span className="sr-only">Support</span>
               </Button>
             </div>
-            <ThemeToggle size="sm" />
           </div>
         </div>
       </SidebarFooter>
@@ -529,8 +744,11 @@ export default function AppSidebar() {
           </AlertDialogContent>
         </AlertDialog>
       )}
-      <UserSettingsModal />
-      <SupportModal />
+      <SupportModal
+        isSupportOpen={isSupportOpen}
+        setIsSupportOpen={setIsSupportOpen}
+        onModalOpen={handleForceShowInlineSurvey}
+      />
     </Sidebar>
   );
 }

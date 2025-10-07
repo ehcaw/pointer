@@ -13,6 +13,21 @@ const nextConfig: NextConfig = {
   // },
   // // Configure assetPrefix or else the server won't properly resolve your assets.
   // assetPrefix: isProd ? undefined : `http://${internalHost}:3000`,
+  //
+  async rewrites() {
+    return [
+      {
+        source: "/relay-zybeaskldfjkalsdjf-pointer/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/relay-zybeaskldfjkalsdjf-pointer/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+    ];
+  },
+  // This is required to support PostHog trailing slash API requests
+  skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;
