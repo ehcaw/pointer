@@ -10,6 +10,8 @@ import {
   Trash,
   LineSquiggle,
   Users,
+  Cog,
+  HandHelping,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -37,6 +39,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
@@ -48,6 +58,8 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const {
     userNotes,
     sharedNotes,
@@ -108,168 +120,303 @@ export default function AppSidebar() {
     )
     .slice(0, 5);
 
+  const UserSettingsModal = () => (
+    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>
+            Manage your application preferences and account settings.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground">
+            Settings functionality coming soon...
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const SupportModal = () => (
+    <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Support</DialogTitle>
+          <DialogDescription>
+            Get help and support for the Pointer application.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            If you need assistance, please reach out to our support team.
+          </p>
+          <div className="space-y-2">
+            <p className="text-sm">
+              <strong>Email:</strong> support@pointer.app
+            </p>
+            <p className="text-sm">
+              <strong>Documentation:</strong> docs.pointer.app
+            </p>
+            <p className="text-sm">
+              <strong>Community:</strong> community.pointer.app
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
-    <Sidebar collapsible="icon" className="border-r-0 flex flex-col">
-      <SidebarInset className="bg-transparent flex flex-col h-screen">
-        {/* Header */}
-        <SidebarHeader className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
-          <div className="flex items-center h-full w-full">
-            {/* Expanded state */}
-            <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-                  <Image
-                    src="/images/pointerlogo-575-transparent.svg"
-                    alt="Pen icon"
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 className="text-med font-serif text-slate-900 dark:text-slate-100">
-                    pointer
-                  </h2>
-                  <p className="text-xs font-serif text-slate-500 dark:text-slate-400">
-                    your digital workspace
-                  </p>
-                </div>
-              </div>
-              <div className="ml-auto">
-                <SidebarTrigger
-                  variant="ghost"
-                  className="rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 h-8 w-8"
-                />
-              </div>
-            </div>
-            {/* Collapsed state */}
-            <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center w-full">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg">
+    <Sidebar
+      collapsible="none"
+      className="border-r-0 flex flex-col h-screen w-full"
+    >
+      {/* Header */}
+      <SidebarHeader className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
+        <div className="flex items-center h-full w-full">
+          {/* Expanded state */}
+          <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg">
                 <Image
                   src="/images/pointerlogo-575-transparent.svg"
                   alt="Pen icon"
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 object-contain"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
                 />
               </div>
+              <div>
+                <h2 className="text-med font-serif text-slate-900 dark:text-slate-100">
+                  pointer
+                </h2>
+                <p className="text-xs font-serif text-slate-500 dark:text-slate-400">
+                  your digital workspace
+                </p>
+              </div>
+            </div>
+            <div className="ml-auto">
+              <SidebarTrigger
+                variant="ghost"
+                className="rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 h-8 w-8"
+              />
             </div>
           </div>
-        </SidebarHeader>
+          {/* Collapsed state */}
+          <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center w-full">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg">
+              <Image
+                src="/images/pointerlogo-575-transparent.svg"
+                alt="Pen icon"
+                width={24}
+                height={24}
+                className="h-6 w-6 object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      </SidebarHeader>
 
-        <SidebarContent className="bg-white dark:bg-slate-900 flex-1 overflow-y-auto">
-          {/* Navigation */}
+      <SidebarContent className="bg-white dark:bg-slate-900 flex-1 overflow-y-auto">
+        {/* Navigation */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => {
+                    handleNavClick("home");
+                    unsetCurrentNote();
+                  }}
+                  data-active={currentView === "home"}
+                  className={cn(
+                    "rounded-lg transition-all",
+                    currentView === "home"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <Home className="h-4 w-4" />
+                  <span>home</span>
+                </SidebarMenuButton>
+                {process.env.NODE_ENV !== "production" && (
+                  <SidebarMenuButton
+                    onClick={() => {
+                      handleNavClick("graph");
+                      unsetCurrentNote();
+                    }}
+                    data-active={currentView === "graph"}
+                    className={cn(
+                      "rounded-lg transition-all",
+                      currentView === "graph"
+                        ? "bg-primary/10 text-primary hover:bg-primary/15"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                    )}
+                  >
+                    <GitGraph className="h-4 w-4" />
+                    <span>jots</span>
+                  </SidebarMenuButton>
+                )}
+                <SidebarMenuButton
+                  onClick={() => {
+                    handleNavClick("whiteboard");
+                    unsetCurrentNote();
+                  }}
+                  data-active={currentView === "whiteboard"}
+                  className={cn(
+                    "rounded-lg transition-all",
+                    currentView === "whiteboard"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <LineSquiggle className="h-4 w-4" />
+                  <span>whiteboard</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Unsaved Changes */}
+        {Array.from(unsavedNotes.values()).length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
-              Navigation
+            <SidebarGroupLabel className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2">
+              <Clock className="h-3 w-3" />
+              Unsaved Changes
+              <Badge
+                variant="secondary"
+                className="ml-auto bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+              >
+                {Array.from(unsavedNotes.values()).length}
+              </Badge>
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => {
-                      handleNavClick("home");
-                      unsetCurrentNote();
-                    }}
-                    data-active={currentView === "home"}
-                    className={cn(
-                      "rounded-lg transition-all",
-                      currentView === "home"
-                        ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                    )}
-                  >
-                    <Home className="h-4 w-4" />
-                    <span>home</span>
-                  </SidebarMenuButton>
-                  {process.env.NODE_ENV !== "production" && (
+                {Array.from(unsavedNotes.values()).map((note) => (
+                  <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
-                      onClick={() => {
-                        handleNavClick("graph");
-                        unsetCurrentNote();
-                      }}
-                      data-active={currentView === "graph"}
-                      className={cn(
-                        "rounded-lg transition-all",
-                        currentView === "graph"
-                          ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                      )}
+                      onClick={() => handleNoteClick(note)}
+                      className="rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-700 dark:text-slate-300"
                     >
-                      <GitGraph className="h-4 w-4" />
-                      <span>jots</span>
+                      <div className="flex h-6 w-6 items-center justify-center rounded bg-orange-100 dark:bg-orange-900/30">
+                        <FileText className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <span className="truncate">{note.name}</span>
+                      <div className="ml-auto h-2 w-2 rounded-full bg-orange-500" />
                     </SidebarMenuButton>
-                  )}
-                  <SidebarMenuButton
-                    onClick={() => {
-                      handleNavClick("whiteboard");
-                      unsetCurrentNote();
-                    }}
-                    data-active={currentView === "whiteboard"}
-                    className={cn(
-                      "rounded-lg transition-all",
-                      currentView === "whiteboard"
-                        ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                    )}
-                  >
-                    <LineSquiggle className="h-4 w-4" />
-                    <span>whiteboard</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+        )}
 
-          {/* Unsaved Changes */}
-          {Array.from(unsavedNotes.values()).length > 0 && (
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2">
-                <Clock className="h-3 w-3" />
-                Unsaved Changes
-                <Badge
-                  variant="secondary"
-                  className="ml-auto bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
-                >
-                  {Array.from(unsavedNotes.values()).length}
-                </Badge>
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {Array.from(unsavedNotes.values()).map((note) => (
+        {/* Recent Notes */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+            Recent Notes
+          </SidebarGroupLabel>
+          <SidebarGroupAction
+            onClick={handleCreateNote}
+            className="rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Add Note</span>
+          </SidebarGroupAction>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {recentNotes.map((note) => {
+                const isActive = currentNote?.pointer_id === note.pointer_id;
+
+                const noteButton = (
+                  <SidebarMenuButton
+                    onClick={() => handleNoteClick(note)}
+                    data-active={isActive}
+                    className={cn(
+                      "rounded-lg transition-all w-full",
+                      isActive
+                        ? "bg-primary/10 text-primary hover:bg-primary/15"
+                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                    )}
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>{note.name}</span>
+                  </SidebarMenuButton>
+                );
+
+                return (
+                  <SidebarMenuItem
+                    key={String(note.pointer_id)}
+                    className="relative group"
+                  >
+                    <div className="relative group/item">
+                      {noteButton}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => handleOpenDeleteDialog(e, note)}
+                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                      >
+                        <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                        <span className="sr-only">Delete note</span>
+                      </Button>
+                    </div>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Shared with me */}
+        {sharedNotes.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+              <Users className="h-3 w-3" />
+              Shared with me
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sharedNotes.map((note) => {
+                  const isActive = currentNote?.pointer_id === note.pointer_id;
+
+                  return (
                     <SidebarMenuItem key={String(note.pointer_id)}>
                       <SidebarMenuButton
                         onClick={() => handleNoteClick(note)}
-                        className="rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-700 dark:text-slate-300"
+                        data-active={isActive}
+                        className={cn(
+                          "rounded-lg transition-all",
+                          isActive
+                            ? "bg-primary/10 text-primary hover:bg-primary/15"
+                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        )}
                       >
-                        <div className="flex h-6 w-6 items-center justify-center rounded bg-orange-100 dark:bg-orange-900/30">
-                          <FileText className="h-3 w-3 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <span className="truncate">{note.name}</span>
-                        <div className="ml-auto h-2 w-2 rounded-full bg-orange-500" />
+                        <FileText className="h-4 w-4" />
+                        <span>{note.name}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-          {/* Recent Notes */}
+        {/* All Notes (collapsed by default) */}
+        {userNotes.length > 5 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
-              Recent Notes
+            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
+              All Notes ({userNotes.length})
             </SidebarGroupLabel>
-            <SidebarGroupAction
-              onClick={handleCreateNote}
-              className="rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="sr-only">Add Note</span>
-            </SidebarGroupAction>
             <SidebarGroupContent>
               <SidebarMenu>
-                {recentNotes.map((note) => {
+                {userNotes.slice(5).map((note) => {
                   const isActive = currentNote?.pointer_id === note.pointer_id;
 
                   const noteButton = (
@@ -311,145 +458,88 @@ export default function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+        )}
+      </SidebarContent>
 
-          {/* Shared with me */}
-          {sharedNotes.length > 0 && (
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
-                <Users className="h-3 w-3" />
-                Shared with me
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {sharedNotes.map((note) => {
-                    const isActive =
-                      currentNote?.pointer_id === note.pointer_id;
-
-                    return (
-                      <SidebarMenuItem key={String(note.pointer_id)}>
-                        <SidebarMenuButton
-                          onClick={() => handleNoteClick(note)}
-                          data-active={isActive}
-                          className={cn(
-                            "rounded-lg transition-all",
-                            isActive
-                              ? "bg-primary/10 text-primary hover:bg-primary/15"
-                              : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                          )}
-                        >
-                          <FileText className="h-4 w-4" />
-                          <span>{note.name}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
-
-          {/* All Notes (collapsed by default) */}
-          {userNotes.length > 5 && (
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
-                All Notes ({userNotes.length})
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {userNotes.slice(5).map((note) => {
-                    const isActive =
-                      currentNote?.pointer_id === note.pointer_id;
-
-                    const noteButton = (
-                      <SidebarMenuButton
-                        onClick={() => handleNoteClick(note)}
-                        data-active={isActive}
-                        className={cn(
-                          "rounded-lg transition-all w-full",
-                          isActive
-                            ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
-                        )}
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>{note.name}</span>
-                      </SidebarMenuButton>
-                    );
-
-                    return (
-                      <SidebarMenuItem
-                        key={String(note.pointer_id)}
-                        className="relative group"
-                      >
-                        <div className="relative group/item">
-                          {noteButton}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => handleOpenDeleteDialog(e, note)}
-                            className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
-                          >
-                            <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
-                            <span className="sr-only">Delete note</span>
-                          </Button>
-                        </div>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
-        </SidebarContent>
-
-        {/* Footer */}
-        <SidebarFooter className="mt-auto h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
-          <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 h-full w-full">
-            {/* Expanded state */}
-            <div className="group-data-[collapsible=icon]:hidden flex items-center w-full">
-              <div className="flex items-center gap-2">
-                <FileText className="h-3 w-3" />
-                <span>{userNotes.length} notes total</span>
-              </div>
-              <div className="ml-auto mt-2">
-                <ThemeToggle size="sm" />
-              </div>
-            </div>
-            {/* Collapsed state */}
-            <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center justify-center gap-2 h-full w-full">
-              <SidebarTrigger
+      {/* Footer */}
+      <SidebarFooter className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
+        <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 h-full w-full">
+          {/* Expanded state */}
+          <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Button
                 variant="ghost"
-                className="rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 h-6 w-6"
-              />
-              <div className="mt-1">
-                <ThemeToggle size="sm" />
-              </div>
+                size="sm"
+                onClick={() => setIsSettingsOpen(true)}
+                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <Cog className="h-4 w-4" />
+                <span className="sr-only">Settings</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSupportOpen(true)}
+                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <HandHelping className="h-4 w-4" />
+                <span className="sr-only">Support</span>
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle size="sm" />
             </div>
           </div>
-        </SidebarFooter>
-        {noteToDelete && (
-          <AlertDialog
-            open={!!noteToDelete}
-            onOpenChange={(isOpen) => !isOpen && setNoteToDelete(null)}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  note titled &quot;{noteToDelete.name}&quot;.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete}>
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </SidebarInset>
+          {/* Collapsed state */}
+          <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center justify-center gap-2 h-full w-full">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSettingsOpen(true)}
+                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <Cog className="h-3 w-3" />
+                <span className="sr-only">Settings</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSupportOpen(true)}
+                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <HandHelping className="h-3 w-3" />
+                <span className="sr-only">Support</span>
+              </Button>
+            </div>
+            <ThemeToggle size="sm" />
+          </div>
+        </div>
+      </SidebarFooter>
+      {noteToDelete && (
+        <AlertDialog
+          open={!!noteToDelete}
+          onOpenChange={(isOpen) => !isOpen && setNoteToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                note titled &quot;{noteToDelete.name}&quot;.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      <UserSettingsModal />
+      <SupportModal />
     </Sidebar>
   );
 }
