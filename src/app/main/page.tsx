@@ -90,7 +90,7 @@ export default function MainPage() {
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <ResizablePanelGroup direction="horizontal" className="h-full">
-        <ResizablePanel defaultSize={15} minSize={5} maxSize={40}>
+        <ResizablePanel defaultSize={12} minSize={7} maxSize={40}>
           <SidebarProvider>
             <AppSidebar />
           </SidebarProvider>

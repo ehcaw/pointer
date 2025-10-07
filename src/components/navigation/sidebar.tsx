@@ -26,8 +26,6 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-  SidebarInset,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   AlertDialog,
@@ -45,7 +43,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/stores/notes-store";
@@ -195,12 +192,6 @@ export default function AppSidebar() {
                   your digital workspace
                 </p>
               </div>
-            </div>
-            <div className="ml-auto">
-              <SidebarTrigger
-                variant="ghost"
-                className="rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 h-8 w-8"
-              />
             </div>
           </div>
           {/* Collapsed state */}
