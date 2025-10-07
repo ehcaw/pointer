@@ -108,9 +108,7 @@ export default function MainPage() {
               <DefaultHeader />
             )}
 
-            <div
-              className={`overflow-y-auto ${currentView === "note" ? "h-[calc(100vh-4rem)]" : "h-[calc(100vh-4rem)]"}`}
-            >
+            <div className={`overflow-y-auto h-[calc(100vh-4rem)]`}>
               {currentView === "home" && <HomeView />}
               {currentView === "note" &&
                 currentNote &&
