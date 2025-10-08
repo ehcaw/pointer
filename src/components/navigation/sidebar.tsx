@@ -217,42 +217,98 @@ export default function AppSidebar() {
 
                   // Style inputs
                   inputs.forEach((input) => {
+                    const borderColor = isDarkMode
+                      ? "oklch(0.3240 0.0319 281.9784)"
+                      : "oklch(0.8083 0.0174 271.1982)";
+                    const backgroundColor = isDarkMode
+                      ? "oklch(0.2429 0.0304 283.9110)"
+                      : "oklch(1.0000 0 0)";
+                    const textColor = isDarkMode
+                      ? "oklch(0.8787 0.0426 272.2767)"
+                      : "oklch(0.4355 0.0430 279.3250)";
+                    const placeholderColor = isDarkMode
+                      ? "oklch(0.7510 0.0396 273.9320)"
+                      : "oklch(0.5471 0.0343 279.0837)";
+
                     input.style.cssText = `
                     width: 100% !important;
                     padding: 12px !important;
-                    border: 1px solid ${isDarkMode ? "#475569" : "#cbd5e1"} !important;
-                    border-radius: 8px !important;
+                    border: 1px solid ${borderColor} !important;
+                    border-top: 1px solid ${borderColor} !important;
+                    border-right: 1px solid ${borderColor} !important;
+                    border-bottom: 1px solid ${borderColor} !important;
+                    border-left: 1px solid ${borderColor} !important;
+                    border-radius: var(--radius, 0.35rem) !important;
                     font-size: 14px !important;
-                    background: ${isDarkMode ? "#1e293b" : "white"} !important;
-                    color: ${isDarkMode ? "#f8fafc" : "#0f172a"} !important;
-                    font-family: inherit !important;
+                    background: ${backgroundColor} !important;
+                    color: ${textColor} !important;
+                    font-family: var(--font-sans, Montserrat, sans-serif) !important;
                     box-sizing: border-box !important;
                     display: block !important;
                     margin-bottom: 12px !important;
+                    outline: none !important;
+                    box-shadow: none !important;
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
                   `;
 
-                    // Fix placeholder color for dark mode
-                    if (isDarkMode) {
-                      input.style.setProperty("--placeholder-color", "#94a3b8");
-                      input.setAttribute(
-                        "style",
-                        input.getAttribute("style") +
-                          "; ::placeholder { color: #94a3b8 !important; }",
-                      );
-                    }
+                    // Remove any pseudo-element borders
+                    const style = document.createElement("style");
+                    style.textContent = `
+                      #pointer-survey-container input:before,
+                      #pointer-survey-container input:after,
+                      #pointer-survey-container textarea:before,
+                      #pointer-survey-container textarea:after {
+                        display: none !important;
+                      }
+                      #pointer-survey-container input:focus,
+                      #pointer-survey-container textarea:focus {
+                        border: 1px solid ${borderColor} !important;
+                        outline: none !important;
+                        box-shadow: none !important;
+                      }
+                      #pointer-survey-container hr {
+                        display: none !important;
+                      }
+                      #pointer-survey-container div:empty:not([class*='input']):not([id]):not([data-testid]) {
+                        display: none !important;
+                      }
+                      #pointer-survey-container div[style*='height: 1px'] {
+                        display: none !important;
+                      }
+                    `;
+                    document.head.appendChild(style);
+
+                    // Fix placeholder color
+                    input.style.setProperty(
+                      "--placeholder-color",
+                      placeholderColor,
+                    );
+                    input.setAttribute(
+                      "style",
+                      input.getAttribute("style") +
+                        `; ::placeholder { color: ${placeholderColor} !important; }`,
+                    );
                   });
 
                   // Style buttons
                   buttons.forEach((button) => {
-                    const bgColor = isDarkMode ? "#f8fafc" : "#0f172a";
-                    const textColor = isDarkMode ? "#0f172a" : "white";
-                    const hoverColor = isDarkMode ? "#e2e8f0" : "#1e293b";
+                    const bgColor = isDarkMode
+                      ? "oklch(0.7871 0.1187 304.7693)"
+                      : "oklch(0.5547 0.2503 297.0156)";
+                    const textColor = isDarkMode
+                      ? "oklch(0.2429 0.0304 283.9110)"
+                      : "oklch(1.0000 0 0)";
+                    const hoverColor = isDarkMode
+                      ? "oklch(0.6820 0.1448 235.3822)"
+                      : "oklch(0.6820 0.1448 235.3822)";
 
                     button.style.cssText = `
                     background-color: ${bgColor} !important;
                     color: ${textColor} !important;
                     padding: 12px 24px !important;
-                    border-radius: 8px !important;
+                    border-radius: var(--radius, 0.35rem) !important;
                     border: none !important;
                     font-weight: 500 !important;
                     font-size: 14px !important;
@@ -260,63 +316,79 @@ export default function AppSidebar() {
                     transition: all 0.2s !important;
                     margin-top: 0px !important;
                     margin-bottom: 12px !important;
-                    font-family: inherit !important;
+                    font-family: var(--font-sans, Montserrat, sans-serif) !important;
                     display: block !important;
                     width: auto !important;
                   `;
 
-                    // Remove existing event listeners to prevent duplicates
-                    const newButton = button.cloneNode(true) as HTMLElement;
-                    button.parentNode?.replaceChild(newButton, button);
-
-                    newButton.addEventListener("mouseenter", () => {
-                      newButton.style.backgroundColor =
-                        hoverColor + " !important";
+                    // Don't clone buttons to preserve PostHog event handlers
+                    button.addEventListener("mouseenter", () => {
+                      button.style.backgroundColor = hoverColor + " !important";
                     });
 
-                    newButton.addEventListener("mouseleave", () => {
-                      newButton.style.backgroundColor = bgColor + " !important";
+                    button.addEventListener("mouseleave", () => {
+                      button.style.backgroundColor = bgColor + " !important";
                     });
                   });
 
-                  // Style questions
+                  // Style questions without affecting functionality
                   questions.forEach((question) => {
-                    question.style.cssText = `
-                    font-size: 18px !important;
-                    font-weight: 600 !important;
-                    color: ${isDarkMode ? "#f8fafc" : "#0f172a"} !important;
-                    margin-bottom: 12px !important;
-                    margin-top: 0 !important;
-                    font-family: inherit !important;
-                  `;
+                    const textColor = isDarkMode
+                      ? "oklch(0.9500 0.0200 272.2767)"
+                      : "oklch(0.4355 0.0430 279.3250)";
+
+                    // Only add styles, don't replace cssText completely
+                    question.style.fontSize = "14px";
+                    question.style.fontWeight = "500";
+                    question.style.color = textColor;
+                    question.style.marginBottom = "8px";
+                    question.style.marginTop = "0";
+                    question.style.fontFamily =
+                      "var(--font-sans, Montserrat, sans-serif)";
                   });
+
+                  // Additional CSS for text visibility without breaking functionality
+                  const additionalStyle = document.createElement("style");
+                  const textColor = isDarkMode
+                    ? "oklch(0.9500 0.0200 272.2767)"
+                    : "oklch(0.4355 0.0430 279.3250)";
+                  additionalStyle.textContent = `
+                    #pointer-survey-container h1,
+                    #pointer-survey-container h2,
+                    #pointer-survey-container h3,
+                    #pointer-survey-container h4,
+                    #pointer-survey-container h5,
+                    #pointer-survey-container h6,
+                    #pointer-survey-container p,
+                    #pointer-survey-container label,
+                    #pointer-survey-container span:not([class*='icon']) {
+                      color: ${textColor} !important;
+                    }
+                  `;
+                  document.head.appendChild(additionalStyle);
 
                   // Style footer/branding to be below button
                   footers.forEach((footer) => {
+                    const borderColor = isDarkMode
+                      ? "oklch(0.3240 0.0319 281.9784)"
+                      : "oklch(0.8083 0.0174 271.1982)";
+                    const textColor = isDarkMode
+                      ? "oklch(0.7510 0.0396 273.9320)"
+                      : "oklch(0.5471 0.0343 279.0837)";
+
                     footer.style.cssText = `
                     margin-top: 8px !important;
                     padding-top: 8px !important;
-                    border-top: 1px solid ${isDarkMode ? "#475569" : "#e2e8f0"} !important;
+                    border-top: 1px solid ${borderColor} !important;
                     font-size: 12px !important;
-                    color: ${isDarkMode ? "#94a3b8" : "#64748b"} !important;
+                    color: ${textColor} !important;
                     display: block !important;
                     text-align: left !important;
                     width: 100% !important;
                   `;
                   });
 
-                  // Ensure survey container has proper flex layout
-                  const surveyElements = surveyContainer.querySelectorAll(
-                    "*",
-                  ) as NodeListOf<HTMLElement>;
-                  surveyElements.forEach((element) => {
-                    if (
-                      element.style.display === "flex" ||
-                      element.style.display === "inline-flex"
-                    ) {
-                      element.style.display = "block !important";
-                    }
-                  });
+                  // Don't modify display properties to avoid breaking survey functionality
 
                   console.log("Applied JavaScript survey styles", {
                     isDarkMode,
@@ -339,7 +411,7 @@ export default function AppSidebar() {
               });
             }, 100);
           }
-        }, 1000);
+        }, 50);
 
         console.log("Survey display attempted successfully");
       } catch (error) {
@@ -352,7 +424,7 @@ export default function AppSidebar() {
     };
 
     // Start checking after modal has time to render
-    setTimeout(waitForPostHogAndDisplaySurvey, 500);
+    setTimeout(waitForPostHogAndDisplaySurvey, 100);
   };
 
   return (

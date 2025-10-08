@@ -49,14 +49,11 @@ const SupportModal = ({
             </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-6">
               If you want to report a bug, provide feedback, or request
               features, fill out this form!
             </p>
-            <div
-              id="pointer-survey-container"
-              className="min-h-[300px] w-full posthog-survey-container"
-            >
+            <div id="pointer-survey-container" className="min-h-[300px] w-full">
               {/* Survey will be injected here by PostHog */}
             </div>
           </div>
