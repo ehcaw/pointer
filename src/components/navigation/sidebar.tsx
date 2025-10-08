@@ -190,7 +190,7 @@ export default function AppSidebar() {
                 console.error("Target survey not found in available surveys");
                 if (surveyContainer) {
                   surveyContainer.innerHTML =
-                    '<p class="text-sm text-amber-600">Survey not available. Please check if it is active and published.</p>';
+                    '<p class="text-sm text-amber-600">Survey not available. Please turn off your adblocker.</p>';
                 }
               }
             });

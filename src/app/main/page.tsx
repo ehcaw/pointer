@@ -13,6 +13,7 @@ import {
 import { HomeView } from "@/components/views/HomeView";
 import GraphView from "@/components/views/GraphView";
 import WhiteboardView from "@/components/views/WhiteboardView";
+import LoadingView from "@/components/views/LoadingView";
 import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
@@ -73,18 +74,21 @@ export default function MainPage() {
   // Show loading while authentication is being checked
   if (!isLoaded || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
+      // <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      //   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      // </div>
+      <LoadingView />
     );
   }
 
   // Don't render main app if not signed in (prevents flash)
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
+      // <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      //   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      // </div>
+      //
+      <LoadingView />
     );
   }
 
@@ -105,9 +109,9 @@ export default function MainPage() {
             {currentView === "whiteboard" && <WhiteboardViewHeader />}
 
             {/* Header for non-note views */}
-            {currentView !== "note" && currentView !== "whiteboard" && currentView !== "settings" && (
-              <DefaultHeader />
-            )}
+            {currentView !== "note" &&
+              currentView !== "whiteboard" &&
+              currentView !== "settings" && <DefaultHeader />}
 
             <div className={`overflow-y-auto h-[calc(100vh-4rem)]`}>
               {currentView === "home" && <HomeView />}

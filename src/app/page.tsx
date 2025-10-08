@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { SignIn } from "@clerk/nextjs";
 import Image from "next/image";
 import { Libre_Baskerville } from "next/font/google";
+import LoadingView from "@/components/views/LoadingView";
 
 const libreBaskerville = Libre_Baskerville({
   weight: "400",
@@ -33,11 +34,7 @@ export default function LoginPage() {
 
   // Don't render login if already signed in (prevents flash)
   if (isSignedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <LoadingView />;
   }
 
   return (

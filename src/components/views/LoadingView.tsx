@@ -65,21 +65,6 @@ const LoadingView = () => {
         {/* Toolbar skeleton */}
         <div className="h-12 border-b border-border bg-muted/30 px-4 py-2">
           <div className="flex items-center space-x-2">
-            {/*<div className="flex items-center space-x-1">
-              <Skeleton className="h-8 w-8 bg-muted/50 animate-pulse rounded-md" />
-              <Skeleton className="h-8 w-8 bg-muted/50 animate-pulse rounded-md" />
-            </div>
-            <div className="w-px h-6 bg-border mx-2" />
-            <Skeleton className="h-8 w-12 bg-muted/50 animate-pulse rounded-md" />
-            <div className="w-px h-6 bg-border mx-2" />*/}
-            {/*<div className="flex items-center space-x-1">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className="h-8 w-8 bg-muted/50 animate-pulse rounded-md"
-                />
-              ))}
-            </div>*/}
             <div className="ml-auto">
               <Skeleton className="h-8 w-8 bg-muted/50 animate-pulse rounded-md" />
             </div>
