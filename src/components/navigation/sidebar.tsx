@@ -37,13 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
@@ -52,10 +45,13 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import SupportModal from "./SupportModal";
+
+import { DisplaySurveyType } from "posthog-js";
+import { usePostHog } from "posthog-js/react";
 
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const {
     userNotes,
@@ -69,8 +65,9 @@ export default function AppSidebar() {
   } = useNotesStore();
 
   const { currentView, setCurrentView } = usePreferencesStore();
-
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
+
+  const posthog = usePostHog();
 
   const handleCreateNote = () => {
     const title = `Note ${openUserNotes.length + 1}`;
@@ -78,7 +75,9 @@ export default function AppSidebar() {
     createNewNote(title);
   };
 
-  const handleNavClick = (view: "home" | "graph" | "whiteboard" | "note") => {
+  const handleNavClick = (
+    view: "home" | "graph" | "whiteboard" | "note" | "settings",
+  ) => {
     setCurrentView(view);
   };
 
@@ -117,52 +116,128 @@ export default function AppSidebar() {
     )
     .slice(0, 5);
 
-  const UserSettingsModal = () => (
-    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>
-            Manage your application preferences and account settings.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="text-sm text-muted-foreground">
-            Settings functionality coming soon...
-          </p>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  const addEmailValidation = (container: HTMLElement) => {
+    // Find email inputs (first question should be email)
+    const emailInputs = container.querySelectorAll(
+      'input[type="email"], input[placeholder*="email" i], input[aria-label*="email" i]'
+    );
+    
+    emailInputs.forEach((input) => {
+      const emailInput = input as HTMLInputElement;
+      
+      // Create validation message element
+      const validationMessage = document.createElement('div');
+      validationMessage.className = 'email-validation-message';
+      validationMessage.textContent = 'Please enter a valid email address';
+      
+      // Insert validation message after the input
+      emailInput.parentNode?.insertBefore(validationMessage, emailInput.nextSibling);
+      
+      // Email validation function
+      const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+      };
+      
+      // Update validation state
+      const updateValidation = () => {
+        const isValid = emailInput.value.trim() === '' || validateEmail(emailInput.value);
+        
+        if (emailInput.value.trim() === '') {
+          emailInput.classList.remove('valid', 'invalid');
+          validationMessage.classList.remove('show');
+        } else if (isValid) {
+          emailInput.classList.remove('invalid');
+          emailInput.classList.add('valid');
+          validationMessage.classList.remove('show');
+        } else {
+          emailInput.classList.remove('valid');
+          emailInput.classList.add('invalid');
+          validationMessage.classList.add('show');
+        }
+        
+        // Enable/disable submit button based on email validity
+        const submitButtons = container.querySelectorAll(
+          'button[type="submit"], input[type="submit"], [role="button"]:not([aria-disabled="true"])'
+        );
+        
+        submitButtons.forEach((button) => {
+          if (emailInput.value.trim() !== '' && !isValid) {
+            button.classList.add('email-invalid-disabled');
+            (button as HTMLButtonElement).setAttribute('aria-disabled', 'true');
+          } else {
+            button.classList.remove('email-invalid-disabled');
+            (button as HTMLButtonElement).removeAttribute('aria-disabled');
+          }
+        });
+      };
+      
+      // Add event listeners
+      emailInput.addEventListener('input', updateValidation);
+      emailInput.addEventListener('blur', updateValidation);
+      
+      // Initial validation
+      updateValidation();
+    });
+  };
 
-  const SupportModal = () => (
-    <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Support</DialogTitle>
-          <DialogDescription>
-            Get help and support for the Pointer application.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            If you need assistance, please reach out to our support team.
-          </p>
-          <div className="space-y-2">
-            <p className="text-sm">
-              <strong>Email:</strong> support@pointer.app
-            </p>
-            <p className="text-sm">
-              <strong>Documentation:</strong> docs.pointer.app
-            </p>
-            <p className="text-sm">
-              <strong>Community:</strong> community.pointer.app
-            </p>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  const handleForceShowInlineSurvey = () => {
+    const surveyId = process.env.NEXT_PUBLIC_POSTHOG_FEEDBACK_SURVEY_ID;
+    if (!surveyId || !posthog) return;
+
+    // wait for dialog content to mount
+    setTimeout(() => {
+      const container = document.getElementById("pointer-survey-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      let attempts = 0;
+      const hasLoadedFlag = (
+        ph: unknown,
+      ): ph is {
+        __loaded: boolean;
+        displaySurvey: typeof posthog.displaySurvey;
+      } =>
+        typeof ph === "object" &&
+        ph !== null &&
+        "__loaded" in ph &&
+        typeof (ph as { __loaded?: unknown }).__loaded === "boolean";
+      const tryRender = () => {
+        if (hasLoadedFlag(posthog) && posthog.__loaded) {
+          try {
+            posthog.displaySurvey(surveyId, {
+              displayType: DisplaySurveyType.Inline,
+              selector: "#pointer-survey-container",
+              ignoreConditions: true,
+              ignoreDelay: true,
+            });
+            // Apply opt-in "ph-list" class to choice groups for cleaner list styling
+            // Add email validation for the first question
+            // Delay slightly so PostHog has mounted its DOM
+            setTimeout(() => {
+              // container is in closure scope
+              if (!container) return;
+              const groups = container.querySelectorAll(
+                'div[role="radiogroup"], div[role="group"]',
+              );
+              groups.forEach((g) => g.classList.add("ph-list"));
+              
+              // Add email validation
+              addEmailValidation(container);
+            }, 60);
+          } catch (e) {
+            console.error("Failed to display survey", e);
+          }
+          return;
+        }
+        if (attempts++ < 30) {
+          setTimeout(tryRender, 150);
+        }
+      };
+
+      tryRender();
+    }, 50);
+  };
 
   return (
     <Sidebar
@@ -170,7 +245,7 @@ export default function AppSidebar() {
       className="border-r-0 flex flex-col h-screen w-full"
     >
       {/* Header */}
-      <SidebarHeader className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
+      <SidebarHeader className="h-16 bg-gradient-to-br from-background to-card border-b border-border p-4">
         <div className="flex items-center h-full w-full">
           {/* Expanded state */}
           <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
@@ -185,10 +260,8 @@ export default function AppSidebar() {
                 />
               </div>
               <div>
-                <h2 className="text-med font-serif text-slate-900 dark:text-slate-100">
-                  pointer
-                </h2>
-                <p className="text-xs font-serif text-slate-500 dark:text-slate-400">
+                <h2 className="text-med font-serif text-foreground">pointer</h2>
+                <p className="text-xs font-serif text-muted-foreground">
                   your digital workspace
                 </p>
               </div>
@@ -209,10 +282,10 @@ export default function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-white dark:bg-slate-900 flex-1 overflow-y-auto">
+      <SidebarContent className="bg-background flex-1 overflow-y-auto">
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
+          <SidebarGroupLabel className="text-muted-foreground font-medium">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -228,7 +301,7 @@ export default function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                   )}
                 >
                   <Home className="h-4 w-4" />
@@ -245,7 +318,7 @@ export default function AppSidebar() {
                       "rounded-lg transition-all",
                       currentView === "graph"
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                     )}
                   >
                     <GitGraph className="h-4 w-4" />
@@ -262,7 +335,7 @@ export default function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "whiteboard"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                   )}
                 >
                   <LineSquiggle className="h-4 w-4" />
@@ -276,12 +349,12 @@ export default function AppSidebar() {
         {/* Unsaved Changes */}
         {Array.from(unsavedNotes.values()).length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2">
+            <SidebarGroupLabel className="text-accent-foreground dark:text-accent-foreground font-medium flex items-center gap-2">
               <Clock className="h-3 w-3" />
               Unsaved Changes
               <Badge
                 variant="secondary"
-                className="ml-auto bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                className="ml-auto bg-accent/20 dark:bg-accent/20 text-accent-foreground dark:text-accent-foreground"
               >
                 {Array.from(unsavedNotes.values()).length}
               </Badge>
@@ -292,13 +365,13 @@ export default function AppSidebar() {
                   <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
-                      className="rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-700 dark:text-slate-300"
+                      className="rounded-lg hover:bg-accent hover:text-foreground"
                     >
-                      <div className="flex h-6 w-6 items-center justify-center rounded bg-orange-100 dark:bg-orange-900/30">
-                        <FileText className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                      <div className="flex h-6 w-6 items-center justify-center rounded bg-accent/20 dark:bg-accent/20">
+                        <FileText className="h-3 w-3 text-accent-foreground" />
                       </div>
                       <span className="truncate">{note.name}</span>
-                      <div className="ml-auto h-2 w-2 rounded-full bg-orange-500" />
+                      <div className="ml-auto h-2 w-2 rounded-full bg-accent" />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -309,7 +382,7 @@ export default function AppSidebar() {
 
         {/* Recent Notes */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+          <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
             Recent Notes
           </SidebarGroupLabel>
           <SidebarGroupAction
@@ -332,7 +405,7 @@ export default function AppSidebar() {
                       "rounded-lg transition-all w-full",
                       isActive
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                     )}
                   >
                     <FileText className="h-4 w-4" />
@@ -351,9 +424,9 @@ export default function AppSidebar() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => handleOpenDeleteDialog(e, note)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
                       >
-                        <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                        <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
                         <span className="sr-only">Delete note</span>
                       </Button>
                     </div>
@@ -367,7 +440,7 @@ export default function AppSidebar() {
         {/* Shared with me */}
         {sharedNotes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+            <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
               <Users className="h-3 w-3" />
               Shared with me
             </SidebarGroupLabel>
@@ -385,7 +458,7 @@ export default function AppSidebar() {
                           "rounded-lg transition-all",
                           isActive
                             ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                            : "hover:bg-accent hover:text-foreground",
                         )}
                       >
                         <FileText className="h-4 w-4" />
@@ -402,7 +475,7 @@ export default function AppSidebar() {
         {/* All Notes (collapsed by default) */}
         {userNotes.length > 5 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
+            <SidebarGroupLabel className="text-muted-foreground font-medium">
               All Notes ({userNotes.length})
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -418,7 +491,7 @@ export default function AppSidebar() {
                         "rounded-lg transition-all w-full",
                         isActive
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                          : "hover:bg-accent hover:text-foreground",
                       )}
                     >
                       <FileText className="h-4 w-4" />
@@ -437,9 +510,9 @@ export default function AppSidebar() {
                           variant="ghost"
                           size="icon"
                           onClick={(e) => handleOpenDeleteDialog(e, note)}
-                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
                         >
-                          <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                          <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
                           <span className="sr-only">Delete note</span>
                         </Button>
                       </div>
@@ -453,57 +526,81 @@ export default function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
-        <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 h-full w-full">
+      <SidebarFooter className="h-16 bg-gradient-to-br from-background to-card border-t border-border p-4">
+        <div className="flex items-center text-xs text-muted-foreground h-full w-full">
           {/* Expanded state */}
-          <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
-            <div className="flex items-center gap-2">
+          <div className="group-data-[collapsible=icon]:hidden flex items-center w-full">
+            <div className="flex-1 flex justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSettingsOpen(true)}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-accent text-muted-foreground"
+              >
+                <ThemeToggle />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </div>
+            <div className="flex-1 flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavClick("settings")}
+                disabled={process.env.NODE_ENV === "production"}
+                className="h-8 w-8 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Cog className="h-4 w-4" />
                 <span className="sr-only">Settings</span>
               </Button>
+            </div>
+            <div className="flex-1 flex justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSupportOpen(true)}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                onClick={() => {
+                  setIsSupportOpen(true);
+                }}
+                className="h-8 w-8 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer"
               >
                 <HandHelping className="h-4 w-4" />
                 <span className="sr-only">Support</span>
               </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle size="sm" />
-            </div>
           </div>
           {/* Collapsed state */}
-          <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center justify-center gap-2 h-full w-full">
-            <div className="flex items-center gap-1">
+          <div className="hidden group-data-[collapsible=icon]:flex flex-col h-full w-full py-1">
+            <div className="flex-1 flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSettingsOpen(true)}
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent text-muted-foreground"
+              >
+                <ThemeToggle />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavClick("settings")}
+                disabled={process.env.NODE_ENV === "production"}
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Cog className="h-3 w-3" />
                 <span className="sr-only">Settings</span>
               </Button>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsSupportOpen(true)}
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer"
               >
                 <HandHelping className="h-3 w-3" />
                 <span className="sr-only">Support</span>
               </Button>
             </div>
-            <ThemeToggle size="sm" />
           </div>
         </div>
       </SidebarFooter>
@@ -529,8 +626,11 @@ export default function AppSidebar() {
           </AlertDialogContent>
         </AlertDialog>
       )}
-      <UserSettingsModal />
-      <SupportModal />
+      <SupportModal
+        isSupportOpen={isSupportOpen}
+        setIsSupportOpen={setIsSupportOpen}
+        onModalOpen={handleForceShowInlineSurvey}
+      />
     </Sidebar>
   );
 }

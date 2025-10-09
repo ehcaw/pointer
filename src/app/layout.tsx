@@ -5,6 +5,8 @@ import "./globals.css";
 import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { PostHogContextProvider } from "@/providers/PostHogProvider";
+
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -61,12 +63,14 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <ThemeProvider defaultTheme="system" storageKey="theme">
-            <ConvexClientProvider>
-              <CommandMenuProvider>{children}</CommandMenuProvider>
-              <Toaster position="top-right" />
-            </ConvexClientProvider>
-          </ThemeProvider>
+          <PostHogContextProvider>
+            <ThemeProvider defaultTheme="system" storageKey="theme">
+              <ConvexClientProvider>
+                <CommandMenuProvider>{children}</CommandMenuProvider>
+                <Toaster position="top-right" />
+              </ConvexClientProvider>
+            </ThemeProvider>
+          </PostHogContextProvider>
         </body>
       </html>
     </ClerkProvider>

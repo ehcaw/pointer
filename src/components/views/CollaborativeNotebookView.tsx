@@ -34,7 +34,7 @@ export const CollaborativeNotebookView = ({}) => {
       };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">
       {/* Main Editor */}
       <div className="px-6 py-8 pb-20">
         <div className="mx-auto max-w-[100%]">
@@ -45,7 +45,7 @@ export const CollaborativeNotebookView = ({}) => {
               editorContainerRef={editorContainerRef}
             />
           )}
-          <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-card rounded-sm shadow-sm border border-border overflow-hidden">
             <div
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
@@ -64,9 +64,9 @@ export const CollaborativeNotebookView = ({}) => {
 
       {/* Footer with note info */}
       {currentNote && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 h-16">
+        <div className="absolute bottom-0 left-0 right-0 bg-background/80 dark:bg-background/80 backdrop-blur-sm border-t border-border dark:border-border h-16">
           <div className="px-6 py-4 h-full">
-            <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 h-full">
+            <div className="flex items-center justify-between text-sm text-muted-foreground dark:text-muted-foreground h-full">
               <div className="flex items-center gap-4"></div>
 
               <div className="flex items-center gap-2">

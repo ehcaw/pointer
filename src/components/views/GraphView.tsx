@@ -86,7 +86,7 @@ export default function GraphView() {
       <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 h-full">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
               Your Neural Network
             </h1>
             <div className="hidden md:flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function GraphView() {
         <Button
           size="lg"
           onClick={() => setShowCapture(true)}
-          className="rounded-full h-14 w-14 shadow-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+          className="rounded-full h-14 w-14 shadow-lg bg-gradient-to-r from-primary to-blue-600 hover:from-primary/80 hover:to-blue-600/80"
         >
           <Plus className="h-6 w-6" />
         </Button>
