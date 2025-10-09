@@ -146,6 +146,16 @@ export default function AppSidebar() {
               ignoreConditions: true,
               ignoreDelay: true,
             });
+            // Apply opt-in "ph-list" class to choice groups for cleaner list styling
+            // Delay slightly so PostHog has mounted its DOM
+            setTimeout(() => {
+              // container is in closure scope
+              if (!container) return;
+              const groups = container.querySelectorAll(
+                'div[role="radiogroup"], div[role="group"]',
+              );
+              groups.forEach((g) => g.classList.add("ph-list"));
+            }, 60);
           } catch (e) {
             console.error("Failed to display survey", e);
           }
