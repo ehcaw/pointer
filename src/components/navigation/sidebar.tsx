@@ -433,7 +433,7 @@ export default function AppSidebar() {
       className="border-r-0 flex flex-col h-screen w-full"
     >
       {/* Header */}
-      <SidebarHeader className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
+      <SidebarHeader className="h-16 bg-gradient-to-br from-background to-card border-b border-border p-4">
         <div className="flex items-center h-full w-full">
           {/* Expanded state */}
           <div className="group-data-[collapsible=icon]:hidden flex items-center justify-between w-full">
@@ -448,10 +448,10 @@ export default function AppSidebar() {
                 />
               </div>
               <div>
-                <h2 className="text-med font-serif text-slate-900 dark:text-slate-100">
+                <h2 className="text-med font-serif text-foreground">
                   pointer
                 </h2>
-                <p className="text-xs font-serif text-slate-500 dark:text-slate-400">
+                <p className="text-xs font-serif text-muted-foreground">
                   your digital workspace
                 </p>
               </div>
@@ -472,7 +472,7 @@ export default function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-white dark:bg-slate-900 flex-1 overflow-y-auto">
+      <SidebarContent className="bg-background flex-1 overflow-y-auto">
         {/* Navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
@@ -555,7 +555,7 @@ export default function AppSidebar() {
                   <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
-                      className="rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 text-slate-700 dark:text-slate-300"
+                      className="rounded-lg hover:bg-accent text-accent-foreground"
                     >
                       <div className="flex h-6 w-6 items-center justify-center rounded bg-orange-100 dark:bg-orange-900/30">
                         <FileText className="h-3 w-3 text-orange-600 dark:text-orange-400" />
@@ -572,7 +572,7 @@ export default function AppSidebar() {
 
         {/* Recent Notes */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+            <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
             Recent Notes
           </SidebarGroupLabel>
           <SidebarGroupAction
@@ -630,7 +630,7 @@ export default function AppSidebar() {
         {/* Shared with me */}
         {sharedNotes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+          <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
               <Users className="h-3 w-3" />
               Shared with me
             </SidebarGroupLabel>
@@ -648,7 +648,7 @@ export default function AppSidebar() {
                           "rounded-lg transition-all",
                           isActive
                             ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-accent text-accent-foreground",
                         )}
                       >
                         <FileText className="h-4 w-4" />
@@ -665,7 +665,7 @@ export default function AppSidebar() {
         {/* All Notes (collapsed by default) */}
         {userNotes.length > 5 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
+          <SidebarGroupLabel className="text-muted-foreground font-medium">
               All Notes ({userNotes.length})
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -681,7 +681,7 @@ export default function AppSidebar() {
                         "rounded-lg transition-all w-full",
                         isActive
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        : "hover:bg-accent text-accent-foreground",
                       )}
                     >
                       <FileText className="h-4 w-4" />
@@ -700,9 +700,9 @@ export default function AppSidebar() {
                           variant="ghost"
                           size="icon"
                           onClick={(e) => handleOpenDeleteDialog(e, note)}
-                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
                         >
-                          <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                        <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
                           <span className="sr-only">Delete note</span>
                         </Button>
                       </div>
@@ -716,15 +716,15 @@ export default function AppSidebar() {
       </SidebarContent>
 
       {/* Footer */}
-      <SidebarFooter className="h-16 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
-        <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 h-full w-full">
+      <SidebarFooter className="h-16 bg-gradient-to-br from-background to-card border-t border-border p-4">
+        <div className="flex items-center text-xs text-muted-foreground h-full w-full">
           {/* Expanded state */}
           <div className="group-data-[collapsible=icon]:hidden flex items-center w-full">
             <div className="flex-1 flex justify-center">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-accent text-muted-foreground"
               >
                 <ThemeToggle />
                 <span className="sr-only">Toggle theme</span>
@@ -736,7 +736,7 @@ export default function AppSidebar() {
                 size="sm"
                 onClick={() => handleNavClick("settings")}
                 disabled={process.env.NODE_ENV === "production"}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Cog className="h-4 w-4" />
                 <span className="sr-only">Settings</span>
@@ -749,7 +749,7 @@ export default function AppSidebar() {
                 onClick={() => {
                   setIsSupportOpen(true);
                 }}
-                className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer"
+                className="h-8 w-8 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer"
               >
                 <HandHelping className="h-4 w-4" />
                 <span className="sr-only">Support</span>
@@ -762,7 +762,7 @@ export default function AppSidebar() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent text-muted-foreground"
               >
                 <ThemeToggle />
                 <span className="sr-only">Toggle theme</span>
@@ -774,7 +774,7 @@ export default function AppSidebar() {
                 size="sm"
                 onClick={() => handleNavClick("settings")}
                 disabled={process.env.NODE_ENV === "production"}
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Cog className="h-3 w-3" />
                 <span className="sr-only">Settings</span>
@@ -785,7 +785,7 @@ export default function AppSidebar() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsSupportOpen(true)}
-                className="h-6 w-6 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 cursor-pointer"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent text-muted-foreground cursor-pointer"
               >
                 <HandHelping className="h-3 w-3" />
                 <span className="sr-only">Support</span>

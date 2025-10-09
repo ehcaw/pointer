@@ -180,20 +180,20 @@ export function HomeView() {
             placeholder="+ Add task"
             value={newTaskName}
             onChange={(e) => setNewTaskName(e.target.value)}
-            className="flex-1 border-0 focus:ring-0 bg-transparent text-lg placeholder:text-slate-400"
+            className="flex-1 border-0 focus:ring-0 bg-transparent text-lg placeholder:text-muted-foreground"
             disabled={isCreating}
           />
         </div>
       </form>
 
       {isLoading ? (
-        <div className="text-center py-8 text-slate-400">Loading...</div>
+        <div className="text-center py-8 text-muted-foreground">Loading...</div>
       ) : (
         <div className="space-y-6">
           {/* Today Section */}
           {organizedTasks.today.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
                 Today
               </h3>
               <div className="space-y-1">
@@ -213,7 +213,7 @@ export function HomeView() {
           {/* General Section */}
           {organizedTasks.general.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
                 General
               </h3>
               <div className="space-y-1">
@@ -233,7 +233,7 @@ export function HomeView() {
           {/* This Week Section */}
           {organizedTasks.thisWeek.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
                 This Week
               </h3>
               <div className="space-y-1">
@@ -257,9 +257,9 @@ export function HomeView() {
                 <input
                   type="checkbox"
                   disabled
-                  className="h-5 w-5 rounded-full border-slate-300 text-slate-900"
+                  className="h-5 w-5 rounded-full border-border text-foreground"
                 />
-                <span className="flex-1 text-slate-300">
+                <span className="flex-1 text-muted-foreground">
                   Welcome to your task manager
                 </span>
               </div>
@@ -267,9 +267,9 @@ export function HomeView() {
                 <input
                   type="checkbox"
                   disabled
-                  className="h-5 w-5 rounded-full border-slate-300 text-slate-900"
+                  className="h-5 w-5 rounded-full border-border text-foreground"
                 />
-                <span className="flex-1 text-slate-300">
+                <span className="flex-1 text-muted-foreground">
                   Add a task above to get started
                 </span>
               </div>
@@ -277,9 +277,9 @@ export function HomeView() {
                 <input
                   type="checkbox"
                   disabled
-                  className="h-5 w-5 rounded-full border-slate-300 text-slate-900"
+                  className="h-5 w-5 rounded-full border-border text-foreground"
                 />
-                <span className="flex-1 text-slate-300">
+                <span className="flex-1 text-muted-foreground">
                   Click on any task to mark it complete
                 </span>
               </div>
@@ -405,21 +405,21 @@ function TaskItem({
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
-        <div className="flex items-center gap-3 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-900 group w-full text-left">
+        <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 group w-full text-left">
           <input
             type="checkbox"
             checked={task.completed}
             onChange={(e) =>
               onToggleComplete(task._id.toString(), e.target.checked)
             }
-            className="h-5 w-5 rounded-full border-slate-300 text-slate-900 focus:ring-slate-900"
+            className="h-5 w-5 rounded-full border-border text-foreground focus:ring-foreground"
           />
 
           <div className="flex-1">
             <span
               className={cn(
                 "cursor-pointer",
-                task.completed && "line-through text-slate-400",
+                task.completed && "line-through text-muted-foreground",
               )}
               onClick={() =>
                 onToggleComplete(task._id.toString(), !task.completed)
@@ -432,7 +432,7 @@ function TaskItem({
                 {task.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-block px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded"
+                    className="inline-block px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded"
                   >
                     {tag}
                   </span>
@@ -444,7 +444,7 @@ function TaskItem({
           <div className="flex items-center gap-3">
             <button
               onClick={() => onEditTask(task)}
-              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600"
+              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
             >
               <svg
                 className="h-5 w-5"
@@ -463,7 +463,7 @@ function TaskItem({
 
             <button
               onClick={() => onDeleteTask(task._id.toString())}
-              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500"
+              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-5 w-5" />
             </button>
@@ -473,12 +473,12 @@ function TaskItem({
       <TooltipContent
         side="bottom"
         align="start"
-        className="max-w-md p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg"
+        className="max-w-md p-6 bg-popover border border-border shadow-lg rounded-lg"
         sideOffset={8}
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-semibold text-base text-slate-900 dark:text-slate-100 mb-2">
+            <h4 className="font-semibold text-base text-foreground mb-2">
               {task.taskName}
             </h4>
             {task.completed && (
@@ -490,10 +490,10 @@ function TaskItem({
 
           {task.taskDescription && (
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <p className="text-sm font-medium text-muted-foreground dark:text-muted-foreground mb-1">
                 Description
               </p>
-              <p className="text-sm text-slate-700 dark:text-slate-300">
+              <p className="text-sm text-foreground dark:text-foreground">
                 {task.taskDescription}
               </p>
             </div>
@@ -501,14 +501,14 @@ function TaskItem({
 
           {task.tags && task.tags.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+              <p className="text-sm font-medium text-muted-foreground dark:text-muted-foreground mb-2">
                 Tags
               </p>
               <div className="flex flex-wrap gap-2">
                 {task.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary dark:bg-primary/20 dark:text-primary"
                   >
                     {tag}
                   </span>
@@ -517,7 +517,7 @@ function TaskItem({
             </div>
           )}
 
-          <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex gap-4 text-xs text-muted-foreground dark:text-muted-foreground">
             <div>
               <span className="font-medium">Created:</span>{" "}
               {format(new Date(task.createdAt), "MMM d, yyyy 'at' h:mm a")}
@@ -528,12 +528,12 @@ function TaskItem({
                 {format(new Date(task.dueBy), "MMM d, yyyy")}
                 {isPast(new Date(task.dueBy)) &&
                   !isToday(new Date(task.dueBy)) && (
-                    <span className="ml-2 text-red-600 dark:text-red-400 font-medium">
+                    <span className="ml-2 text-destructive dark:text-destructive font-medium">
                       Overdue
                     </span>
                   )}
                 {isToday(new Date(task.dueBy)) && (
-                  <span className="ml-2 text-orange-600 dark:text-orange-400 font-medium">
+                  <span className="ml-2 text-accent-foreground dark:text-accent-foreground font-medium">
                     Today
                   </span>
                 )}

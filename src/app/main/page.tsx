@@ -73,27 +73,16 @@ export default function MainPage() {
 
   // Show loading while authentication is being checked
   if (!isLoaded || isLoading) {
-    return (
-      // <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      //   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      // </div>
-      <LoadingView />
-    );
+    return <LoadingView />;
   }
 
   // Don't render main app if not signed in (prevents flash)
   if (!isSignedIn) {
-    return (
-      // <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      //   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      // </div>
-      //
-      <LoadingView />
-    );
+    return <LoadingView />;
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="h-screen bg-gradient-to-br from-background via-card to-background dark:from-background dark:via-card dark:to-background">
       <ResizablePanelGroup direction="horizontal" className="h-full">
         <ResizablePanel defaultSize={12} minSize={7} maxSize={40}>
           <SidebarProvider>
@@ -102,7 +91,7 @@ export default function MainPage() {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={75}>
-          <div className="flex flex-col h-full bg-white dark:bg-slate-900">
+          <div className="flex flex-col h-full bg-background">
             {/* Header for note view */}
             {currentView === "note" && <NoteViewHeader />}
 

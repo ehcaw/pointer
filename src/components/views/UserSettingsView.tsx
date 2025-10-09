@@ -40,10 +40,10 @@ export const UserSettingsView = () => {
   const renderGeneralSettings = () => (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+        <h2 className="text-xl font-semibold text-foreground mb-2">
           Workspace
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+        <p className="text-muted-foreground text-sm mb-6">
           Manage your workspace settings and preferences.
         </p>
       </div>
@@ -61,7 +61,7 @@ export const UserSettingsView = () => {
             defaultValue="Pointer"
             className="max-w-md"
           />
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Pick a name for your workspace. Recommended size is 256×256px.
           </p>
         </div>
@@ -85,8 +85,8 @@ export const UserSettingsView = () => {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 dark:border-slate-700 pt-8">
-        <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-6">
+      <div className="border-t border-border dark:border-border pt-8">
+        <h3 className="text-lg font-medium text-foreground dark:text-foreground mb-6">
           Preferences
         </h3>
 
@@ -94,7 +94,7 @@ export const UserSettingsView = () => {
           <div className="flex items-center justify-between py-3">
             <div>
               <Label className="text-sm font-medium">Theme</Label>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Choose your preferred theme
               </p>
             </div>
@@ -121,7 +121,7 @@ export const UserSettingsView = () => {
           <div className="flex items-center justify-between py-3">
             <div>
               <Label className="text-sm font-medium">Auto-save</Label>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Automatically save your work as you type
               </p>
             </div>
@@ -133,7 +133,7 @@ export const UserSettingsView = () => {
               <Label className="text-sm font-medium">
                 Collaborative editing
               </Label>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Enable real-time collaboration features
               </p>
             </div>
@@ -150,17 +150,17 @@ export const UserSettingsView = () => {
   const renderProfileSettings = () => (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+        <h2 className="text-xl font-semibold text-foreground dark:text-foreground mb-2">
           Profile
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+        <p className="text-muted-foreground dark:text-muted-foreground text-sm mb-6">
           Manage your personal information and profile settings.
         </p>
       </div>
 
       <div className="max-w-2xl space-y-6">
-        <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white text-xl font-semibold">
+        <div className="flex items-center gap-4 p-4 bg-muted/50 dark:bg-muted/50 rounded-lg">
+          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground text-xl font-semibold">
             {user?.firstName?.[0] ||
               user?.emailAddresses[0]?.emailAddress[0]?.toUpperCase() ||
               "U"}
@@ -171,7 +171,7 @@ export const UserSettingsView = () => {
                 ? `${user.firstName} ${user.lastName}`
                 : user?.emailAddresses[0]?.emailAddress || "User"}
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground dark:text-muted-foreground">
               {user?.emailAddresses[0]?.emailAddress}
             </p>
           </div>
@@ -223,24 +223,24 @@ export const UserSettingsView = () => {
   const renderNotificationSettings = () => (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+        <h2 className="text-xl font-semibold text-foreground dark:text-foreground mb-2">
           Notifications
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+        <p className="text-muted-foreground dark:text-muted-foreground text-sm mb-6">
           Choose what notifications you receive and how.
         </p>
       </div>
 
       <div className="max-w-2xl space-y-6">
         <div>
-          <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-4">
+          <h3 className="text-lg font-medium text-foreground dark:text-foreground mb-4">
             Email notifications
           </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3">
               <div>
                 <Label className="text-sm font-medium">New notes</Label>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                   Get notified when someone shares a note with you
                 </p>
               </div>
@@ -253,7 +253,7 @@ export const UserSettingsView = () => {
             <div className="flex items-center justify-between py-3">
               <div>
                 <Label className="text-sm font-medium">Comments</Label>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                   Get notified when someone comments on your notes
                 </p>
               </div>
@@ -263,7 +263,7 @@ export const UserSettingsView = () => {
             <div className="flex items-center justify-between py-3">
               <div>
                 <Label className="text-sm font-medium">Weekly digest</Label>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                   Get a weekly summary of your activity
                 </p>
               </div>
@@ -278,15 +278,15 @@ export const UserSettingsView = () => {
   const renderPlaceholderSection = (title: string, description: string) => (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+        <h2 className="text-xl font-semibold text-foreground dark:text-foreground mb-2">
           {title}
         </h2>
-        <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+        <p className="text-muted-foreground dark:text-muted-foreground text-sm mb-6">
           {description}
         </p>
       </div>
-      <div className="flex items-center justify-center h-64 bg-slate-50 dark:bg-slate-800/50 rounded-lg max-w-2xl">
-        <p className="text-slate-500 dark:text-slate-400">Coming soon...</p>
+      <div className="flex items-center justify-center h-64 bg-muted/50 dark:bg-muted/50 rounded-lg max-w-2xl">
+        <p className="text-muted-foreground dark:text-muted-foreground">Coming soon...</p>
       </div>
     </div>
   );
@@ -325,13 +325,13 @@ export const UserSettingsView = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className="min-h-screen bg-background dark:bg-background">
       {/* Header */}
       <div className="">
         <div className="px-6 py-4">
           <div className="flex items-center gap-2 mb-6">
-            <Settings className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+            <Settings className="w-5 h-5 text-muted-foreground dark:text-muted-foreground" />
+            <h1 className="text-lg font-semibold text-foreground dark:text-foreground">
               Settings
             </h1>
           </div>
@@ -344,8 +344,8 @@ export const UserSettingsView = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
                   activeTab === tab.id
-                    ? "bg-slate-900 text-white dark:bg-slate-700"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-primary text-primary-foreground dark:bg-primary"
+                    : "text-foreground dark:text-foreground hover:bg-muted/20 dark:hover:bg-muted/20"
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
