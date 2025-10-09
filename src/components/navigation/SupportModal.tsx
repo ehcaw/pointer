@@ -50,10 +50,6 @@ const SupportModal = ({
                 docs.pointer.ink
               </a>
             </p>
-            <p className="text-muted-foreground">
-              If you want to report a bug, provide feedback, or request
-              features, fill out this form.
-            </p>
           </section>
         </div>
 

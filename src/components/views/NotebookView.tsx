@@ -46,7 +46,7 @@ export const NotebookView = () => {
               editorContainerRef={editorContainerRef}
             />
           )}
-          <div className="bg-card dark:bg-card rounded-sm shadow-sm border border-border dark:border-border overflow-hidden">
+          <div className="bg-card dark:bg-card rounded-sm shadow-sm border border-border overflow-hidden">
             <div
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
@@ -66,7 +66,7 @@ export const NotebookView = () => {
       {currentNote && (
         <div className="absolute bottom-0 left-0 right-0 bg-background/80 dark:bg-background/80 backdrop-blur-sm border-t border-border dark:border-border h-16">
           <div className="px-6 py-4 h-full">
-            <div className="flex items-center justify-between text-sm text-muted-foreground dark:text-muted-foreground h-full">
+            <div className="flex items-center justify-between text-sm text-muted-foreground h-full">
               <div className="flex items-center gap-4"></div>
 
               <div className="flex items-center gap-2">

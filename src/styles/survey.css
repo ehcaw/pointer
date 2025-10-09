@@ -1,0 +1,577 @@
+/* PostHog Survey Styling (lightweight + theme variable based)
+   Keep selectors broad so future PostHog DOM changes still inherit theme.
+   Avoid hard-coded light/dark colors; rely on CSS variables already flipped by .dark.
+*/
+#pointer-survey-container {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  --ph-control-pad-y: 0.5rem;
+  --ph-control-pad-x: 0.75rem;
+  --ph-radius: var(--radius);
+  --ph-gap: 0.75rem;
+}
+
+#pointer-survey-container,
+#pointer-survey-container * {
+  font-family: inherit;
+  box-sizing: border-box;
+  color: var(--foreground);
+}
+
+/* Root survey wrapper(s) */
+#pointer-survey-container .ph-survey,
+#pointer-survey-container form,
+#pointer-survey-container > div {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: var(--foreground) !important;
+}
+
+/* Question headings & primary text */
+#pointer-survey-container h1,
+#pointer-survey-container h2,
+#pointer-survey-container h3,
+#pointer-survey-container h4,
+#pointer-survey-container h5,
+#pointer-survey-container h6,
+#pointer-survey-container p:first-child,
+#pointer-survey-container [class*="question"],
+#pointer-survey-container [class*="title"] {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.3;
+  margin: 0 0 0.5rem 0;
+  color: var(--foreground);
+}
+
+/* Field grouping spacing */
+#pointer-survey-container .ph-question,
+#pointer-survey-container fieldset,
+#pointer-survey-container div[role="group"],
+#pointer-survey-container div[role="radiogroup"] {
+  margin: 0 0 1rem 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Labels / sublabels */
+#pointer-survey-container label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+/* Textual inputs */
+#pointer-survey-container input[type="text"],
+#pointer-survey-container input[type="email"],
+#pointer-survey-container input[type="url"],
+#pointer-survey-container input[type="search"],
+#pointer-survey-container textarea,
+#pointer-survey-container select {
+  width: 100%;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--ph-radius);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding: var(--ph-control-pad-y) var(--ph-control-pad-x);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background-color 0.15s;
+  appearance: none;
+}
+
+#pointer-survey-container textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+#pointer-survey-container input::placeholder,
+#pointer-survey-container textarea::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.75;
+}
+
+/* Focus */
+#pointer-survey-container input:focus,
+#pointer-survey-container textarea:focus,
+#pointer-survey-container select:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+
+/* Radios / checkboxes (single select / multi select) */
+#pointer-survey-container input[type="radio"],
+#pointer-survey-container input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+}
+
+#pointer-survey-container input[type="radio"] {
+  border-radius: 9999px;
+}
+
+/* Provide a pill style option variant if PostHog renders button-like options */
+#pointer-survey-container [data-ph-option],
+#pointer-survey-container .ph-option,
+#pointer-survey-container .ph-answer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  border-radius: var(--ph-radius);
+  cursor: pointer;
+  margin: 0 0.4rem 0.4rem 0;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+#pointer-survey-container [data-ph-option]:hover,
+#pointer-survey-container .ph-option:hover,
+#pointer-survey-container .ph-answer-button:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-color: var(--accent);
+}
+
+#pointer-survey-container [data-ph-option][data-selected="true"],
+#pointer-survey-container .ph-option.is-active,
+#pointer-survey-container .ph-answer-button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Primary buttons */
+#pointer-survey-container button,
+#pointer-survey-container input[type="submit"],
+#pointer-survey-container [role="button"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--ph-radius);
+  border: 1px solid var(--primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.1;
+  transition:
+    background-color 0.15s,
+    filter 0.15s;
+  text-decoration: none;
+}
+
+#pointer-survey-container button:hover,
+#pointer-survey-container input[type="submit"]:hover,
+#pointer-survey-container [role="button"]:hover {
+  filter: brightness(1.08);
+}
+
+/* Disabled state */
+#pointer-survey-container button:disabled,
+#pointer-survey-container input[type="submit"]:disabled,
+#pointer-survey-container [role="button"][aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* Footer / branding (more separation from form controls) */
+#pointer-survey-container [class*="footer"],
+#pointer-survey-container [class*="branding"] {
+  /* Removed div:last-child to prevent accidental extra borders (double lines) */
+  margin-top: 1.25rem !important;
+  padding-top: 0.75rem !important;
+  border-top: 1px solid var(--border) !important;
+  font-size: 0.65rem !important;
+  line-height: 1rem;
+  color: var(--muted-foreground) !important;
+  text-align: left;
+  display: block !important;
+  width: 100% !important;
+  clear: both !important;
+}
+
+/* Force branding (logo) onto its own row under the action button */
+#pointer-survey-container [class*="branding"] img,
+#pointer-survey-container [class*="branding"] svg {
+  display: block !important;
+  margin-top: 0.35rem !important;
+}
+
+/* If branding/footer is first (edge case), drop the line */
+#pointer-survey-container > [class*="branding"]:first-child,
+#pointer-survey-container > [class*="footer"]:first-child {
+  border-top: 0 !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Links */
+#pointer-survey-container a {
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+#pointer-survey-container a:hover {
+  text-decoration: underline;
+  color: var(--foreground);
+}
+
+/* Compact horizontal alignment for inline radio/checkbox groups if PostHog uses flex */
+#pointer-survey-container .ph-inline-options,
+#pointer-survey-container .ph-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+/* Ensure inherited theming in dark mode without extra overrides */
+.dark #pointer-survey-container,
+.dark #pointer-survey-container * {
+  /* colors already point to dark-mode variables */
+}
+
+/* --- Enhanced single-select (radio) styling --- */
+#pointer-survey-container div[role="radiogroup"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem 0 !important;
+  padding: 0;
+}
+
+#pointer-survey-container div[role="radiogroup"] label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 0.55rem 0.75rem 0.55rem 0.6rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ph-radius);
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+#pointer-survey-container div[role="radiogroup"] label:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+#pointer-survey-container
+  div[role="radiogroup"]
+  label:has(input[type="radio"]:checked) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+#pointer-survey-container div[role="radiogroup"] input[type="radio"] {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  flex-shrink: 0;
+}
+
+#pointer-survey-container div[role="radiogroup"] input[type="radio"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+  border-color: var(--ring);
+}
+
+/* Space buttons away from branding */
+#pointer-survey-container button,
+#pointer-survey-container input[type="submit"],
+#pointer-survey-container [role="button"] {
+  margin-top: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+/* If PostHog wraps buttons in an actions container, give it spacing */
+#pointer-survey-container .ph-actions,
+#pointer-survey-container [class*="actions"] {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Prevent footer selector from grabbing action containers by ensuring they don't look like last-child footers */
+#pointer-survey-container .ph-actions + [class*="footer"],
+#pointer-survey-container .ph-actions + [class*="branding"] {
+  margin-top: 1.5rem !important;
+}
+
+/* -------------------------------------------------
+   Additional Survey Refinements
+   ------------------------------------------------- */
+
+/* Remove stray horizontal rules PostHog might inject */
+#pointer-survey-container hr {
+  display: none;
+}
+
+/* First heading refinement (larger + tighter spacing) */
+#pointer-survey-container h1:first-of-type,
+#pointer-survey-container h2:first-of-type,
+#pointer-survey-container h3:first-of-type {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin-top: 0.25rem;
+  margin-bottom: 0.85rem;
+}
+
+/* Progress bar (if survey has multi‑step progress) */
+#pointer-survey-container [class*="progress"],
+#pointer-survey-container .ph-progress {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 0 0 1.1rem 0;
+}
+#pointer-survey-container [class*="progress"] > div,
+#pointer-survey-container .ph-progress > div {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.35s ease;
+}
+
+/* Refined radio group layout */
+#pointer-survey-container div[role="radiogroup"] {
+  gap: 0.6rem;
+  margin-bottom: 1.4rem;
+}
+
+/* Radio option cards */
+#pointer-survey-container div[role="radiogroup"] label {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1rem auto;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-transform: none;
+  letter-spacing: 0.015em;
+  padding: 0.6rem 1rem 0.6rem 0.9rem;
+  min-height: 2.25rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ph-radius);
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.2s;
+}
+#pointer-survey-container div[role="radiogroup"] label:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-foreground);
+}
+#pointer-survey-container div[role="radiogroup"] label:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+#pointer-survey-container
+  div[role="radiogroup"]
+  label:has(input[type="radio"]:checked) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow:
+    0 0 0 1px var(--primary),
+    0 2px 4px -2px var(--shadow-color);
+}
+
+/* Radio element reset (keep consistent size) */
+#pointer-survey-container div[role="radiogroup"] input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  transform: translateY(-0.5px); /* optical centering */
+}
+
+/* Primary action button block spacing */
+#pointer-survey-container .ph-actions,
+#pointer-survey-container [class*="actions"] {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* Refine spacing around branding so it never hugs the button */
+#pointer-survey-container .ph-actions + [class*="footer"],
+#pointer-survey-container .ph-actions + [class*="branding"] {
+  margin-top: 1.75rem !important;
+}
+
+/* Extra breathing room when there is only a single action button before branding */
+#pointer-survey-container button:last-of-type:not(:only-child) {
+  margin-right: 0.5rem;
+}
+
+/* === Opt-in List Variant for PostHog Choice Groups (ph-list) ===
+   Add class "ph-list" to any PostHog-rendered radiogroup / group to switch
+   from the default "card" look to a bordered vertical list with separators.
+   (See sidebar code: after displaySurvey, add the class to desired groups.)
+*/
+
+#pointer-survey-container div[role="radiogroup"].ph-list,
+#pointer-survey-container div[role="group"].ph-list {
+  border: 1px solid var(--border);
+  border-radius: var(--ph-radius);
+  background: var(--card);
+  padding: 0;
+  margin: 0 0 1.25rem 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#pointer-survey-container div[role="radiogroup"].ph-list label,
+#pointer-survey-container div[role="group"].ph-list label {
+  /* Reset previous card styling */
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  padding: 0.65rem 1rem 0.65rem 0.95rem;
+  min-height: 2.15rem;
+  display: grid;
+  grid-template-columns: 1rem auto;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--foreground);
+  cursor: pointer;
+  position: relative;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+
+#pointer-survey-container div[role="radiogroup"].ph-list label + label,
+#pointer-survey-container div[role="group"].ph-list label + label {
+  border-top: 1px solid var(--border);
+}
+
+#pointer-survey-container div[role="radiogroup"].ph-list label:hover,
+#pointer-survey-container div[role="group"].ph-list label:hover {
+  background: var(--muted);
+}
+
+#pointer-survey-container div[role="radiogroup"].ph-list label:focus-within,
+#pointer-survey-container div[role="group"].ph-list label:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+#pointer-survey-container div[role="radiogroup"].ph-list label:active,
+#pointer-survey-container div[role="group"].ph-list label:active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+#pointer-survey-container
+  div[role="radiogroup"].ph-list
+  label:has(input[type="radio"]:checked) {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+#pointer-survey-container
+  div[role="group"].ph-list
+  label:has(input[type="checkbox"]:checked) {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+#pointer-survey-container div[role="radiogroup"].ph-list input[type="radio"],
+#pointer-survey-container div[role="group"].ph-list input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+#pointer-survey-container
+  div[role="radiogroup"].ph-list
+  input[type="radio"]:focus,
+#pointer-survey-container
+  div[role="group"].ph-list
+  input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+  border-color: var(--ring);
+}
+
+/* Subtle pressed feedback when already selected (keeps color readable) */
+#pointer-survey-container
+  div[role="radiogroup"].ph-list
+  label:has(input[type="radio"]:checked):active,
+#pointer-survey-container
+  div[role="group"].ph-list
+  label:has(input[type="checkbox"]:checked):active {
+  filter: brightness(0.95);
+}
