@@ -260,15 +260,6 @@
   /* colors already point to dark-mode variables */
 }
 
-/* --- Enhanced single-select (radio) styling --- */
-#pointer-survey-container div[role="radiogroup"] {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 0 0 1.25rem 0 !important;
-  padding: 0;
-}
-
 #pointer-survey-container div[role="radiogroup"] label {
   position: relative;
   display: flex;
