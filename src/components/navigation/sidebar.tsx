@@ -301,7 +301,7 @@ export default function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
+                      : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                   )}
                 >
                   <Home className="h-4 w-4" />
@@ -318,7 +318,7 @@ export default function AppSidebar() {
                       "rounded-lg transition-all",
                       currentView === "graph"
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
+                        : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                     )}
                   >
                     <GitGraph className="h-4 w-4" />
@@ -335,7 +335,7 @@ export default function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "whiteboard"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
+                      : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                   )}
                 >
                   <LineSquiggle className="h-4 w-4" />
@@ -365,10 +365,10 @@ export default function AppSidebar() {
                   <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
-                      className="rounded-lg hover:bg-accent text-accent-foreground"
+                      className="rounded-lg hover:bg-accent hover:text-foreground"
                     >
                       <div className="flex h-6 w-6 items-center justify-center rounded bg-accent/20 dark:bg-accent/20">
-                        <FileText className="h-3 w-3 text-accent-foreground dark:text-accent-foreground" />
+                        <FileText className="h-3 w-3 text-accent-foreground" />
                       </div>
                       <span className="truncate">{note.name}</span>
                       <div className="ml-auto h-2 w-2 rounded-full bg-accent" />
@@ -405,7 +405,7 @@ export default function AppSidebar() {
                       "rounded-lg transition-all w-full",
                       isActive
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
+                        : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
                     )}
                   >
                     <FileText className="h-4 w-4" />
@@ -458,7 +458,7 @@ export default function AppSidebar() {
                           "rounded-lg transition-all",
                           isActive
                             ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-accent text-accent-foreground",
+                            : "hover:bg-accent hover:text-foreground",
                         )}
                       >
                         <FileText className="h-4 w-4" />
@@ -491,7 +491,7 @@ export default function AppSidebar() {
                         "rounded-lg transition-all w-full",
                         isActive
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-accent text-accent-foreground",
+                          : "hover:bg-accent hover:text-foreground",
                       )}
                     >
                       <FileText className="h-4 w-4" />
