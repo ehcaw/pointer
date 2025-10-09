@@ -174,219 +174,224 @@ export function HomeView() {
   return (
     <TooltipProvider>
       <div className="w-full p-4">
-      <form onSubmit={handleCreateTask} className="mb-6">
-        <div className="flex gap-2">
-          <Input
-            placeholder="+ Add task"
-            value={newTaskName}
-            onChange={(e) => setNewTaskName(e.target.value)}
-            className="flex-1 border-0 focus:ring-0 bg-transparent text-lg placeholder:text-muted-foreground"
-            disabled={isCreating}
-          />
-        </div>
-      </form>
-
-      {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading...</div>
-      ) : (
-        <div className="space-y-6">
-          {/* Today Section */}
-          {organizedTasks.today.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                Today
-              </h3>
-              <div className="space-y-1">
-                {organizedTasks.today.map((task) => (
-                  <TaskItem
-                    key={task._id.toString()}
-                    task={task}
-                    onToggleComplete={handleToggleComplete}
-                    onDeleteTask={handleDeleteTask}
-                    onEditTask={handleEditTask}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* General Section */}
-          {organizedTasks.general.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                General
-              </h3>
-              <div className="space-y-1">
-                {organizedTasks.general.map((task) => (
-                  <TaskItem
-                    key={task._id.toString()}
-                    task={task}
-                    onToggleComplete={handleToggleComplete}
-                    onDeleteTask={handleDeleteTask}
-                    onEditTask={handleEditTask}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* This Week Section */}
-          {organizedTasks.thisWeek.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                This Week
-              </h3>
-              <div className="space-y-1">
-                {organizedTasks.thisWeek.map((task) => (
-                  <TaskItem
-                    key={task._id.toString()}
-                    task={task}
-                    onToggleComplete={handleToggleComplete}
-                    onDeleteTask={handleDeleteTask}
-                    onEditTask={handleEditTask}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {userTasks.length === 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 p-2 rounded">
-                <input
-                  type="checkbox"
-                  disabled
-                  className="h-5 w-5 rounded-full border-border text-foreground"
-                />
-                <span className="flex-1 text-muted-foreground">
-                  Welcome to your task manager
-                </span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded">
-                <input
-                  type="checkbox"
-                  disabled
-                  className="h-5 w-5 rounded-full border-border text-foreground"
-                />
-                <span className="flex-1 text-muted-foreground">
-                  Add a task above to get started
-                </span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded">
-                <input
-                  type="checkbox"
-                  disabled
-                  className="h-5 w-5 rounded-full border-border text-foreground"
-                />
-                <span className="flex-1 text-muted-foreground">
-                  Click on any task to mark it complete
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Edit Task Modal */}
-      <Dialog open={!!editingTask} onOpenChange={handleCloseEdit}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="taskName">Task name</Label>
-              <Input
-                id="taskName"
-                value={editForm.taskName}
-                onChange={(e) =>
-                  setEditForm((prev) => ({ ...prev, taskName: e.target.value }))
-                }
-                placeholder="Enter task name"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="taskDescription">Description (optional)</Label>
-              <Textarea
-                id="taskDescription"
-                value={editForm.taskDescription}
-                onChange={(e) =>
-                  setEditForm((prev) => ({
-                    ...prev,
-                    taskDescription: e.target.value,
-                  }))
-                }
-                placeholder="Add a description..."
-                rows={3}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="tags">Tags (optional)</Label>
-              <Input
-                id="tags"
-                value={tagsInput}
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  setTagsInput(inputValue);
-                  const tags = inputValue
-                    .split(",")
-                    .map((tag) => tag.trim())
-                    .filter((tag) => tag.length > 0);
-                  setEditForm((prev) => ({
-                    ...prev,
-                    tags: tags,
-                  }));
-                }}
-                placeholder="urgent, work, personal (comma separated)"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Due date (optional)</Label>
-              <Popover
-                open={dueDatePickerOpen}
-                onOpenChange={setDueDatePickerOpen}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !editForm.dueBy && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editForm.dueBy
-                      ? format(new Date(editForm.dueBy), "PPP")
-                      : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={
-                      editForm.dueBy ? new Date(editForm.dueBy) : undefined
-                    }
-                    onSelect={handleDateSelect}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+        <form onSubmit={handleCreateTask} className="mb-6">
+          <div className="flex gap-2">
+            <Input
+              placeholder="+ Add task"
+              value={newTaskName}
+              onChange={(e) => setNewTaskName(e.target.value)}
+              className="flex-1 border-0 focus:ring-0 bg-transparent text-lg placeholder:text-muted-foreground"
+              disabled={isCreating}
+            />
           </div>
+        </form>
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleCloseEdit}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEdit}>Save Changes</Button>
+        {isLoading ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Loading...
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Today Section */}
+            {organizedTasks.today.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Today
+                </h3>
+                <div className="space-y-1">
+                  {organizedTasks.today.map((task) => (
+                    <TaskItem
+                      key={task._id.toString()}
+                      task={task}
+                      onToggleComplete={handleToggleComplete}
+                      onDeleteTask={handleDeleteTask}
+                      onEditTask={handleEditTask}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* General Section */}
+            {organizedTasks.general.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  General
+                </h3>
+                <div className="space-y-1">
+                  {organizedTasks.general.map((task) => (
+                    <TaskItem
+                      key={task._id.toString()}
+                      task={task}
+                      onToggleComplete={handleToggleComplete}
+                      onDeleteTask={handleDeleteTask}
+                      onEditTask={handleEditTask}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* This Week Section */}
+            {organizedTasks.thisWeek.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  This Week
+                </h3>
+                <div className="space-y-1">
+                  {organizedTasks.thisWeek.map((task) => (
+                    <TaskItem
+                      key={task._id.toString()}
+                      task={task}
+                      onToggleComplete={handleToggleComplete}
+                      onDeleteTask={handleDeleteTask}
+                      onEditTask={handleEditTask}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {userTasks.length === 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-2 rounded">
+                  <input
+                    type="checkbox"
+                    disabled
+                    className="h-5 w-5 rounded-full border-border text-foreground"
+                  />
+                  <span className="flex-1 text-muted-foreground">
+                    Welcome to your task manager
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded">
+                  <input
+                    type="checkbox"
+                    disabled
+                    className="h-5 w-5 rounded-full border-border text-foreground"
+                  />
+                  <span className="flex-1 text-muted-foreground">
+                    Add a task above to get started
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded">
+                  <input
+                    type="checkbox"
+                    disabled
+                    className="h-5 w-5 rounded-full border-border text-foreground"
+                  />
+                  <span className="flex-1 text-muted-foreground">
+                    Click on any task to mark it complete
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Edit Task Modal */}
+        <Dialog open={!!editingTask} onOpenChange={handleCloseEdit}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="taskName">Task name</Label>
+                <Input
+                  id="taskName"
+                  value={editForm.taskName}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      taskName: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter task name"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="taskDescription">Description (optional)</Label>
+                <Textarea
+                  id="taskDescription"
+                  value={editForm.taskDescription}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      taskDescription: e.target.value,
+                    }))
+                  }
+                  placeholder="Add a description..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="tags">Tags (optional)</Label>
+                <Input
+                  id="tags"
+                  value={tagsInput}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    setTagsInput(inputValue);
+                    const tags = inputValue
+                      .split(",")
+                      .map((tag) => tag.trim())
+                      .filter((tag) => tag.length > 0);
+                    setEditForm((prev) => ({
+                      ...prev,
+                      tags: tags,
+                    }));
+                  }}
+                  placeholder="urgent, work, personal (comma separated)"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Due date (optional)</Label>
+                <Popover
+                  open={dueDatePickerOpen}
+                  onOpenChange={setDueDatePickerOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !editForm.dueBy && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editForm.dueBy
+                        ? format(new Date(editForm.dueBy), "PPP")
+                        : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        editForm.dueBy ? new Date(editForm.dueBy) : undefined
+                      }
+                      onSelect={handleDateSelect}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCloseEdit}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </TooltipProvider>
   );
 }
@@ -533,7 +538,7 @@ function TaskItem({
                     </span>
                   )}
                 {isToday(new Date(task.dueBy)) && (
-                  <span className="ml-2 text-accent-foreground dark:text-accent-foreground font-medium">
+                  <span className="ml-2 text-accent-foreground font-medium">
                     Today
                   </span>
                 )}

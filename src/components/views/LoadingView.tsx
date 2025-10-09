@@ -5,7 +5,7 @@ const LoadingView = () => {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar skeleton */}
-      <div className="w-64 bg-card border-r border-border p-4">
+      <div className="w-64 bg-card border-r border-border p-4 relative">
         <div className="space-y-4">
           {/* Logo area */}
           <div className="pb-4 border-b border-border">

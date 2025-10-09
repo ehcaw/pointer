@@ -86,7 +86,7 @@ export default function WhiteboardViewHeader() {
                 onChange={handleTitleChange}
                 onFocus={() => setIsTitleFocused(true)}
                 onBlur={() => setIsTitleFocused(false)}
-                placeholder="Untitled Note"
+                placeholder="Untitled Whiteboard"
                 className={cn(
                   "text-lg font-semibold bg-transparent border-0 shadow-none px-3 py-2 h-auto rounded-md",
                   "text-foreground placeholder:text-muted-foreground",

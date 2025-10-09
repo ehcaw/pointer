@@ -45,7 +45,7 @@ export const CollaborativeNotebookView = ({}) => {
               editorContainerRef={editorContainerRef}
             />
           )}
-          <div className="bg-card dark:bg-card rounded-sm shadow-sm border border-border dark:border-border overflow-hidden">
+          <div className="bg-card rounded-sm shadow-sm border border-border overflow-hidden">
             <div
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}

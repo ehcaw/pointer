@@ -5,7 +5,6 @@ import "./globals.css";
 import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
-// import { PHProvider } from "@/providers/PostHogProvider";
 import { PostHogContextProvider } from "@/providers/PostHogProvider";
 
 import { Toaster } from "sonner";

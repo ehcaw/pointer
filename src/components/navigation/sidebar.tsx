@@ -216,7 +216,7 @@ export default function AppSidebar() {
       <SidebarContent className="bg-background flex-1 overflow-y-auto">
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground dark:text-muted-foreground font-medium">
+          <SidebarGroupLabel className="text-muted-foreground font-medium">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
