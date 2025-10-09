@@ -584,15 +584,17 @@
 /* Radio option cards */
 #pointer-survey-container div[role="radiogroup"] label {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1rem auto;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.75rem;
   font-size: 0.8rem;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.25;
   text-transform: none;
   letter-spacing: 0.015em;
-  padding: 0.65rem 0.85rem;
+  padding: 0.6rem 1rem 0.6rem 0.9rem;
+  min-height: 2.25rem;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--ph-radius);
@@ -632,6 +634,9 @@
   border: 1px solid var(--border);
   background: var(--card);
   flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  transform: translateY(-0.5px); /* optical centering */
 }
 
 /* Primary action button block spacing */
@@ -680,13 +685,15 @@
   border: 0;
   border-radius: 0;
   margin: 0;
-  padding: 0.7rem 0.9rem;
-  display: flex;
+  padding: 0.65rem 1rem 0.65rem 0.95rem;
+  min-height: 2.15rem;
+  display: grid;
+  grid-template-columns: 1rem auto;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.8rem;
   font-size: 0.82rem;
   font-weight: 500;
-  line-height: 1.15;
+  line-height: 1.25;
   color: var(--foreground);
   cursor: pointer;
   position: relative;
