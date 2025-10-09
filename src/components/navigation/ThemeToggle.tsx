@@ -14,7 +14,7 @@ export function ThemeToggle({ size = "default" }: ThemeToggleProps) {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
-  const iconSize = size === "sm" ? "h-3 w-3" : "h-4 w-4";
+  const iconSize = size === "sm" ? "h-3 w-3" : size === "lg" ? "h-5 w-5" : size === "icon" ? "h-4 w-4" : "h-4 w-4";
 
   return (
     <div
