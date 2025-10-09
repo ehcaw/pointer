@@ -43,7 +43,7 @@ export function TextAlignDropdownMenu({
   const [isOpen, setIsOpen] = React.useState(false);
   const editor = useTiptapEditor(providedEditor);
 
-  const alignments: TextAlign[] = ["left", "center", "right", "justify"];
+  const alignments = React.useMemo<TextAlign[]>(() => ["left", "center", "right", "justify"], []);
 
   const handleOnOpenChange = React.useCallback(
     (open: boolean) => {

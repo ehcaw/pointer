@@ -116,6 +116,71 @@ export default function AppSidebar() {
     )
     .slice(0, 5);
 
+  const addEmailValidation = (container: HTMLElement) => {
+    // Find email inputs (first question should be email)
+    const emailInputs = container.querySelectorAll(
+      'input[type="email"], input[placeholder*="email" i], input[aria-label*="email" i]'
+    );
+    
+    emailInputs.forEach((input) => {
+      const emailInput = input as HTMLInputElement;
+      
+      // Create validation message element
+      const validationMessage = document.createElement('div');
+      validationMessage.className = 'email-validation-message';
+      validationMessage.textContent = 'Please enter a valid email address';
+      
+      // Insert validation message after the input
+      emailInput.parentNode?.insertBefore(validationMessage, emailInput.nextSibling);
+      
+      // Email validation function
+      const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+      };
+      
+      // Update validation state
+      const updateValidation = () => {
+        const isValid = emailInput.value.trim() === '' || validateEmail(emailInput.value);
+        
+        if (emailInput.value.trim() === '') {
+          emailInput.classList.remove('valid', 'invalid');
+          validationMessage.classList.remove('show');
+        } else if (isValid) {
+          emailInput.classList.remove('invalid');
+          emailInput.classList.add('valid');
+          validationMessage.classList.remove('show');
+        } else {
+          emailInput.classList.remove('valid');
+          emailInput.classList.add('invalid');
+          validationMessage.classList.add('show');
+        }
+        
+        // Enable/disable submit button based on email validity
+        const submitButtons = container.querySelectorAll(
+          'button[type="submit"], input[type="submit"], [role="button"]:not([aria-disabled="true"])'
+        );
+        
+        submitButtons.forEach((button) => {
+          if (emailInput.value.trim() !== '' && !isValid) {
+            button.classList.add('email-invalid-disabled');
+            (button as HTMLButtonElement).setAttribute('aria-disabled', 'true');
+          } else {
+            button.classList.remove('email-invalid-disabled');
+            (button as HTMLButtonElement).removeAttribute('aria-disabled');
+          }
+        });
+      };
+      
+      // Add event listeners
+      emailInput.addEventListener('input', updateValidation);
+      emailInput.addEventListener('blur', updateValidation);
+      
+      // Initial validation
+      updateValidation();
+    });
+  };
+
   const handleForceShowInlineSurvey = () => {
     const surveyId = process.env.NEXT_PUBLIC_POSTHOG_FEEDBACK_SURVEY_ID;
     if (!surveyId || !posthog) return;
@@ -147,6 +212,7 @@ export default function AppSidebar() {
               ignoreDelay: true,
             });
             // Apply opt-in "ph-list" class to choice groups for cleaner list styling
+            // Add email validation for the first question
             // Delay slightly so PostHog has mounted its DOM
             setTimeout(() => {
               // container is in closure scope
@@ -155,6 +221,9 @@ export default function AppSidebar() {
                 'div[role="radiogroup"], div[role="group"]',
               );
               groups.forEach((g) => g.classList.add("ph-list"));
+              
+              // Add email validation
+              addEmailValidation(container);
             }, 60);
           } catch (e) {
             console.error("Failed to display survey", e);

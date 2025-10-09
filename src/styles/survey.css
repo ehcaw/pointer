@@ -575,3 +575,56 @@
   label:has(input[type="checkbox"]:checked):active {
   filter: brightness(0.95);
 }
+
+/* Email validation styling */
+#pointer-survey-container input[type="email"],
+#pointer-survey-container input[placeholder*="email" i],
+#pointer-survey-container input[aria-label*="email" i] {
+  position: relative;
+}
+
+#pointer-survey-container input[type="email"].invalid,
+#pointer-survey-container input[placeholder*="email" i].invalid,
+#pointer-survey-container input[aria-label*="email" i].invalid {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 1px var(--destructive);
+}
+
+#pointer-survey-container input[type="email"].valid,
+#pointer-survey-container input[placeholder*="email" i].valid,
+#pointer-survey-container input[aria-label*="email" i].valid {
+  border-color: hsl(142 76% 36%);
+  box-shadow: 0 0 0 1px hsl(142 76% 36%);
+}
+
+/* Email validation message */
+#pointer-survey-container .email-validation-message {
+  display: none;
+  font-size: 0.75rem;
+  color: var(--destructive);
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+#pointer-survey-container .email-validation-message.show {
+  display: block;
+}
+
+/* Disable submit button when email is invalid */
+#pointer-survey-container button:disabled,
+#pointer-survey-container input[type="submit"]:disabled,
+#pointer-survey-container [role="button"][aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+#pointer-survey-container button.email-invalid-disabled,
+#pointer-survey-container input[type="submit"].email-invalid-disabled,
+#pointer-survey-container [role="button"].email-invalid-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+  pointer-events: none;
+}
