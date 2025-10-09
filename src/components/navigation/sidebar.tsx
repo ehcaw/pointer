@@ -117,314 +117,47 @@ export default function AppSidebar() {
     .slice(0, 5);
 
   const handleForceShowInlineSurvey = () => {
-    const waitForPostHogAndDisplaySurvey = () => {
-      const surveyId = process.env.NEXT_PUBLIC_POSTHOG_FEEDBACK_SURVEY_ID;
+    const surveyId = process.env.NEXT_PUBLIC_POSTHOG_FEEDBACK_SURVEY_ID;
+    if (!surveyId || !posthog) return;
+
+    // wait for dialog content to mount
+    setTimeout(() => {
       const container = document.getElementById("pointer-survey-container");
+      if (!container) return;
+      container.innerHTML = "";
 
-      console.log("Survey ID:", surveyId);
-      console.log("Container element:", container);
-      console.log("PostHog instance:", posthog);
-      console.log("PostHog loaded:", posthog?.__loaded);
-
-      if (!surveyId) {
-        console.error("Survey ID is not defined");
-        return;
-      }
-
-      if (!container) {
-        console.error("Survey container not found");
-        return;
-      }
-
-      if (!posthog) {
-        console.error("PostHog not initialized");
-        return;
-      }
-
-      // Check if PostHog is fully loaded
-      if (!posthog.__loaded) {
-        console.log("PostHog not fully loaded yet, waiting...");
-        setTimeout(waitForPostHogAndDisplaySurvey, 100);
-        return;
-      }
-
-      // Clear any existing content
-      if (container) {
-        container.innerHTML = "";
-      }
-
-      try {
-        console.log("Attempting to display survey...");
-
-        // Method 1: Try the standard displaySurvey approach
-        posthog.displaySurvey(surveyId, {
-          displayType: DisplaySurveyType.Inline,
-          ignoreConditions: true,
-          ignoreDelay: true,
-          selector: "#pointer-survey-container",
-        });
-
-        // Method 2: If that doesn't work, try getting surveys manually
-        setTimeout(() => {
-          const surveyContainer = document.getElementById(
-            "pointer-survey-container",
-          );
-          if (surveyContainer && surveyContainer.children.length === 0) {
-            console.log("Survey didn't render, trying alternative method...");
-
-            // Check if there are available surveys
-            posthog.getSurveys((surveys) => {
-              console.log("Available surveys:", surveys);
-              const targetSurvey = surveys.find((s) => s.id === surveyId);
-
-              if (targetSurvey) {
-                console.log("Found target survey:", targetSurvey);
-                // Try showing the survey again with different options
-                posthog.displaySurvey(surveyId, {
-                  displayType: DisplaySurveyType.Inline,
-                  selector: "#pointer-survey-container",
-                  ignoreConditions: true,
-                  ignoreDelay: true,
-                });
-              } else {
-                console.error("Target survey not found in available surveys");
-                if (surveyContainer) {
-                  surveyContainer.innerHTML =
-                    '<p class="text-sm text-amber-600">Survey not available. Please turn off your adblocker.</p>';
-                }
-              }
+      let attempts = 0;
+      const hasLoadedFlag = (
+        ph: unknown,
+      ): ph is {
+        __loaded: boolean;
+        displaySurvey: typeof posthog.displaySurvey;
+      } =>
+        typeof ph === "object" &&
+        ph !== null &&
+        "__loaded" in ph &&
+        typeof (ph as { __loaded?: unknown }).__loaded === "boolean";
+      const tryRender = () => {
+        if (hasLoadedFlag(posthog) && posthog.__loaded) {
+          try {
+            posthog.displaySurvey(surveyId, {
+              displayType: DisplaySurveyType.Inline,
+              selector: "#pointer-survey-container",
+              ignoreConditions: true,
+              ignoreDelay: true,
             });
-          } else {
-            // Apply styles with JavaScript as fallback
-            setTimeout(() => {
-              const applySurveyStyles = () => {
-                const isDarkMode =
-                  document.documentElement.classList.contains("dark");
-
-                if (surveyContainer) {
-                  const inputs = surveyContainer.querySelectorAll(
-                    "input, textarea",
-                  ) as NodeListOf<HTMLElement>;
-                  const buttons = surveyContainer.querySelectorAll(
-                    "button, [type='submit']",
-                  ) as NodeListOf<HTMLElement>;
-                  const questions = surveyContainer.querySelectorAll(
-                    "h1, h2, h3, h4, h5, h6, p:first-child",
-                  ) as NodeListOf<HTMLElement>;
-                  const footers = surveyContainer.querySelectorAll(
-                    "div:last-child, [class*='footer'], [class*='branding']",
-                  ) as NodeListOf<HTMLElement>;
-
-                  // Style inputs
-                  inputs.forEach((input) => {
-                    const borderColor = isDarkMode
-                      ? "oklch(0.3240 0.0319 281.9784)"
-                      : "oklch(0.8083 0.0174 271.1982)";
-                    const backgroundColor = isDarkMode
-                      ? "oklch(0.2429 0.0304 283.9110)"
-                      : "oklch(1.0000 0 0)";
-                    const textColor = isDarkMode
-                      ? "oklch(0.8787 0.0426 272.2767)"
-                      : "oklch(0.4355 0.0430 279.3250)";
-                    const placeholderColor = isDarkMode
-                      ? "oklch(0.7510 0.0396 273.9320)"
-                      : "oklch(0.5471 0.0343 279.0837)";
-
-                    input.style.cssText = `
-                    width: 100% !important;
-                    padding: 12px !important;
-                    border: 1px solid ${borderColor} !important;
-                    border-top: 1px solid ${borderColor} !important;
-                    border-right: 1px solid ${borderColor} !important;
-                    border-bottom: 1px solid ${borderColor} !important;
-                    border-left: 1px solid ${borderColor} !important;
-                    border-radius: var(--radius, 0.35rem) !important;
-                    font-size: 14px !important;
-                    background: ${backgroundColor} !important;
-                    color: ${textColor} !important;
-                    font-family: var(--font-sans, Montserrat, sans-serif) !important;
-                    box-sizing: border-box !important;
-                    display: block !important;
-                    margin-bottom: 12px !important;
-                    outline: none !important;
-                    box-shadow: none !important;
-                    -webkit-appearance: none !important;
-                    -moz-appearance: none !important;
-                    appearance: none !important;
-                  `;
-
-                    // Remove any pseudo-element borders
-                    const style = document.createElement("style");
-                    style.textContent = `
-                      #pointer-survey-container input:before,
-                      #pointer-survey-container input:after,
-                      #pointer-survey-container textarea:before,
-                      #pointer-survey-container textarea:after {
-                        display: none !important;
-                      }
-                      #pointer-survey-container input:focus,
-                      #pointer-survey-container textarea:focus {
-                        border: 1px solid ${borderColor} !important;
-                        outline: none !important;
-                        box-shadow: none !important;
-                      }
-                      #pointer-survey-container hr {
-                        display: none !important;
-                      }
-                      #pointer-survey-container div:empty:not([class*='input']):not([id]):not([data-testid]) {
-                        display: none !important;
-                      }
-                      #pointer-survey-container div[style*='height: 1px'] {
-                        display: none !important;
-                      }
-                    `;
-                    document.head.appendChild(style);
-
-                    // Fix placeholder color
-                    input.style.setProperty(
-                      "--placeholder-color",
-                      placeholderColor,
-                    );
-                    input.setAttribute(
-                      "style",
-                      input.getAttribute("style") +
-                        `; ::placeholder { color: ${placeholderColor} !important; }`,
-                    );
-                  });
-
-                  // Style buttons
-                  buttons.forEach((button) => {
-                    const bgColor = isDarkMode
-                      ? "oklch(0.7871 0.1187 304.7693)"
-                      : "oklch(0.5547 0.2503 297.0156)";
-                    const textColor = isDarkMode
-                      ? "oklch(0.2429 0.0304 283.9110)"
-                      : "oklch(1.0000 0 0)";
-                    const hoverColor = isDarkMode
-                      ? "oklch(0.6820 0.1448 235.3822)"
-                      : "oklch(0.6820 0.1448 235.3822)";
-
-                    button.style.cssText = `
-                    background-color: ${bgColor} !important;
-                    color: ${textColor} !important;
-                    padding: 12px 24px !important;
-                    border-radius: var(--radius, 0.35rem) !important;
-                    border: none !important;
-                    font-weight: 500 !important;
-                    font-size: 14px !important;
-                    cursor: pointer !important;
-                    transition: all 0.2s !important;
-                    margin-top: 0px !important;
-                    margin-bottom: 12px !important;
-                    font-family: var(--font-sans, Montserrat, sans-serif) !important;
-                    display: block !important;
-                    width: auto !important;
-                  `;
-
-                    // Don't clone buttons to preserve PostHog event handlers
-                    button.addEventListener("mouseenter", () => {
-                      button.style.backgroundColor = hoverColor + " !important";
-                    });
-
-                    button.addEventListener("mouseleave", () => {
-                      button.style.backgroundColor = bgColor + " !important";
-                    });
-                  });
-
-                  // Style questions without affecting functionality
-                  questions.forEach((question) => {
-                    const textColor = isDarkMode
-                      ? "oklch(0.9500 0.0200 272.2767)"
-                      : "oklch(0.4355 0.0430 279.3250)";
-
-                    // Only add styles, don't replace cssText completely
-                    question.style.fontSize = "14px";
-                    question.style.fontWeight = "500";
-                    question.style.color = textColor;
-                    question.style.marginBottom = "8px";
-                    question.style.marginTop = "0";
-                    question.style.fontFamily =
-                      "var(--font-sans, Montserrat, sans-serif)";
-                  });
-
-                  // Additional CSS for text visibility without breaking functionality
-                  const additionalStyle = document.createElement("style");
-                  const textColor = isDarkMode
-                    ? "oklch(0.9500 0.0200 272.2767)"
-                    : "oklch(0.4355 0.0430 279.3250)";
-                  additionalStyle.textContent = `
-                    #pointer-survey-container h1,
-                    #pointer-survey-container h2,
-                    #pointer-survey-container h3,
-                    #pointer-survey-container h4,
-                    #pointer-survey-container h5,
-                    #pointer-survey-container h6,
-                    #pointer-survey-container p,
-                    #pointer-survey-container label,
-                    #pointer-survey-container span:not([class*='icon']) {
-                      color: ${textColor} !important;
-                    }
-                  `;
-                  document.head.appendChild(additionalStyle);
-
-                  // Style footer/branding to be below button
-                  footers.forEach((footer) => {
-                    const borderColor = isDarkMode
-                      ? "oklch(0.3240 0.0319 281.9784)"
-                      : "oklch(0.8083 0.0174 271.1982)";
-                    const textColor = isDarkMode
-                      ? "oklch(0.7510 0.0396 273.9320)"
-                      : "oklch(0.5471 0.0343 279.0837)";
-
-                    footer.style.cssText = `
-                    margin-top: 8px !important;
-                    padding-top: 8px !important;
-                    border-top: 1px solid ${borderColor} !important;
-                    font-size: 12px !important;
-                    color: ${textColor} !important;
-                    display: block !important;
-                    text-align: left !important;
-                    width: 100% !important;
-                  `;
-                  });
-
-                  // Don't modify display properties to avoid breaking survey functionality
-
-                  console.log("Applied JavaScript survey styles", {
-                    isDarkMode,
-                  });
-                }
-              };
-
-              applySurveyStyles();
-
-              // Re-apply styles after a short delay in case PostHog overwrites them
-              setTimeout(applySurveyStyles, 500);
-
-              // Watch for theme changes
-              const observer = new MutationObserver(() => {
-                applySurveyStyles();
-              });
-              observer.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ["class"],
-              });
-            }, 100);
+          } catch (e) {
+            console.error("Failed to display survey", e);
           }
-        }, 50);
-
-        console.log("Survey display attempted successfully");
-      } catch (error) {
-        console.error("Error displaying survey:", error);
-        if (container) {
-          container.innerHTML =
-            '<p class="text-sm text-red-500">Error loading survey. Please try again.</p>';
+          return;
         }
-      }
-    };
+        if (attempts++ < 30) {
+          setTimeout(tryRender, 150);
+        }
+      };
 
-    // Start checking after modal has time to render
-    setTimeout(waitForPostHogAndDisplaySurvey, 100);
+      tryRender();
+    }, 50);
   };
 
   return (
@@ -448,9 +181,7 @@ export default function AppSidebar() {
                 />
               </div>
               <div>
-                <h2 className="text-med font-serif text-foreground">
-                  pointer
-                </h2>
+                <h2 className="text-med font-serif text-foreground">pointer</h2>
                 <p className="text-xs font-serif text-muted-foreground">
                   your digital workspace
                 </p>
@@ -475,7 +206,7 @@ export default function AppSidebar() {
       <SidebarContent className="bg-background flex-1 overflow-y-auto">
         {/* Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-600 dark:text-slate-400 font-medium">
+          <SidebarGroupLabel className="text-muted-foreground dark:text-muted-foreground font-medium">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -491,7 +222,7 @@ export default function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "home"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
                   )}
                 >
                   <Home className="h-4 w-4" />
@@ -508,7 +239,7 @@ export default function AppSidebar() {
                       "rounded-lg transition-all",
                       currentView === "graph"
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
                     )}
                   >
                     <GitGraph className="h-4 w-4" />
@@ -525,7 +256,7 @@ export default function AppSidebar() {
                     "rounded-lg transition-all",
                     currentView === "whiteboard"
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                      : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
                   )}
                 >
                   <LineSquiggle className="h-4 w-4" />
@@ -539,12 +270,12 @@ export default function AppSidebar() {
         {/* Unsaved Changes */}
         {Array.from(unsavedNotes.values()).length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-orange-600 dark:text-orange-400 font-medium flex items-center gap-2">
+            <SidebarGroupLabel className="text-accent-foreground dark:text-accent-foreground font-medium flex items-center gap-2">
               <Clock className="h-3 w-3" />
               Unsaved Changes
               <Badge
                 variant="secondary"
-                className="ml-auto bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                className="ml-auto bg-accent/20 dark:bg-accent/20 text-accent-foreground dark:text-accent-foreground"
               >
                 {Array.from(unsavedNotes.values()).length}
               </Badge>
@@ -557,11 +288,11 @@ export default function AppSidebar() {
                       onClick={() => handleNoteClick(note)}
                       className="rounded-lg hover:bg-accent text-accent-foreground"
                     >
-                      <div className="flex h-6 w-6 items-center justify-center rounded bg-orange-100 dark:bg-orange-900/30">
-                        <FileText className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                      <div className="flex h-6 w-6 items-center justify-center rounded bg-accent/20 dark:bg-accent/20">
+                        <FileText className="h-3 w-3 text-accent-foreground dark:text-accent-foreground" />
                       </div>
                       <span className="truncate">{note.name}</span>
-                      <div className="ml-auto h-2 w-2 rounded-full bg-orange-500" />
+                      <div className="ml-auto h-2 w-2 rounded-full bg-accent" />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -572,7 +303,7 @@ export default function AppSidebar() {
 
         {/* Recent Notes */}
         <SidebarGroup>
-            <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
+          <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
             Recent Notes
           </SidebarGroupLabel>
           <SidebarGroupAction
@@ -595,7 +326,7 @@ export default function AppSidebar() {
                       "rounded-lg transition-all w-full",
                       isActive
                         ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+                        : "hover:bg-muted/20 dark:hover:bg-muted/20 text-foreground dark:text-foreground",
                     )}
                   >
                     <FileText className="h-4 w-4" />
@@ -614,9 +345,9 @@ export default function AppSidebar() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => handleOpenDeleteDialog(e, note)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-red-500/10 group-data-[collapsible=icon]:hidden"
+                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
                       >
-                        <Trash className="h-3 w-3 text-slate-500 group-hover/item:text-red-500" />
+                        <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
                         <span className="sr-only">Delete note</span>
                       </Button>
                     </div>
@@ -630,7 +361,7 @@ export default function AppSidebar() {
         {/* Shared with me */}
         {sharedNotes.length > 0 && (
           <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
+            <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
               <Users className="h-3 w-3" />
               Shared with me
             </SidebarGroupLabel>
@@ -648,7 +379,7 @@ export default function AppSidebar() {
                           "rounded-lg transition-all",
                           isActive
                             ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "hover:bg-accent text-accent-foreground",
+                            : "hover:bg-accent text-accent-foreground",
                         )}
                       >
                         <FileText className="h-4 w-4" />
@@ -665,7 +396,7 @@ export default function AppSidebar() {
         {/* All Notes (collapsed by default) */}
         {userNotes.length > 5 && (
           <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground font-medium">
+            <SidebarGroupLabel className="text-muted-foreground font-medium">
               All Notes ({userNotes.length})
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -681,7 +412,7 @@ export default function AppSidebar() {
                         "rounded-lg transition-all w-full",
                         isActive
                           ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-accent text-accent-foreground",
+                          : "hover:bg-accent text-accent-foreground",
                       )}
                     >
                       <FileText className="h-4 w-4" />
@@ -700,9 +431,9 @@ export default function AppSidebar() {
                           variant="ghost"
                           size="icon"
                           onClick={(e) => handleOpenDeleteDialog(e, note)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
+                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
                         >
-                        <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
+                          <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
                           <span className="sr-only">Delete note</span>
                         </Button>
                       </div>

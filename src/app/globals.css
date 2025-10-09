@@ -193,25 +193,39 @@
   }
 }
 
-/* PostHog Survey Styling - Multiple targeting approaches */
-#pointer-survey-container * {
-  font-family: inherit !important;
+/* PostHog Survey Styling (lightweight + theme variable based)
+   Keep selectors broad so future PostHog DOM changes still inherit theme.
+   Avoid hard-coded light/dark colors; rely on CSS variables already flipped by .dark.
+*/
+#pointer-survey-container {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  --ph-control-pad-y: 0.5rem;
+  --ph-control-pad-x: 0.75rem;
+  --ph-radius: var(--radius);
+  --ph-gap: 0.75rem;
 }
 
-/* Target any div inside survey container that looks like a survey */
-#pointer-survey-container > div,
-#pointer-survey-container [class*="survey"],
-#pointer-survey-container [class*="Survey"],
-#pointer-survey-container [class*="posthog"],
-#pointer-survey-container [class*="PostHog"] {
+#pointer-survey-container,
+#pointer-survey-container * {
+  font-family: inherit;
+  box-sizing: border-box;
+  color: var(--foreground);
+}
+
+/* Root survey wrapper(s) */
+#pointer-survey-container .ph-survey,
+#pointer-survey-container form,
+#pointer-survey-container > div {
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  background: transparent !important;
   padding: 0 !important;
   margin: 0 !important;
+  color: var(--foreground) !important;
 }
 
-/* Target question text */
+/* Question headings & primary text */
 #pointer-survey-container h1,
 #pointer-survey-container h2,
 #pointer-survey-container h3,
@@ -221,140 +235,204 @@
 #pointer-survey-container p:first-child,
 #pointer-survey-container [class*="question"],
 #pointer-survey-container [class*="title"] {
-  font-size: 1.125rem !important;
-  font-weight: 600 !important;
-  color: rgb(15 23 42) !important;
-  margin-bottom: 0.75rem !important;
-  margin-top: 0 !important;
-  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  line-height: 1.3;
+  margin: 0 0 0.5rem 0 !important;
+  color: var(--foreground) !important;
 }
 
-/* Target all input fields and textareas */
-#pointer-survey-container input,
-#pointer-survey-container textarea,
+/* Field grouping spacing */
+#pointer-survey-container .ph-question,
+#pointer-survey-container fieldset,
+#pointer-survey-container div[role="group"],
+#pointer-survey-container div[role="radiogroup"] {
+  margin: 0 0 1rem 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+/* Labels / sublabels */
+#pointer-survey-container label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+/* Textual inputs */
 #pointer-survey-container input[type="text"],
-#pointer-survey-container input[type="email"] {
-  width: 100% !important;
-  padding: 0.75rem !important;
-  border: 1px solid rgb(203 213 225) !important;
-  border-radius: 0.5rem !important;
-  font-size: 0.875rem !important;
-  background: white !important;
-  color: rgb(15 23 42) !important;
-  font-family: inherit !important;
-  box-sizing: border-box !important;
-  display: block !important;
-  margin-bottom: 12px !important;
+#pointer-survey-container input[type="email"],
+#pointer-survey-container input[type="url"],
+#pointer-survey-container input[type="search"],
+#pointer-survey-container textarea,
+#pointer-survey-container select {
+  width: 100%;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--ph-radius);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding: var(--ph-control-pad-y) var(--ph-control-pad-x);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background-color 0.15s;
+  appearance: none;
+}
+
+#pointer-survey-container textarea {
+  min-height: 6rem;
+  resize: vertical;
 }
 
 #pointer-survey-container input::placeholder,
 #pointer-survey-container textarea::placeholder {
-  color: rgb(148 163 184) !important;
+  color: var(--muted-foreground);
+  opacity: 0.75;
 }
 
-.dark #pointer-survey-container input::placeholder,
-.dark #pointer-survey-container textarea::placeholder {
-  color: rgb(148 163 184) !important;
-}
-
+/* Focus */
 #pointer-survey-container input:focus,
-#pointer-survey-container textarea:focus {
-  outline: 2px solid rgb(59 130 246) !important;
-  outline-offset: -2px !important;
-  border-color: rgb(59 130 246) !important;
+#pointer-survey-container textarea:focus,
+#pointer-survey-container select:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 1px var(--ring);
 }
 
-/* Target all buttons */
+/* Radios / checkboxes (single select / multi select) */
+#pointer-survey-container input[type="radio"],
+#pointer-survey-container input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+}
+
+#pointer-survey-container input[type="radio"] {
+  border-radius: 9999px;
+}
+
+/* Provide a pill style option variant if PostHog renders button-like options */
+#pointer-survey-container [data-ph-option],
+#pointer-survey-container .ph-option,
+#pointer-survey-container .ph-answer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  border-radius: var(--ph-radius);
+  cursor: pointer;
+  margin: 0 0.4rem 0.4rem 0;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+#pointer-survey-container [data-ph-option]:hover,
+#pointer-survey-container .ph-option:hover,
+#pointer-survey-container .ph-answer-button:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-color: var(--accent);
+}
+
+#pointer-survey-container [data-ph-option][data-selected="true"],
+#pointer-survey-container .ph-option.is-active,
+#pointer-survey-container .ph-answer-button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Primary buttons */
 #pointer-survey-container button,
 #pointer-survey-container input[type="submit"],
 #pointer-survey-container [role="button"] {
-  background-color: rgb(15 23 42) !important;
-  color: white !important;
-  padding: 0.75rem 1.5rem !important;
-  border-radius: 0.5rem !important;
-  border: none !important;
-  font-weight: 500 !important;
-  font-size: 0.875rem !important;
-  cursor: pointer !important;
-  transition: all 0.2s !important;
-  margin-top: 0px !important;
-  margin-bottom: 12px !important;
-  font-family: inherit !important;
-  display: block !important;
-  width: auto !important;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--ph-radius);
+  border: 1px solid var(--primary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  line-height: 1.1;
+  transition:
+    background-color 0.15s,
+    filter 0.15s;
+  text-decoration: none;
 }
 
 #pointer-survey-container button:hover,
-#pointer-survey-container input[type="submit"]:hover {
-  background-color: rgb(30 41 59) !important;
+#pointer-survey-container input[type="submit"]:hover,
+#pointer-survey-container [role="button"]:hover {
+  filter: brightness(1.08);
 }
 
-/* Target footer/branding */
-#pointer-survey-container div:last-child,
+/* Disabled state */
+#pointer-survey-container button:disabled,
+#pointer-survey-container input[type="submit"]:disabled,
+#pointer-survey-container [role="button"][aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* Footer / branding */
 #pointer-survey-container [class*="footer"],
-#pointer-survey-container [class*="branding"] {
-  margin-top: 8px !important;
-  padding-top: 8px !important;
-  border-top: 1px solid rgb(226 232 240) !important;
-  font-size: 0.75rem !important;
-  color: rgb(100 116 139) !important;
-  display: block !important;
-  text-align: left !important;
-  width: 100% !important;
+#pointer-survey-container [class*="branding"],
+#pointer-survey-container div:last-child {
+  margin-top: 1rem !important;
+  padding-top: 0.75rem !important;
+  border-top: 1px solid var(--border) !important;
+  font-size: 0.65rem !important;
+  line-height: 1rem;
+  color: var(--muted-foreground) !important;
+  text-align: left;
 }
 
-/* Force vertical layout - override any flex layouts */
-#pointer-survey-container * {
-  display: block !important;
-}
-
-#pointer-survey-container input,
-#pointer-survey-container textarea,
-#pointer-survey-container button {
-  display: block !important;
-}
-
+/* Links */
 #pointer-survey-container a {
-  color: rgb(100 116 139) !important;
-  text-decoration: none !important;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color 0.15s;
 }
 
-/* Dark mode overrides */
-.dark #pointer-survey-container h1,
-.dark #pointer-survey-container h2,
-.dark #pointer-survey-container h3,
-.dark #pointer-survey-container h4,
-.dark #pointer-survey-container h5,
-.dark #pointer-survey-container h6,
-.dark #pointer-survey-container p:first-child {
-  color: rgb(248 250 252) !important;
+#pointer-survey-container a:hover {
+  text-decoration: underline;
+  color: var(--foreground);
 }
 
-.dark #pointer-survey-container input,
-.dark #pointer-survey-container textarea {
-  background: rgb(30 41 59) !important;
-  border-color: rgb(71 85 105) !important;
-  color: rgb(248 250 252) !important;
+/* Compact horizontal alignment for inline radio/checkbox groups if PostHog uses flex */
+#pointer-survey-container .ph-inline-options,
+#pointer-survey-container .ph-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
 }
 
-.dark #pointer-survey-container button,
-.dark #pointer-survey-container input[type="submit"] {
-  background-color: rgb(248 250 252) !important;
-  color: rgb(15 23 42) !important;
-}
-
-.dark #pointer-survey-container button:hover,
-.dark #pointer-survey-container input[type="submit"]:hover {
-  background-color: rgb(226 232 240) !important;
-}
-
-.dark #pointer-survey-container div:last-child,
-.dark #pointer-survey-container [class*="footer"],
-.dark #pointer-survey-container [class*="branding"] {
-  border-top-color: rgb(71 85 105) !important;
-  color: rgb(148 163 184) !important;
-}
-
-.dark #pointer-survey-container a {
-  color: rgb(148 163 184) !important;
+/* Ensure inherited theming in dark mode without extra overrides */
+.dark #pointer-survey-container,
+.dark #pointer-survey-container * {
+  /* colors already point to dark-mode variables */
 }

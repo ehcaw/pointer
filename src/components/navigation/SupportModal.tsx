@@ -34,28 +34,26 @@ const SupportModal = ({
             Get help and support for the Pointer application.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          <div className="mb-6">
-            <p className="text-sm">
-              <strong>Documentation:</strong>{" "}
-              <a
-                href="https://docs.pointer.ink"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 underline"
-              >
-                docs.pointer.ink
-              </a>
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground mb-6">
-              If you want to report a bug, provide feedback, or request
-              features, fill out this form!
-            </p>
-            <div id="pointer-survey-container" className="min-h-[300px] w-full">
-              {/* Survey will be injected here by PostHog */}
-            </div>
+        <div className="space-y-4">
+          <p className="text-sm">
+            <strong>Documentation:</strong>{" "}
+            <a
+              href="https://docs.pointer.ink"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 underline"
+            >
+              docs.pointer.ink
+            </a>
+          </p>
+
+          <p className="text-sm text-muted-foreground">
+            If you want to report a bug, provide feedback, or request
+            features, fill out this form!
+          </p>
+
+          <div id="pointer-survey-container" className="w-full">
+            {/* Survey will be injected here by PostHog */}
           </div>
         </div>
       </DialogContent>
