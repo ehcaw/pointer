@@ -442,6 +442,21 @@ export function SimpleEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && initialContent !== undefined) {
+      const currentEditorContent = editor.getJSON();
+      const currentContentHash = JSON.stringify(currentEditorContent);
+      const newContentHash = JSON.stringify(initialContent);
+      
+      // Only update content if it's actually different to avoid unnecessary re-renders
+      if (currentContentHash !== newContentHash) {
+        editor.commands.setContent(initialContent, false); // false = don't trigger update events
+        lastContentRef.current = newContentHash;
+      }
+    }
+  }, [initialContent, editor]);
+
   useEffect(() => {
     if (currentNote && editor) {
       lastContentRef.current = JSON.stringify(editor.getJSON());

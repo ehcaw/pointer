@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Plus,
   Home,
@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { useNotesStore } from "@/lib/stores/notes-store";
+import { useNotesStore, useRecentNotes, useUnsavedNotesArray, useUnsavedNotesCount } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -50,13 +50,100 @@ import SupportModal from "./SupportModal";
 import { DisplaySurveyType } from "posthog-js";
 import { usePostHog } from "posthog-js/react";
 
+// Memoized note item component to prevent unnecessary re-renders
+const NoteItem = React.memo(({ 
+  note, 
+  isActive, 
+  onNoteClick, 
+  onDeleteClick 
+}: {
+  note: Node;
+  isActive: boolean;
+  onNoteClick: (note: Node) => void;
+  onDeleteClick: (e: React.MouseEvent<HTMLButtonElement>, note: Node) => void;
+}) => {
+  const noteButton = (
+    <SidebarMenuButton
+      onClick={() => onNoteClick(note)}
+      data-active={isActive}
+      className={cn(
+        "rounded-lg transition-all w-full",
+        isActive
+          ? "bg-primary/10 text-primary hover:bg-primary/15"
+          : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
+      )}
+    >
+      <FileText className="h-4 w-4" />
+      <span>{note.name}</span>
+    </SidebarMenuButton>
+  );
+
+  return (
+    <SidebarMenuItem
+      key={String(note.pointer_id)}
+      className="relative group"
+    >
+      <div className="relative group/item">
+        {noteButton}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => onDeleteClick(e, note)}
+          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
+        >
+          <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
+          <span className="sr-only">Delete note</span>
+        </Button>
+      </div>
+    </SidebarMenuItem>
+  );
+});
+
+NoteItem.displayName = 'NoteItem';
+
+// Memoized shared note item component
+const SharedNoteItem = React.memo(({ 
+  note, 
+  isActive, 
+  onNoteClick 
+}: {
+  note: Node;
+  isActive: boolean;
+  onNoteClick: (note: Node) => void;
+}) => {
+  return (
+    <SidebarMenuItem key={String(note.pointer_id)}>
+      <SidebarMenuButton
+        onClick={() => onNoteClick(note)}
+        data-active={isActive}
+        className={cn(
+          "rounded-lg transition-all",
+          isActive
+            ? "bg-primary/10 text-primary hover:bg-primary/15"
+            : "hover:bg-accent hover:text-foreground",
+        )}
+      >
+        <FileText className="h-4 w-4" />
+        <span>{note.name}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+});
+
+SharedNoteItem.displayName = 'SharedNoteItem';
+
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  
+  // Use optimized selectors
+  const recentNotes = useRecentNotes();
+  const unsavedNotesArray = useUnsavedNotesArray();
+  const unsavedNotesCount = useUnsavedNotesCount();
+  
   const {
     userNotes,
     sharedNotes,
-    unsavedNotes,
     openUserNotes,
     setCurrentNote,
     unsetCurrentNote,
@@ -69,113 +156,110 @@ export default function AppSidebar() {
 
   const posthog = usePostHog();
 
-  const handleCreateNote = () => {
+  const handleCreateNote = useCallback(() => {
     const title = `Note ${openUserNotes.length + 1}`;
     setCurrentView("note");
     createNewNote(title);
-  };
+  }, [openUserNotes.length, setCurrentView, createNewNote]);
 
-  const handleNavClick = (
+  const handleNavClick = useCallback((
     view: "home" | "graph" | "whiteboard" | "note" | "settings",
   ) => {
     setCurrentView(view);
-  };
+  }, [setCurrentView]);
 
-  const handleNoteClick = async (note: Node) => {
+  const handleNoteClick = useCallback(async (note: Node) => {
     if (
       currentNote &&
       dbSavedNotes.get(currentNote.pointer_id) != undefined &&
-      currentNote.content.text !=
-        dbSavedNotes.get(currentNote.pointer_id)!.content.text
+      currentNote?.content?.text !=
+        dbSavedNotes.get(currentNote.pointer_id)!.content?.text
     ) {
       saveCurrentNote();
     }
     setCurrentNote(note);
     setCurrentView("note");
-  };
+  }, [currentNote, dbSavedNotes, saveCurrentNote, setCurrentNote, setCurrentView]);
 
-  const handleOpenDeleteDialog = (
+  const handleOpenDeleteDialog = useCallback((
     e: React.MouseEvent<HTMLButtonElement>,
     note: Node,
   ) => {
     e.stopPropagation();
     setNoteToDelete(note);
-  };
+  }, []);
 
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     if (noteToDelete) {
       await deleteNote(noteToDelete.pointer_id || "", noteToDelete.tenantId);
       setNoteToDelete(null); // Close the dialog
     }
-  };
-
-  const recentNotes = userNotes
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    )
-    .slice(0, 5);
+  }, [noteToDelete, deleteNote]);
 
   const addEmailValidation = (container: HTMLElement) => {
     // Find email inputs (first question should be email)
     const emailInputs = container.querySelectorAll(
-      'input[type="email"], input[placeholder*="email" i], input[aria-label*="email" i]'
+      'input[type="email"], input[placeholder*="email" i], input[aria-label*="email" i]',
     );
-    
+
     emailInputs.forEach((input) => {
       const emailInput = input as HTMLInputElement;
-      
+
       // Create validation message element
-      const validationMessage = document.createElement('div');
-      validationMessage.className = 'email-validation-message';
-      validationMessage.textContent = 'Please enter a valid email address';
-      
+      const validationMessage = document.createElement("div");
+      validationMessage.className = "email-validation-message";
+      validationMessage.textContent = "Please enter a valid email address";
+
       // Insert validation message after the input
-      emailInput.parentNode?.insertBefore(validationMessage, emailInput.nextSibling);
-      
+      emailInput.parentNode?.insertBefore(
+        validationMessage,
+        emailInput.nextSibling,
+      );
+
       // Email validation function
       const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
       };
-      
+
       // Update validation state
       const updateValidation = () => {
-        const isValid = emailInput.value.trim() === '' || validateEmail(emailInput.value);
-        
-        if (emailInput.value.trim() === '') {
-          emailInput.classList.remove('valid', 'invalid');
-          validationMessage.classList.remove('show');
+        const isValid =
+          emailInput.value.trim() === "" || validateEmail(emailInput.value);
+
+        if (emailInput.value.trim() === "") {
+          emailInput.classList.remove("valid", "invalid");
+          validationMessage.classList.remove("show");
         } else if (isValid) {
-          emailInput.classList.remove('invalid');
-          emailInput.classList.add('valid');
-          validationMessage.classList.remove('show');
+          emailInput.classList.remove("invalid");
+          emailInput.classList.add("valid");
+          validationMessage.classList.remove("show");
         } else {
-          emailInput.classList.remove('valid');
-          emailInput.classList.add('invalid');
-          validationMessage.classList.add('show');
+          emailInput.classList.remove("valid");
+          emailInput.classList.add("invalid");
+          validationMessage.classList.add("show");
         }
-        
+
         // Enable/disable submit button based on email validity
         const submitButtons = container.querySelectorAll(
-          'button[type="submit"], input[type="submit"], [role="button"]:not([aria-disabled="true"])'
+          'button[type="submit"], input[type="submit"], [role="button"]:not([aria-disabled="true"])',
         );
-        
+
         submitButtons.forEach((button) => {
-          if (emailInput.value.trim() !== '' && !isValid) {
-            button.classList.add('email-invalid-disabled');
-            (button as HTMLButtonElement).setAttribute('aria-disabled', 'true');
+          if (emailInput.value.trim() !== "" && !isValid) {
+            button.classList.add("email-invalid-disabled");
+            (button as HTMLButtonElement).setAttribute("aria-disabled", "true");
           } else {
-            button.classList.remove('email-invalid-disabled');
-            (button as HTMLButtonElement).removeAttribute('aria-disabled');
+            button.classList.remove("email-invalid-disabled");
+            (button as HTMLButtonElement).removeAttribute("aria-disabled");
           }
         });
       };
-      
+
       // Add event listeners
-      emailInput.addEventListener('input', updateValidation);
-      emailInput.addEventListener('blur', updateValidation);
-      
+      emailInput.addEventListener("input", updateValidation);
+      emailInput.addEventListener("blur", updateValidation);
+
       // Initial validation
       updateValidation();
     });
@@ -221,7 +305,7 @@ export default function AppSidebar() {
                 'div[role="radiogroup"], div[role="group"]',
               );
               groups.forEach((g) => g.classList.add("ph-list"));
-              
+
               // Add email validation
               addEmailValidation(container);
             }, 60);
@@ -347,7 +431,7 @@ export default function AppSidebar() {
         </SidebarGroup>
 
         {/* Unsaved Changes */}
-        {Array.from(unsavedNotes.values()).length > 0 && (
+        {unsavedNotesCount > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-accent-foreground dark:text-accent-foreground font-medium flex items-center gap-2">
               <Clock className="h-3 w-3" />
@@ -356,12 +440,12 @@ export default function AppSidebar() {
                 variant="secondary"
                 className="ml-auto bg-accent/20 dark:bg-accent/20 text-accent-foreground dark:text-accent-foreground"
               >
-                {Array.from(unsavedNotes.values()).length}
+                {unsavedNotesCount}
               </Badge>
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {Array.from(unsavedNotes.values()).map((note) => (
+                {unsavedNotesArray.map((note) => (
                   <SidebarMenuItem key={String(note.pointer_id)}>
                     <SidebarMenuButton
                       onClick={() => handleNoteClick(note)}
@@ -396,41 +480,14 @@ export default function AppSidebar() {
             <SidebarMenu>
               {recentNotes.map((note) => {
                 const isActive = currentNote?.pointer_id === note.pointer_id;
-
-                const noteButton = (
-                  <SidebarMenuButton
-                    onClick={() => handleNoteClick(note)}
-                    data-active={isActive}
-                    className={cn(
-                      "rounded-lg transition-all w-full",
-                      isActive
-                        ? "bg-primary/10 text-primary hover:bg-primary/15"
-                        : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
-                    )}
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>{note.name}</span>
-                  </SidebarMenuButton>
-                );
-
                 return (
-                  <SidebarMenuItem
+                  <NoteItem
                     key={String(note.pointer_id)}
-                    className="relative group"
-                  >
-                    <div className="relative group/item">
-                      {noteButton}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => handleOpenDeleteDialog(e, note)}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
-                      >
-                        <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
-                        <span className="sr-only">Delete note</span>
-                      </Button>
-                    </div>
-                  </SidebarMenuItem>
+                    note={note}
+                    isActive={isActive}
+                    onNoteClick={handleNoteClick}
+                    onDeleteClick={handleOpenDeleteDialog}
+                  />
                 );
               })}
             </SidebarMenu>
@@ -448,23 +505,13 @@ export default function AppSidebar() {
               <SidebarMenu>
                 {sharedNotes.map((note) => {
                   const isActive = currentNote?.pointer_id === note.pointer_id;
-
                   return (
-                    <SidebarMenuItem key={String(note.pointer_id)}>
-                      <SidebarMenuButton
-                        onClick={() => handleNoteClick(note)}
-                        data-active={isActive}
-                        className={cn(
-                          "rounded-lg transition-all",
-                          isActive
-                            ? "bg-primary/10 text-primary hover:bg-primary/15"
-                            : "hover:bg-accent hover:text-foreground",
-                        )}
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>{note.name}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <SharedNoteItem
+                      key={String(note.pointer_id)}
+                      note={note}
+                      isActive={isActive}
+                      onNoteClick={handleNoteClick}
+                    />
                   );
                 })}
               </SidebarMenu>
@@ -482,41 +529,14 @@ export default function AppSidebar() {
               <SidebarMenu>
                 {userNotes.slice(5).map((note) => {
                   const isActive = currentNote?.pointer_id === note.pointer_id;
-
-                  const noteButton = (
-                    <SidebarMenuButton
-                      onClick={() => handleNoteClick(note)}
-                      data-active={isActive}
-                      className={cn(
-                        "rounded-lg transition-all w-full",
-                        isActive
-                          ? "bg-primary/10 text-primary hover:bg-primary/15"
-                          : "hover:bg-accent hover:text-foreground",
-                      )}
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>{note.name}</span>
-                    </SidebarMenuButton>
-                  );
-
                   return (
-                    <SidebarMenuItem
+                    <NoteItem
                       key={String(note.pointer_id)}
-                      className="relative group"
-                    >
-                      <div className="relative group/item">
-                        {noteButton}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => handleOpenDeleteDialog(e, note)}
-                          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
-                        >
-                          <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
-                          <span className="sr-only">Delete note</span>
-                        </Button>
-                      </div>
-                    </SidebarMenuItem>
+                      note={note}
+                      isActive={isActive}
+                      onNoteClick={handleNoteClick}
+                      onDeleteClick={handleOpenDeleteDialog}
+                    />
                   );
                 })}
               </SidebarMenu>

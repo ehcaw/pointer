@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Node } from "@/types/note";
 import { usePreferencesStore } from "./preferences-store";
+import { useMemo } from "react";
 
 interface NotesStore {
   // Core note collections
@@ -32,6 +33,7 @@ interface NotesStore {
   // Note UI management
   addOpenUserNote: (note: Node) => void;
   closeUserNote: (noteId: string) => void;
+  addUserNote: (note: Node) => void;
 
   // Unsaved changes management (pure state operations)
   markNoteAsUnsaved: (note: Node) => void;
@@ -151,6 +153,24 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       openUserNotes.length > 0 ? openUserNotes[openUserNotes.length - 1] : null;
 
     set({ openUserNotes, currentNote });
+  },
+
+  addUserNote: (note: Node) => {
+    const state = get();
+    if (
+      !state.userNotes.some(
+        (n) => n.pointer_id.toString() === note.pointer_id.toString(),
+      )
+    ) {
+      set({
+        userNotes: [...state.userNotes, note],
+        currentNote: note,
+      });
+    } else {
+      set({
+        currentNote: note,
+      });
+    }
   },
 
   // Unsaved changes management
@@ -462,3 +482,33 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     }
   },
 }));
+
+// Optimized selectors for performance
+export const useRecentNotes = () => {
+  const userNotes = useNotesStore((state) => state.userNotes);
+  
+  return useMemo(() => {
+    return userNotes
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      .slice(0, 5);
+  }, [userNotes]);
+};
+
+export const useUnsavedNotesArray = () => {
+  const unsavedNotes = useNotesStore((state) => state.unsavedNotes);
+  
+  return useMemo(() => {
+    return Array.from(unsavedNotes.values());
+  }, [unsavedNotes]);
+};
+
+export const useUnsavedNotesCount = () => {
+  const unsavedNotes = useNotesStore((state) => state.unsavedNotes);
+  
+  return useMemo(() => {
+    return unsavedNotes.size;
+  }, [unsavedNotes]);
+};

@@ -30,6 +30,7 @@ export function useNoteEditor() {
     addOpenUserNote,
     setTreeStructure,
     dbSavedNotes,
+    addUserNote,
   } = useNotesStore();
 
   // Local state for save operations
@@ -104,6 +105,7 @@ export function useNoteEditor() {
     // Add to store as unsaved
     addNewUnsavedNote(newNote);
     addOpenUserNote(newNote);
+    addUserNote(newNote);
     setCurrentView("note");
     setCurrentNote(newNote);
 
