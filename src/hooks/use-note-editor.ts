@@ -65,19 +65,19 @@ export function useNoteEditor() {
     }
   };
 
-  const fetchNoteById = async (noteId: string) => {
-    try {
-      const note = await convex.query(api.notes.findNoteByPointerId, {
-        pointer_id: noteId,
-      });
-      if (!note) {
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  // const fetchNoteById = async (noteId: string) => {
+  //   try {
+  //     const note = await convex.query(api.notes.findNoteByPointerId, {
+  //       pointer_id: noteId,
+  //     });
+  //     if (!note) {
+  //       return false;
+  //     }
+  //     return true;
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
 
   /**
    * Create a new note in the database
@@ -152,13 +152,7 @@ export function useNoteEditor() {
         },
         collaborative: noteData.collaborative,
       };
-
-      const doesNoteExist = await fetchNoteById(note.pointer_id);
-      if (doesNoteExist) {
-        await convex.mutation(api.notes.updateNoteInDb, mutationData);
-      } else {
-        await convex.mutation(api.notes.createNoteInDb, mutationData);
-      }
+      await convex.mutation(api.notes.updateNoteInDb, mutationData);
       const savedNote = { ...note, _id: note.pointer_id };
       updateNoteInCollections(savedNote);
       clearUnsavedNote(note.pointer_id.toString());
@@ -252,7 +246,7 @@ export function useNoteEditor() {
 
     // Note CRUD operations
     fetchAllNotes,
-    fetchNoteById,
+    // fetchNoteById,
     createNewNote,
     createEmptyNote,
     openNote,
