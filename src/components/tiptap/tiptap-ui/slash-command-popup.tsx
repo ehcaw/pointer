@@ -374,19 +374,19 @@ const SlashCommandContent: React.FC<{
       ref={popupRef}
       className="slash-command-popup"
       style={{
-        backgroundColor: "white",
-        borderRadius: "8px",
+        backgroundColor: "var(--popover)",
+        borderRadius: "var(--radius-lg)",
         boxShadow: shouldFlip 
-          ? "0 -10px 40px rgba(0,0,0,0.15), 0 -2px 8px rgba(0,0,0,0.08)"
-          : "0 10px 40px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)",
-        border: "1px solid #e5e7eb",
+          ? "var(--shadow-lg)"
+          : "var(--shadow-lg)",
+        border: "1px solid var(--border)",
         minWidth: "280px",
         maxWidth: "360px",
         maxHeight: "380px",
         overflow: "hidden",
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontFamily: "var(--font-sans)",
         backdropFilter: "blur(10px)",
-        background: "rgba(255, 255, 255, 0.95)",
+        background: "var(--popover)",
         transform: shouldFlip ? "translateY(-4px)" : "translateY(0)",
         transition: "all 0.15s ease",
       }}
@@ -401,7 +401,7 @@ const SlashCommandContent: React.FC<{
             style={{
               padding: "16px",
               textAlign: "center",
-              color: "#6b7280",
+              color: "var(--muted-foreground)",
               fontSize: "14px",
             }}
           >
@@ -428,13 +428,13 @@ const SlashCommandContent: React.FC<{
                   "background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease",
                 backgroundColor:
                   index === selectedIndex
-                    ? "rgba(59, 130, 246, 0.08)"
+                    ? "var(--primary)"
                     : "transparent",
                 borderLeft:
                   index === selectedIndex
-                    ? "3px solid #3b82f6"
+                    ? "3px solid var(--primary)"
                     : "3px solid transparent",
-                color: index === selectedIndex ? "#111827" : "#4b5563",
+                color: index === selectedIndex ? "var(--primary-foreground)" : "var(--popover-foreground)",
               }}
             >
               <div
@@ -452,7 +452,7 @@ const SlashCommandContent: React.FC<{
                   style={{
                     fontSize: "14px",
                     fontWeight: 500,
-                    color: "#111827",
+                    color: index === selectedIndex ? "var(--primary-foreground)" : "var(--popover-foreground)",
                     marginBottom: "2px",
                   }}
                 >
@@ -462,7 +462,7 @@ const SlashCommandContent: React.FC<{
                   className="slash-command-item-description"
                   style={{
                     fontSize: "12px",
-                    color: index === selectedIndex ? "#4b5563" : "#6b7280",
+                    color: index === selectedIndex ? "var(--primary-foreground)" : "var(--muted-foreground)",
                     lineHeight: "1.4",
                   }}
                 >

@@ -153,12 +153,11 @@ export function useNoteEditor() {
         collaborative: noteData.collaborative,
       };
 
-      const doesNoteExist = await fetchNoteById(note.pointer_id);
-      if (doesNoteExist) {
-        await convex.mutation(api.notes.updateNoteInDb, mutationData);
-      } else {
-        await convex.mutation(api.notes.createNoteInDb, mutationData);
-      }
+      // if (newNoteOrNot) {
+      await convex.mutation(api.notes.updateNoteInDb, mutationData);
+      // } else {
+      // await convex.mutation(api.notes.createNoteInDb, mutationData);
+      // }
       const savedNote = { ...note, _id: note.pointer_id };
       updateNoteInCollections(savedNote);
       clearUnsavedNote(note.pointer_id.toString());
