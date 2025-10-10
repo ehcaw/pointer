@@ -246,6 +246,8 @@ export function useNoteEditor() {
     }
   }, [currentNote]);
 
+
+
   return {
     // Editor refs and state
     editorRef,

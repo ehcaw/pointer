@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Editor } from "@tiptap/react";
 import { useConvex } from "convex/react";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
+import { useNotesStore } from "@/lib/stores/notes-store";
 
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();

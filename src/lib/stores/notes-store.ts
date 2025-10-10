@@ -18,6 +18,10 @@ interface NotesStore {
   unsavedNotes: Map<string, Node>; // Key: stringified _id, Value: modified note
   newUnsavedNotes: Node[]; // New notes that haven't been saved to DB yet
   dbSavedNotes: Map<string, Node>; // keeping track of how notes are currently saved in db
+  
+  // Content caching for performance
+  noteContentCache: Map<string, string>; // Key: noteId, Value: cached content JSON
+  contentFetchPromises: Map<string, Promise<string>>; // Key: noteId, Value: fetch promise
 
   // Basic state setters
   setUserNotes: (notes: Node[]) => void;
@@ -50,6 +54,12 @@ interface NotesStore {
   // State synchronization helpers
   updateNoteInCollections: (note: Node) => void;
   removeNoteFromCollections: (noteId: string) => void;
+
+  // Content cache management
+  getCachedContent: (noteId: string) => string | undefined;
+  setCachedContent: (noteId: string, content: string) => void;
+  invalidateContentCache: (noteId: string) => void;
+  fetchAndCacheContent: (noteId: string, fetcher: (noteId: string) => Promise<string>) => Promise<string>;
 }
 
 export const useNotesStore = create<NotesStore>((set, get) => ({
@@ -67,6 +77,10 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   unsavedNotes: new Map([]),
   newUnsavedNotes: [],
   dbSavedNotes: new Map([]),
+
+  // Content caching for performance
+  noteContentCache: new Map([]),
+  contentFetchPromises: new Map([]),
 
   // Basic state setters
   setUserNotes: (notes: Node[]) => {
@@ -480,6 +494,72 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       console.error("Error saving all notes:", error);
       return false;
     }
+  },
+
+  // Content cache management
+  getCachedContent: (noteId: string) => {
+    const state = get();
+    return state.noteContentCache.get(noteId);
+  },
+
+  setCachedContent: (noteId: string, content: string) => {
+    const state = get();
+    const noteContentCache = new Map(state.noteContentCache);
+    noteContentCache.set(noteId, content);
+    set({ noteContentCache });
+  },
+
+  invalidateContentCache: (noteId: string) => {
+    const state = get();
+    const noteContentCache = new Map(state.noteContentCache);
+    const contentFetchPromises = new Map(state.contentFetchPromises);
+    noteContentCache.delete(noteId);
+    contentFetchPromises.delete(noteId);
+    set({ noteContentCache, contentFetchPromises });
+  },
+
+  fetchAndCacheContent: async (noteId: string, fetcher: (noteId: string) => Promise<string>) => {
+    const state = get();
+    
+    // Return cached content if available
+    const cached = state.noteContentCache.get(noteId);
+    if (cached) {
+      return cached;
+    }
+
+    // Return existing promise if fetch is in progress
+    const existingPromise = state.contentFetchPromises.get(noteId);
+    if (existingPromise) {
+      return existingPromise;
+    }
+
+    // Create new fetch promise
+    const fetchPromise = fetcher(noteId).then(content => {
+      // Cache the result
+      const currentState = get();
+      const noteContentCache = new Map(currentState.noteContentCache);
+      const contentFetchPromises = new Map(currentState.contentFetchPromises);
+      
+      noteContentCache.set(noteId, content);
+      contentFetchPromises.delete(noteId);
+      
+      set({ noteContentCache, contentFetchPromises });
+      return content;
+    }).catch(error => {
+      // Clean up on error
+      const currentState = get();
+      const contentFetchPromises = new Map(currentState.contentFetchPromises);
+      contentFetchPromises.delete(noteId);
+      set({ contentFetchPromises });
+      throw error;
+    });
+
+    // Store the promise
+    const contentFetchPromises = new Map(state.contentFetchPromises);
+    contentFetchPromises.set(noteId, fetchPromise);
+    set({ contentFetchPromises });
+
+    return fetchPromise;
   },
 }));
 
