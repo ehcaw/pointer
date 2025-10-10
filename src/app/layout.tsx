@@ -6,6 +6,7 @@ import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { PostHogContextProvider } from "@/providers/PostHogProvider";
+import { SWRConfig } from "swr";
 
 import { Toaster } from "sonner";
 
@@ -63,14 +64,16 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <PostHogContextProvider>
-            <ThemeProvider defaultTheme="system" storageKey="theme">
-              <ConvexClientProvider>
-                <CommandMenuProvider>{children}</CommandMenuProvider>
-                <Toaster position="top-right" />
-              </ConvexClientProvider>
-            </ThemeProvider>
-          </PostHogContextProvider>
+          <SWRConfig>
+            <PostHogContextProvider>
+              <ThemeProvider defaultTheme="system" storageKey="theme">
+                <ConvexClientProvider>
+                  <CommandMenuProvider>{children}</CommandMenuProvider>
+                  <Toaster position="top-right" />
+                </ConvexClientProvider>
+              </ThemeProvider>
+            </PostHogContextProvider>
+          </SWRConfig>
         </body>
       </html>
     </ClerkProvider>
