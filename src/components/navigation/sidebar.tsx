@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Plus,
   Home,
@@ -38,7 +38,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { useNotesStore, useRecentNotes, useUnsavedNotesArray, useUnsavedNotesCount } from "@/lib/stores/notes-store";
+import {
+  useNotesStore,
+  useRecentNotes,
+  useUnsavedNotesArray,
+  useUnsavedNotesCount,
+} from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -51,96 +56,97 @@ import { DisplaySurveyType } from "posthog-js";
 import { usePostHog } from "posthog-js/react";
 
 // Memoized note item component to prevent unnecessary re-renders
-const NoteItem = React.memo(({ 
-  note, 
-  isActive, 
-  onNoteClick, 
-  onDeleteClick 
-}: {
-  note: Node;
-  isActive: boolean;
-  onNoteClick: (note: Node) => void;
-  onDeleteClick: (e: React.MouseEvent<HTMLButtonElement>, note: Node) => void;
-}) => {
-  const noteButton = (
-    <SidebarMenuButton
-      onClick={() => onNoteClick(note)}
-      data-active={isActive}
-      className={cn(
-        "rounded-lg transition-all w-full",
-        isActive
-          ? "bg-primary/10 text-primary hover:bg-primary/15"
-          : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
-      )}
-    >
-      <FileText className="h-4 w-4" />
-      <span>{note.name}</span>
-    </SidebarMenuButton>
-  );
-
-  return (
-    <SidebarMenuItem
-      key={String(note.pointer_id)}
-      className="relative group"
-    >
-      <div className="relative group/item">
-        {noteButton}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => onDeleteClick(e, note)}
-          className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
-        >
-          <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
-          <span className="sr-only">Delete note</span>
-        </Button>
-      </div>
-    </SidebarMenuItem>
-  );
-});
-
-NoteItem.displayName = 'NoteItem';
-
-// Memoized shared note item component
-const SharedNoteItem = React.memo(({ 
-  note, 
-  isActive, 
-  onNoteClick 
-}: {
-  note: Node;
-  isActive: boolean;
-  onNoteClick: (note: Node) => void;
-}) => {
-  return (
-    <SidebarMenuItem key={String(note.pointer_id)}>
+const NoteItem = React.memo(
+  ({
+    note,
+    isActive,
+    onNoteClick,
+    onDeleteClick,
+  }: {
+    note: Node;
+    isActive: boolean;
+    onNoteClick: (note: Node) => void;
+    onDeleteClick: (e: React.MouseEvent<HTMLButtonElement>, note: Node) => void;
+  }) => {
+    const noteButton = (
       <SidebarMenuButton
         onClick={() => onNoteClick(note)}
         data-active={isActive}
         className={cn(
-          "rounded-lg transition-all",
+          "rounded-lg transition-all w-full",
           isActive
             ? "bg-primary/10 text-primary hover:bg-primary/15"
-            : "hover:bg-accent hover:text-foreground",
+            : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
         )}
       >
         <FileText className="h-4 w-4" />
         <span>{note.name}</span>
       </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-});
+    );
 
-SharedNoteItem.displayName = 'SharedNoteItem';
+    return (
+      <SidebarMenuItem key={String(note.pointer_id)} className="relative group">
+        <div className="relative group/item">
+          {noteButton}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => onDeleteClick(e, note)}
+            className="absolute top-1/2 right-2 -translate-y-1/2 h-5 w-5 rounded-sm opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-destructive/10 group-data-[collapsible=icon]:hidden"
+          >
+            <Trash className="h-3 w-3 text-muted-foreground group-hover/item:text-destructive" />
+            <span className="sr-only">Delete note</span>
+          </Button>
+        </div>
+      </SidebarMenuItem>
+    );
+  },
+);
+
+NoteItem.displayName = "NoteItem";
+
+// Memoized shared note item component
+const SharedNoteItem = React.memo(
+  ({
+    note,
+    isActive,
+    onNoteClick,
+  }: {
+    note: Node;
+    isActive: boolean;
+    onNoteClick: (note: Node) => void;
+  }) => {
+    return (
+      <SidebarMenuItem key={String(note.pointer_id)}>
+        <SidebarMenuButton
+          onClick={() => onNoteClick(note)}
+          data-active={isActive}
+          className={cn(
+            "rounded-lg transition-all",
+            isActive
+              ? "bg-primary/10 text-primary hover:bg-primary/15"
+              : "hover:bg-accent hover:text-foreground",
+          )}
+        >
+          <FileText className="h-4 w-4" />
+          <span>{note.name}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  },
+);
+
+SharedNoteItem.displayName = "SharedNoteItem";
 
 export default function AppSidebar() {
   const [noteToDelete, setNoteToDelete] = useState<Node | null>(null);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
-  
+
   // Use optimized selectors
   const recentNotes = useRecentNotes();
   const unsavedNotesArray = useUnsavedNotesArray();
   const unsavedNotesCount = useUnsavedNotesCount();
-  
+
   const {
     userNotes,
     sharedNotes,
@@ -162,32 +168,42 @@ export default function AppSidebar() {
     createNewNote(title);
   }, [openUserNotes.length, setCurrentView, createNewNote]);
 
-  const handleNavClick = useCallback((
-    view: "home" | "graph" | "whiteboard" | "note" | "settings",
-  ) => {
-    setCurrentView(view);
-  }, [setCurrentView]);
+  const handleNavClick = useCallback(
+    (view: "home" | "graph" | "whiteboard" | "note" | "settings") => {
+      setCurrentView(view);
+    },
+    [setCurrentView],
+  );
 
-  const handleNoteClick = useCallback(async (note: Node) => {
-    if (
-      currentNote &&
-      dbSavedNotes.get(currentNote.pointer_id) != undefined &&
-      currentNote?.content?.text !=
-        dbSavedNotes.get(currentNote.pointer_id)!.content?.text
-    ) {
-      saveCurrentNote();
-    }
-    setCurrentNote(note);
-    setCurrentView("note");
-  }, [currentNote, dbSavedNotes, saveCurrentNote, setCurrentNote, setCurrentView]);
+  const handleNoteClick = useCallback(
+    async (note: Node) => {
+      if (
+        currentNote &&
+        dbSavedNotes.get(currentNote.pointer_id) != undefined &&
+        currentNote?.content?.text !=
+          dbSavedNotes.get(currentNote.pointer_id)!.content?.text
+      ) {
+        saveCurrentNote();
+      }
+      setCurrentNote(note);
+      setCurrentView("note");
+    },
+    [
+      currentNote,
+      dbSavedNotes,
+      saveCurrentNote,
+      setCurrentNote,
+      setCurrentView,
+    ],
+  );
 
-  const handleOpenDeleteDialog = useCallback((
-    e: React.MouseEvent<HTMLButtonElement>,
-    note: Node,
-  ) => {
-    e.stopPropagation();
-    setNoteToDelete(note);
-  }, []);
+  const handleOpenDeleteDialog = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, note: Node) => {
+      e.stopPropagation();
+      setNoteToDelete(note);
+    },
+    [],
+  );
 
   const confirmDelete = useCallback(async () => {
     if (noteToDelete) {

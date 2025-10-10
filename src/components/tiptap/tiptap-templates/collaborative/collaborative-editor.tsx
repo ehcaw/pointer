@@ -425,6 +425,9 @@ export function CollaborativeEditor({
       lastContentRef.current = currentContentHash;
 
       // Update content immediately in memory (fast)
+      if (!currentNote.content) {
+        currentNote.content = {};
+      }
       currentNote.content.tiptap = ensureJSONString(currentEditorJson);
       currentNote.content.text = currentEditorText;
       currentNote.updatedAt = new Date().toISOString();

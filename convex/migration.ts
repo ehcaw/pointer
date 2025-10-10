@@ -9,7 +9,7 @@ export const migrateData = mutation({
     // Transform and insert into new table
     for (const item of oldData) {
       await ctx.db.insert("notesContent", {
-        content: item.content,
+        content: item.content || { text: "", tiptap: "" },
         tenantId: item.tenantId,
         noteId: item._id,
       });

@@ -138,7 +138,7 @@ export function useNoteEditor() {
   const saveNote = async (note: Node): Promise<boolean> => {
     try {
       const noteData = note;
-      const rawTiptapContent = (noteData as FileNode).content.tiptap;
+      const rawTiptapContent = (noteData as FileNode).content?.tiptap || "";
       const serializedTiptapContent = ensureJSONString(rawTiptapContent);
       const mutationData = {
         pointer_id: noteData.pointer_id,
@@ -150,7 +150,7 @@ export function useNoteEditor() {
         lastEdited: String(noteData.lastEdited || new Date()),
         content: {
           tiptap: serializedTiptapContent,
-          text: (noteData as FileNode).content.text,
+          text: (noteData as FileNode).content?.text || "",
         },
         collaborative: noteData.collaborative,
       };
@@ -245,8 +245,6 @@ export function useNoteEditor() {
       lastContentRef.current = {};
     }
   }, [currentNote]);
-
-
 
   return {
     // Editor refs and state

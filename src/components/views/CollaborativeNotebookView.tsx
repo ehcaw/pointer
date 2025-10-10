@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { Editor } from "@tiptap/react";
 import { useConvex } from "convex/react";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
-import { useNotesStore } from "@/lib/stores/notes-store";
 
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
@@ -36,33 +35,37 @@ export const CollaborativeNotebookView = ({}) => {
   }, [isSignedIn, isLoaded, router]);
 
   // Memoized content loading function
-  const loadNoteContent = useCallback(async (noteId: string) => {
-    if (!noteId) return;
-    
-    setIsLoadingContent(true);
-    try {
-      const content = await fetchNoteContentById(noteId);
-      const parsed = JSON.parse(content);
-      
-      // Update the content state
-      setNoteContent(parsed.tiptap || "");
-    } catch (error) {
-      console.error("Failed to load collaborative note content:", error);
-      setNoteContent("");
-    } finally {
-      setIsLoadingContent(false);
-    }
-  }, [fetchNoteContentById]);
+  const loadNoteContent = useCallback(
+    async (noteId: string) => {
+      if (!noteId) return;
+
+      setIsLoadingContent(true);
+      try {
+        const content = await fetchNoteContentById(noteId);
+        const parsed = JSON.parse(content);
+
+        // Update the content state
+        setNoteContent(parsed.tiptap || "");
+      } catch (error) {
+        console.error("Failed to load collaborative note content:", error);
+        setNoteContent("");
+      } finally {
+        setIsLoadingContent(false);
+      }
+    },
+    [fetchNoteContentById],
+  );
 
   // Handle content loading when currentNote changes
   useEffect(() => {
     if (!currentNote) return;
 
-    const noteId = currentNote._id?.toString() || currentNote.pointer_id?.toString();
-    
+    const noteId =
+      currentNote._id?.toString() || currentNote.pointer_id?.toString();
+
     // Skip if this is the same note we're already loading
     if (currentNoteIdRef.current === noteId) return;
-    
+
     currentNoteIdRef.current = noteId;
 
     // Load content if not available or if tiptap content is missing
