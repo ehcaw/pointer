@@ -21,7 +21,7 @@ import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap/tiptap-extension/trailing-node-extension";
-import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
+// import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
 import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command-extension";
 
 // --- Tiptap Node ---
@@ -199,7 +199,7 @@ export function SimpleEditor({
       // }),
       TrailingNode,
       Link.configure({ openOnClick: false }),
-      AutocompleteExtension,
+      // AutocompleteExtension,
       SlashCommand.configure({
         suggestion: {
           char: "/",
@@ -354,11 +354,17 @@ export function SimpleEditor({
     let shouldFlip = false;
 
     // Decide whether to show above or below
-    if (spaceBelow < estimatedPopupHeight && spaceAbove > estimatedPopupHeight) {
+    if (
+      spaceBelow < estimatedPopupHeight &&
+      spaceAbove > estimatedPopupHeight
+    ) {
       // Not enough space below, but enough space above - show above
       topPosition = coords.top - estimatedPopupHeight - 4;
       shouldFlip = true;
-    } else if (spaceBelow < estimatedPopupHeight && spaceAbove <= estimatedPopupHeight) {
+    } else if (
+      spaceBelow < estimatedPopupHeight &&
+      spaceAbove <= estimatedPopupHeight
+    ) {
       // Not enough space in either direction - show in the larger space
       if (spaceBelow > spaceAbove) {
         // More space below, show below even if it might be cut off
@@ -468,26 +474,28 @@ export function SimpleEditor({
             role="presentation"
             className="simple-editor-content"
           />
-          {showSlashCommand && editor && (() => {
-            const position = getSlashCommandPosition();
-            return (
-              <div
-                style={{
-                  position: "fixed",
-                  top: position.top,
-                  left: position.left,
-                  zIndex: 1000, // High z-index to ensure it's above everything
-                }}
-              >
-                <SlashCommandPopup
-                  editor={editor}
-                  onClose={() => setShowSlashCommand(false)}
-                  query={slashCommandQuery}
-                  shouldFlip={position.shouldFlip}
-                />
-              </div>
-            );
-          })()}
+          {showSlashCommand &&
+            editor &&
+            (() => {
+              const position = getSlashCommandPosition();
+              return (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: position.top,
+                    left: position.left,
+                    zIndex: 1000, // High z-index to ensure it's above everything
+                  }}
+                >
+                  <SlashCommandPopup
+                    editor={editor}
+                    onClose={() => setShowSlashCommand(false)}
+                    query={slashCommandQuery}
+                    shouldFlip={position.shouldFlip}
+                  />
+                </div>
+              );
+            })()}
         </div>
       </div>
     </EditorContext.Provider>
