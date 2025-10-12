@@ -210,10 +210,6 @@ export const updateNoteByPointerId = mutation({
       .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
       .first();
 
-    if (!note) {
-      throw new Error(`Note with pointer_id ${pointer_id} not found`);
-    }
-
     if (fields.content) {
       const noteContentEntry = await ctx.db
         .query("notesContent")
@@ -227,8 +223,18 @@ export const updateNoteByPointerId = mutation({
         await ctx.db.patch(noteContentEntry._id, {
           content,
         });
-        fields.content = undefined; // Prevent updating in notes table
+      } else {
+        await ctx.db.insert("notesContent", {
+          noteId: note._id,
+          content: {
+            text: fields.content.text || "",
+            tiptap: fields.content.tiptap || {},
+          },
+          tenantId: note.tenantId,
+        });
       }
+      fields.content = undefined; // Prevent updating in notes table
+    }
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: Record<string, any> = {};
