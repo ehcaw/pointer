@@ -88,12 +88,14 @@ export const useNoteContent = () => {
     setCurrentNote,
   ]);
 
-  // Reset note ID ref when component unmounts
+  // Reset note ID ref when component unmounts or note changes
   useEffect(() => {
     return () => {
-      currentNoteIdRef.current = null;
+      if (!currentNote) {
+        currentNoteIdRef.current = null;
+      }
     };
-  }, []);
+  }, [currentNote]);
 
   return {
     noteContent,
