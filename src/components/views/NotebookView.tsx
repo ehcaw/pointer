@@ -59,7 +59,7 @@ export const NotebookView = () => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, userNotes],
+    [fetchNoteContentById],
   );
 
   // Create an empty note if there isn't one already and handle content loading
