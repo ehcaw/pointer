@@ -67,7 +67,7 @@ export const CollaborativeNotebookView = ({}) => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById],
+    [fetchNoteContentById, currentNote, userNotes],
   );
 
   // Handle content loading when currentNote changes
