@@ -73,13 +73,19 @@ export function CollaborativeEditor({
   // const [editor, setEditor] = useState<any>(null);
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
-  type ConnectionStatus = "connecting" | "connected" | "disconnected" | "reconnecting";
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
+  type ConnectionStatus =
+    | "connecting"
+    | "connected"
+    | "disconnected"
+    | "reconnecting";
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>("connecting");
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const isReconnectingRef = useRef(false);
 
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
@@ -166,28 +172,80 @@ export function CollaborativeEditor({
   }
   const yDoc = yDocRef.current;
 
+  const partykitUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL!;
+
   const provider = useYProvider({
-    host:
-      process.env.NODE_ENV == "development"
-        ? "localhost:1999"
-        : "https://pointer-collaborative-editor.ehcaw.partykit.dev",
+    host: partykitUrl,
     room: `document-${id}`,
     doc: yDoc,
   });
+
+  // Debug provider creation
+  console.log("Provider created:", !!provider);
+  console.log("Provider WebSocket available:", !!provider?.ws);
+
+  // Add provider event listeners for debugging
+  useEffect(() => {
+    if (!provider) return;
+
+    const handleProviderConnect = () => {
+      console.log("Provider connect event fired");
+    };
+
+    const handleProviderDisconnect = () => {
+      console.log("Provider disconnect event fired");
+    };
+
+    const handleProviderError = (error: Error) => {
+      console.error("Provider error event:", error);
+    };
+
+    const handleProviderSynced = () => {
+      console.log("Provider synced event fired");
+    };
+
+    provider.on("connect", handleProviderConnect);
+    provider.on("disconnect", handleProviderDisconnect);
+    provider.on("error", handleProviderError);
+    provider.on("synced", handleProviderSynced);
+
+    return () => {
+      provider.off("connect", handleProviderConnect);
+      provider.off("disconnect", handleProviderDisconnect);
+      provider.off("error", handleProviderError);
+      provider.off("synced", handleProviderSynced);
+    };
+  }, [provider]);
 
   // Monitor connection status and handle reconnections
   useEffect(() => {
     if (!provider) return;
 
+    console.log("Setting up PartyKit connection monitoring...");
+    console.log("PartyKit URL:", partykitUrl);
+    console.log("Room:", `document-${id}`);
+    console.log("Provider:", provider);
+
     let connectionTimeout: NodeJS.Timeout | null = null;
+    let currentWebSocket: WebSocket | null = null;
 
     const checkConnectionState = () => {
       if (!provider.ws) {
-        setConnectionStatus("disconnected");
-        return false;
+        console.log("No WebSocket available on provider");
+        return "disconnected";
       }
 
       const ws = provider.ws;
+      console.log(
+        "WebSocket readyState:",
+        ws.readyState,
+        {
+          0: "CONNECTING",
+          1: "OPEN",
+          2: "CLOSING",
+          3: "CLOSED",
+        }[ws.readyState],
+      );
 
       switch (ws.readyState) {
         case WebSocket.CONNECTING:
@@ -206,6 +264,7 @@ export function CollaborativeEditor({
       console.log("Connected to PartyKit");
       setConnectionStatus("connected");
       reconnectAttemptsRef.current = 0;
+      isReconnectingRef.current = false;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -218,31 +277,57 @@ export function CollaborativeEditor({
 
     const handleDisconnect = () => {
       console.log("Disconnected from PartyKit");
+      console.log("WebSocket state:", provider.ws?.readyState);
+      console.log("Reconnect attempts:", reconnectAttemptsRef.current);
       setConnectionStatus("disconnected");
+
+      // Prevent multiple concurrent reconnection attempts
+      if (isReconnectingRef.current) {
+        return;
+      }
 
       // Attempt to reconnect with exponential backoff
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        isReconnectingRef.current = true;
         const delay = getReconnectDelay(reconnectAttemptsRef.current);
-        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+        console.log(
+          `Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`,
+        );
+        console.log("Current WebSocket state:", provider.ws?.readyState);
 
         setConnectionStatus("reconnecting");
         reconnectTimeoutRef.current = setTimeout(() => {
-          reconnectAttemptsRef.current++;
+          console.log("Executing reconnection attempt...");
           // Force reconnection by destroying and recreating the provider connection
           if (provider.ws) {
+            console.log("Closing existing WebSocket for reconnection");
             provider.ws.close();
+          } else {
+            console.log(
+              "No WebSocket to close, provider might need to be re-initialized",
+            );
           }
+          // Increment counter after attempting reconnection
+          reconnectAttemptsRef.current++;
         }, delay);
       } else {
         console.error("Max reconnection attempts reached");
         setConnectionStatus("disconnected");
+        isReconnectingRef.current = false;
       }
     };
 
     const handleError = (error: Error | unknown) => {
-      console.error("PartyKit connection error:", error);
-      setConnectionStatus("disconnected");
-      handleDisconnect();
+      console.error("PartyKit WebSocket error:", error);
+      console.error("Error details:", {
+        type: error instanceof Error ? error.name : typeof error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      if (!isReconnectingRef.current) {
+        setConnectionStatus("disconnected");
+        handleDisconnect();
+      }
     };
 
     // Set up connection timeout for initial connection
@@ -261,55 +346,129 @@ export function CollaborativeEditor({
       }, 15000); // 15 second timeout for connection establishment
     };
 
-    // Try to set up event listeners on the WebSocket directly
-    const setupWebSocketListeners = () => {
-      if (provider.ws) {
-        provider.ws.addEventListener('open', handleConnect);
-        provider.ws.addEventListener('close', handleDisconnect);
-        provider.ws.addEventListener('error', handleError);
-      }
-    };
-
+    // Clean up previous WebSocket listeners before setting up new ones
     const cleanupWebSocketListeners = () => {
-      if (provider.ws) {
-        provider.ws.removeEventListener('open', handleConnect);
-        provider.ws.removeEventListener('close', handleDisconnect);
-        provider.ws.removeEventListener('error', handleError);
+      if (currentWebSocket) {
+        currentWebSocket.removeEventListener("open", handleConnect);
+        currentWebSocket.removeEventListener("close", handleDisconnect);
+        currentWebSocket.removeEventListener("error", handleError);
+        currentWebSocket = null;
       }
     };
 
-    // Check initial connection status
-    const initialState = checkConnectionState();
-    if (initialState === "connected") {
-      handleConnect();
-    } else if (initialState === "connecting") {
-      setConnectionStatus("connecting");
-      setupConnectionTimeout();
-    } else {
-      setConnectionStatus("disconnected");
-      if (reconnectAttemptsRef.current === 0) {
-        handleDisconnect();
-      }
-    }
+    // Set up event listeners on the WebSocket
+    const setupWebSocketListeners = () => {
+      cleanupWebSocketListeners(); // Clean up previous listeners first
 
-    // Set up WebSocket listeners
+      if (provider.ws) {
+        currentWebSocket = provider.ws;
+        provider.ws.addEventListener("open", handleConnect);
+        provider.ws.addEventListener("close", handleDisconnect);
+        provider.ws.addEventListener("error", handleError);
+      }
+    };
+
+    // Give the provider a moment to establish the WebSocket connection
+    // before checking the initial state
+    const initializeConnection = () => {
+      console.log("Initializing connection...");
+      console.log("Provider exists:", !!provider);
+      console.log("Provider WebSocket exists:", !!provider?.ws);
+
+      const initialState = checkConnectionState();
+      console.log("Initial connection state:", initialState);
+
+      if (initialState === "connected") {
+        console.log("Already connected, calling handleConnect");
+        handleConnect();
+      } else if (initialState === "connecting") {
+        console.log("Currently connecting, setting up timeout");
+        setConnectionStatus("connecting");
+        setupConnectionTimeout();
+      } else {
+        console.log("Not connected, setting connecting status and waiting");
+        // For initial connection, give it some time before treating as disconnected
+        setConnectionStatus("connecting");
+        setupConnectionTimeout();
+
+        // Check multiple times to see if WebSocket gets created
+        let checkCount = 0;
+        const checkInterval = setInterval(() => {
+          checkCount++;
+          const currentState = checkConnectionState();
+          console.log(
+            `Connection check ${checkCount}/10:`,
+            currentState,
+            "WebSocket exists:",
+            !!provider?.ws,
+          );
+
+          if (currentState === "connected") {
+            clearInterval(checkInterval);
+            handleConnect();
+          } else if (checkCount >= 10) {
+            clearInterval(checkInterval);
+            console.log(
+              "Failed to establish initial connection after 10 attempts",
+            );
+            console.log("Final state:", {
+              currentState,
+              hasProvider: !!provider,
+              hasWebSocket: !!provider?.ws,
+              webSocketState: provider?.ws?.readyState,
+              partykitUrl,
+              room: `document-${id}`,
+            });
+
+            if (
+              currentState === "disconnected" &&
+              reconnectAttemptsRef.current === 0 &&
+              !isReconnectingRef.current
+            ) {
+              console.log(
+                "Starting reconnection logic due to initial connection failure",
+              );
+              handleDisconnect();
+            }
+          }
+        }, 500); // Check every 500ms for 5 seconds total
+      }
+    };
+
+    // Set up WebSocket listeners first
     setupWebSocketListeners();
 
-    // Monitor connection state changes more frequently
+    // Small delay to allow provider to set up WebSocket
+    setTimeout(initializeConnection, 100);
+
+    // Monitor connection state changes less frequently to prevent race conditions
     const intervalId = setInterval(() => {
       const currentState = checkConnectionState();
-      if (currentState !== connectionStatus) {
-        console.log(`Connection state changed from ${connectionStatus} to ${currentState}`);
+      const currentStatus = connectionStatus;
+
+      // Only handle state changes if we're not in the middle of reconnecting
+      if (currentState !== currentStatus && !isReconnectingRef.current) {
+        console.log(
+          `Connection state changed from ${currentStatus} to ${currentState}`,
+        );
         if (currentState === "connected") {
           handleConnect();
-        } else if (currentState === "disconnected") {
+        } else if (
+          currentState === "disconnected" &&
+          currentStatus !== "reconnecting"
+        ) {
           handleDisconnect();
         } else if (currentState === "connecting") {
           setConnectionStatus("connecting");
           setupConnectionTimeout();
         }
       }
-    }, 500);
+
+      // Re-setup listeners if WebSocket instance changed
+      if (provider.ws !== currentWebSocket) {
+        setupWebSocketListeners();
+      }
+    }, 1000); // Reduced frequency to prevent race conditions
 
     return () => {
       cleanupWebSocketListeners();
@@ -317,8 +476,11 @@ export function CollaborativeEditor({
       if (connectionTimeout) {
         clearTimeout(connectionTimeout);
       }
+      isReconnectingRef.current = false;
     };
-  }, [provider, connectionStatus]);
+  }, [provider]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: connectionStatus is intentionally excluded from dependencies to prevent race conditions
+  // Adding it would cause the effect to re-run on every status change, creating infinite loops
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -768,9 +930,14 @@ export function CollaborativeEditor({
             padding: "4px 8px",
             borderRadius: "4px",
             fontSize: "12px",
-            backgroundColor: connectionStatus === "connected" ? "#22c55e" :
-                            connectionStatus === "connecting" ? "#3b82f6" :
-                            connectionStatus === "reconnecting" ? "#f59e0b" : "#ef4444",
+            backgroundColor:
+              connectionStatus === "connected"
+                ? "#22c55e"
+                : connectionStatus === "connecting"
+                  ? "#3b82f6"
+                  : connectionStatus === "reconnecting"
+                    ? "#f59e0b"
+                    : "#ef4444",
             color: "white",
             opacity: 0.8,
           }}
@@ -782,15 +949,20 @@ export function CollaborativeEditor({
               borderRadius: "50%",
               backgroundColor: "white",
               opacity: connectionStatus === "connected" ? 1 : 0.5,
-              animation: connectionStatus === "connecting" || connectionStatus === "reconnecting"
-                ? "pulse 1.5s infinite"
-                : "none",
+              animation:
+                connectionStatus === "connecting" ||
+                connectionStatus === "reconnecting"
+                  ? "pulse 1.5s infinite"
+                  : "none",
             }}
           />
-          {connectionStatus === "connected" ? "Connected" :
-           connectionStatus === "connecting" ? "Connecting..." :
-           connectionStatus === "reconnecting" ? `Reconnecting... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})` :
-           "Disconnected"}
+          {connectionStatus === "connected"
+            ? "Connected"
+            : connectionStatus === "connecting"
+              ? "Connecting..."
+              : connectionStatus === "reconnecting"
+                ? `Reconnecting... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
+                : "Disconnected"}
         </div>
         <div className="content-wrapper">
           <EditorContent
