@@ -134,10 +134,18 @@ export const updateNoteInDb = mutation({
           .query("notesContent")
           .withIndex("by_noteid", (q) => q.eq("noteId", existingNote._id))
           .first();
-        if (notesContentEntry)
-          await ctx.db.patch(notesContentEntry?._id, {
+        if (notesContentEntry) {
+          await ctx.db.patch(notesContentEntry._id, {
             content: fields.content,
           });
+        } else {
+          await ctx.db.insert("notesContent", {
+            noteId: existingNote._id,
+            content: fields.content,
+            tenantId: existingNote.tenantId,
+          });
+        }
+      }
       }
 
       fields.content = undefined; // Update in notesContent above, do not update here
