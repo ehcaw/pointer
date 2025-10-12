@@ -9,7 +9,8 @@ import { Editor } from "@tiptap/react";
 
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
-  const { noteContent, isLoadingContent } = useNoteContent();
+  const { noteContent } = useNoteContent();
+  console.log(noteContent);
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -31,13 +32,15 @@ export const CollaborativeNotebookView = ({}) => {
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
             >
-              <CollaborativeEditor
-                id={currentNote?.pointer_id || "default-doc"}
-                key={currentNote?.pointer_id || "default-doc"}
-                content={isLoadingContent ? "" : noteContent}
-                editorRef={editorRef}
-                onEditorReady={setEditor}
-              />
+              {noteContent.length !== 0 && (
+                <CollaborativeEditor
+                  id={currentNote?.pointer_id || "default-doc"}
+                  key={currentNote?.pointer_id || "default-doc"}
+                  content={noteContent}
+                  editorRef={editorRef}
+                  onEditorReady={setEditor}
+                />
+              )}
             </div>
           </div>
         </div>

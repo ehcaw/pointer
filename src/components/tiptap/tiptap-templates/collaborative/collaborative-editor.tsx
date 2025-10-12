@@ -69,24 +69,10 @@ export function CollaborativeEditor({
   editorRef,
   onEditorReady,
 }: CollaborativeEditorProps) {
-  // const isMobile = useMobile();
-  // const [editor, setEditor] = useState<any>(null);
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
-  type ConnectionStatus =
-    | "connecting"
-    | "connected"
-    | "disconnected"
-    | "reconnecting";
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>("connecting");
-  const [editorDisabled, setEditorDisabled] = useState(true);
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
-  const isReconnectingRef = useRef(false);
 
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
@@ -95,15 +81,6 @@ export function CollaborativeEditor({
 
   // Get authenticated user information for collaboration
   const { user } = useUser();
-
-  // Exponential backoff function for reconnection attempts
-  const getReconnectDelay = (attempt: number): number => {
-    const baseDelay = 1000; // 1 second
-    const maxDelay = 30000; // 30 seconds
-    const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
-    // Add jitter to prevent thundering herd
-    return delay + Math.random() * 1000;
-  };
 
   // Generate consistent user color based on user ID
   const generateUserColor = (userId: string): string => {
@@ -173,320 +150,14 @@ export function CollaborativeEditor({
   }
   const yDoc = yDocRef.current;
 
-  const partykitUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL!;
-
-  // Try different URL formats to debug the issue
-
   const provider = useYProvider({
-    host: partykitUrl,
+    host:
+      process.env.NODE_ENV == "development"
+        ? "localhost:1999"
+        : "https://pointer-collaborative-editor.ehcaw.partykit.dev",
     room: `document-${id}`,
     doc: yDoc,
   });
-
-  // Debug provider creation
-  console.log("Provider created:", !!provider);
-  console.log("Provider WebSocket available:", !!provider?.ws);
-
-  // Add provider event listeners for debugging
-  useEffect(() => {
-    if (!provider) return;
-
-    const handleProviderConnect = () => {
-      console.log("Provider connect event fired");
-    };
-
-    const handleProviderDisconnect = () => {
-      console.log("Provider disconnect event fired");
-    };
-
-    const handleProviderError = (error: Error) => {
-      console.error("Provider error event:", error);
-    };
-
-    const handleProviderSynced = () => {
-      console.log("Provider synced event fired");
-    };
-
-    provider.on("connect", handleProviderConnect);
-    provider.on("disconnect", handleProviderDisconnect);
-    provider.on("error", handleProviderError);
-    provider.on("synced", handleProviderSynced);
-
-    return () => {
-      provider.off("connect", handleProviderConnect);
-      provider.off("disconnect", handleProviderDisconnect);
-      provider.off("error", handleProviderError);
-      provider.off("synced", handleProviderSynced);
-    };
-  }, [provider]);
-
-  // Monitor connection status and handle reconnections
-  useEffect(() => {
-    if (!provider) return;
-
-    console.log("Setting up PartyKit connection monitoring...");
-    console.log("PartyKit URL:", partykitUrl);
-    console.log("Room:", `document-${id}`);
-    console.log("Provider:", provider);
-
-    let connectionTimeout: NodeJS.Timeout | null = null;
-    let currentWebSocket: WebSocket | null = null;
-
-    const checkConnectionState = () => {
-      if (!provider.ws) {
-        console.log("No WebSocket available on provider");
-        return "disconnected";
-      }
-
-      const ws = provider.ws;
-      console.log(
-        "WebSocket readyState:",
-        ws.readyState,
-        {
-          0: "CONNECTING",
-          1: "OPEN",
-          2: "CLOSING",
-          3: "CLOSED",
-        }[ws.readyState],
-      );
-
-      switch (ws.readyState) {
-        case WebSocket.CONNECTING:
-          return "connecting";
-        case WebSocket.OPEN:
-          return "connected";
-        case WebSocket.CLOSING:
-        case WebSocket.CLOSED:
-          return "disconnected";
-        default:
-          return "disconnected";
-      }
-    };
-
-    const handleConnect = () => {
-      console.log("Connected to PartyKit");
-      setConnectionStatus("connected");
-      setEditorDisabled(false);
-      reconnectAttemptsRef.current = 0;
-      isReconnectingRef.current = false;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      if (connectionTimeout) {
-        clearTimeout(connectionTimeout);
-        connectionTimeout = null;
-      }
-    };
-
-    const handleDisconnect = () => {
-      console.log("Disconnected from PartyKit");
-      console.log("WebSocket state:", provider.ws?.readyState);
-      console.log("Reconnect attempts:", reconnectAttemptsRef.current);
-      setConnectionStatus("disconnected");
-      setEditorDisabled(true);
-
-      // Prevent multiple concurrent reconnection attempts
-      if (isReconnectingRef.current) {
-        return;
-      }
-
-      // Attempt to reconnect with exponential backoff
-      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-        isReconnectingRef.current = true;
-        const delay = getReconnectDelay(reconnectAttemptsRef.current);
-        console.log(
-          `Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`,
-        );
-        console.log("Current WebSocket state:", provider.ws?.readyState);
-
-        setConnectionStatus("reconnecting");
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log("Executing reconnection attempt...");
-          // Force reconnection by destroying and recreating the provider connection
-          if (provider.ws) {
-            console.log("Closing existing WebSocket for reconnection");
-            provider.ws.close();
-          } else {
-            console.log(
-              "No WebSocket to close, provider might need to be re-initialized",
-            );
-          }
-          // Increment counter after attempting reconnection
-          reconnectAttemptsRef.current++;
-        }, delay);
-      } else {
-        console.error("Max reconnection attempts reached");
-        setConnectionStatus("disconnected");
-        setEditorDisabled(true);
-        isReconnectingRef.current = false;
-      }
-    };
-
-    const handleError = (error: Error | unknown) => {
-      console.error("PartyKit WebSocket error:", error);
-      console.error("Error details:", {
-        type: error instanceof Error ? error.name : typeof error,
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      if (!isReconnectingRef.current) {
-        setConnectionStatus("disconnected");
-        handleDisconnect();
-      }
-    };
-
-    // Set up connection timeout for initial connection
-    const setupConnectionTimeout = () => {
-      if (connectionTimeout) {
-        clearTimeout(connectionTimeout);
-      }
-      connectionTimeout = setTimeout(() => {
-        const currentState = checkConnectionState();
-        if (currentState === "connecting") {
-          console.log("Connection establishment timeout, forcing reconnect");
-          if (provider.ws) {
-            provider.ws.close();
-          }
-        }
-      }, 15000); // 15 second timeout for connection establishment
-    };
-
-    // Clean up previous WebSocket listeners before setting up new ones
-    const cleanupWebSocketListeners = () => {
-      if (currentWebSocket) {
-        currentWebSocket.removeEventListener("open", handleConnect);
-        currentWebSocket.removeEventListener("close", handleDisconnect);
-        currentWebSocket.removeEventListener("error", handleError);
-        currentWebSocket = null;
-      }
-    };
-
-    // Set up event listeners on the WebSocket
-    const setupWebSocketListeners = () => {
-      cleanupWebSocketListeners(); // Clean up previous listeners first
-
-      if (provider.ws) {
-        currentWebSocket = provider.ws;
-        provider.ws.addEventListener("open", handleConnect);
-        provider.ws.addEventListener("close", handleDisconnect);
-        provider.ws.addEventListener("error", handleError);
-      }
-    };
-
-    // Give the provider a moment to establish the WebSocket connection
-    // before checking the initial state
-    const initializeConnection = () => {
-      console.log("Initializing connection...");
-      console.log("Provider exists:", !!provider);
-      console.log("Provider WebSocket exists:", !!provider?.ws);
-
-      const initialState = checkConnectionState();
-      console.log("Initial connection state:", initialState);
-
-      if (initialState === "connected") {
-        console.log("Already connected, calling handleConnect");
-        handleConnect();
-      } else if (initialState === "connecting") {
-        console.log("Currently connecting, setting up timeout");
-        setConnectionStatus("connecting");
-        setupConnectionTimeout();
-      } else {
-        console.log("Not connected, setting connecting status and waiting");
-        // For initial connection, give it some time before treating as disconnected
-        setConnectionStatus("connecting");
-        setupConnectionTimeout();
-
-        // Check multiple times to see if WebSocket gets created
-        let checkCount = 0;
-        const checkInterval = setInterval(() => {
-          checkCount++;
-          const currentState = checkConnectionState();
-          console.log(
-            `Connection check ${checkCount}/10:`,
-            currentState,
-            "WebSocket exists:",
-            !!provider?.ws,
-          );
-
-          if (currentState === "connected") {
-            clearInterval(checkInterval);
-            handleConnect();
-          } else if (checkCount >= 10) {
-            clearInterval(checkInterval);
-            console.log(
-              "Failed to establish initial connection after 10 attempts",
-            );
-            console.log("Final state:", {
-              currentState,
-              hasProvider: !!provider,
-              hasWebSocket: !!provider?.ws,
-              webSocketState: provider?.ws?.readyState,
-              partykitUrl,
-              room: `document-${id}`,
-            });
-
-            if (
-              currentState === "disconnected" &&
-              reconnectAttemptsRef.current === 0 &&
-              !isReconnectingRef.current
-            ) {
-              console.log(
-                "Starting reconnection logic due to initial connection failure",
-              );
-              handleDisconnect();
-            }
-          }
-        }, 500); // Check every 500ms for 5 seconds total
-      }
-    };
-
-    // Set up WebSocket listeners first
-    setupWebSocketListeners();
-
-    // Small delay to allow provider to set up WebSocket
-    setTimeout(initializeConnection, 100);
-
-    // Monitor connection state changes less frequently to prevent race conditions
-    const intervalId = setInterval(() => {
-      const currentState = checkConnectionState();
-      const currentStatus = connectionStatus;
-
-      // Only handle state changes if we're not in the middle of reconnecting
-      if (currentState !== currentStatus && !isReconnectingRef.current) {
-        console.log(
-          `Connection state changed from ${currentStatus} to ${currentState}`,
-        );
-        if (currentState === "connected") {
-          handleConnect();
-        } else if (
-          currentState === "disconnected" &&
-          currentStatus !== "reconnecting"
-        ) {
-          handleDisconnect();
-        } else if (currentState === "connecting") {
-          setConnectionStatus("connecting");
-          setupConnectionTimeout();
-        }
-      }
-
-      // Re-setup listeners if WebSocket instance changed
-      if (provider.ws !== currentWebSocket) {
-        setupWebSocketListeners();
-      }
-    }, 1000); // Reduced frequency to prevent race conditions
-
-    return () => {
-      cleanupWebSocketListeners();
-      clearInterval(intervalId);
-      if (connectionTimeout) {
-        clearTimeout(connectionTimeout);
-      }
-      isReconnectingRef.current = false;
-    };
-  }, [provider]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Note: connectionStatus is intentionally excluded from dependencies to prevent race conditions
-  // Adding it would cause the effect to re-run on every status change, creating infinite loops
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -532,13 +203,18 @@ export function CollaborativeEditor({
     },
     onCreate: ({ editor: currentEditor }) => {
       provider.on("synced", () => {
-        if (currentEditor.isEmpty) {
+        // Set content if editor is empty OR if we have different initial content
+        const currentContent = currentEditor.getJSON();
+        const currentHash = JSON.stringify(currentContent);
+        const initialHash = JSON.stringify(initialContent);
+
+        if (currentEditor.isEmpty || currentHash !== initialHash) {
           currentEditor.commands.setContent(initialContent || "");
+          lastContentRef.current = initialHash;
         }
       });
     },
     immediatelyRender: false,
-    editable: !editorDisabled,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -546,53 +222,6 @@ export function CollaborativeEditor({
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
       },
-      //   handleDrop: (view, event, slice, moved) => {
-      //     // Check if files are being dropped
-      //     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-      //       const files = Array.from(event.dataTransfer.files);
-
-      //       // Filter for image files
-      //       const imageFiles = files.filter((file) =>
-      //         file.type.startsWith("image/"),
-      //       );
-
-      //       if (imageFiles.length > 0) {
-      //         event.preventDefault();
-
-      //         // Get the drop position
-      //         const coordinates = view.posAtCoords({
-      //           left: event.clientX,
-      //           top: event.clientY,
-      //         });
-
-      //         if (coordinates) {
-      //           handleImageDrop(imageFiles, coordinates.pos);
-      //         }
-
-      //         return true; // Handled
-      //       }
-      //     }
-
-      //     return false; // Not handled, let TipTap handle it
-      //   },
-      //   handleDOMEvents: {
-      //     dragover: (view, event) => {
-      //       // Check if dragging files
-      //       if (event.dataTransfer?.types.includes("Files")) {
-      //         event.preventDefault();
-      //         // You could add visual feedback here, like highlighting the editor
-      //         view.dom.classList.add("dragging-files");
-      //       }
-      //     },
-      //     dragleave: (view, _event) => {
-      //       // Remove visual feedback
-      //       view.dom.classList.remove("dragging-files");
-      //     },
-      //     drop: (view, _event) => {
-      //       // Clean up visual feedback
-      //       view.dom.classList.remove("dragging-files");
-      //     },
-      //   },
     },
     extensions: [
       StarterKit.configure({
@@ -612,14 +241,6 @@ export function CollaborativeEditor({
       Superscript,
       Subscript,
       Selection,
-      // Image,
-      // ImageUploadNode.configure({
-      //   accept: "image/*",
-      //   maxSize: MAX_FILE_SIZE,
-      //   limit: 3,
-      //   upload: handleImageUpload,
-      //   onError: (error) => console.error("Upload failed:", error),
-      // }),
       TrailingNode,
       Link.configure({ openOnClick: false }),
       SlashCommand.configure({
@@ -870,13 +491,6 @@ export function CollaborativeEditor({
     return () => document.removeEventListener("keydown", handleEnter, true);
   }, [showSlashCommand]);
 
-  // Update editor editable state when connection status changes
-  useEffect(() => {
-    if (editor) {
-      editor.setEditable(!editorDisabled);
-    }
-  }, [editor, editorDisabled]);
-
   useEffect(() => {
     if (editor && editorRef && "current" in editorRef) {
       editorRef.current = {
@@ -902,6 +516,21 @@ export function CollaborativeEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && initialContent !== undefined) {
+      const currentEditorContent = editor.getJSON();
+      const currentContentHash = JSON.stringify(currentEditorContent);
+      const newContentHash = JSON.stringify(initialContent);
+
+      // Only update content if it's actually different and editor is empty or synced
+      if (currentContentHash !== newContentHash && editor.isEmpty) {
+        editor.commands.setContent(initialContent, false); // false = don't trigger update events
+        lastContentRef.current = newContentHash;
+      }
+    }
+  }, [initialContent, editor]);
+
   useEffect(() => {
     if (currentNote && editor) {
       lastContentRef.current = JSON.stringify(editor.getJSON());
@@ -910,131 +539,26 @@ export function CollaborativeEditor({
 
   useEffect(() => {
     return () => {
-      // Clear all timeouts
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-
-      // Clean up provider connection
-      if (provider?.ws) {
-        provider.ws.close();
-      }
     };
-  }, [provider]);
+  }, []);
 
   return (
     <EditorContext.Provider value={{ editor }}>
       <div style={{ position: "relative", height: "100%" }}>
-        {/* Connection Status Indicator */}
-        <div
-          style={{
-            position: "absolute",
-            top: "8px",
-            right: "8px",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
-            backgroundColor:
-              connectionStatus === "connected"
-                ? "#22c55e"
-                : connectionStatus === "connecting"
-                  ? "#3b82f6"
-                  : connectionStatus === "reconnecting"
-                    ? "#f59e0b"
-                    : "#ef4444",
-            color: "white",
-            opacity: 0.8,
-          }}
-        >
-          <div
-            style={{
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              backgroundColor: "white",
-              opacity: connectionStatus === "connected" ? 1 : 0.5,
-              animation:
-                connectionStatus === "connecting" ||
-                connectionStatus === "reconnecting"
-                  ? "pulse 1.5s infinite"
-                  : "none",
-            }}
-          />
-          {connectionStatus === "connected"
-            ? "Connected"
-            : connectionStatus === "connecting"
-              ? "Connecting..."
-              : connectionStatus === "reconnecting"
-                ? `Reconnecting... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
-                : "Disconnected"}
-        </div>
-
-        <div className="content-wrapper relative">
+        <div className="content-wrapper">
           <EditorContent
             editor={editor}
             role="presentation"
             className="simple-editor-content"
           />
-
-          {/* Disconnection Overlay */}
-          {editorDisabled && (
-            <div className="absolute inset-0 bg-black/10 dark:bg-white/5 z-40 cursor-not-allowed">
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg px-4 py-2 shadow-sm">
-                  <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="flex-shrink-0"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="15" y1="9" x2="9" y2="15" />
-                      <line x1="9" y1="9" x2="15" y2="15" />
-                    </svg>
-                    <span className="font-medium">
-                      {connectionStatus === "reconnecting"
-                        ? "Reconnecting..."
-                        : "Connection Lost"}
-                    </span>
-                    {reconnectAttemptsRef.current >= maxReconnectAttempts && (
-                      <button
-                        onClick={() => {
-                          reconnectAttemptsRef.current = 0;
-                          isReconnectingRef.current = false;
-                          if (provider?.ws) {
-                            provider.ws.close();
-                          }
-                          window.location.reload();
-                        }}
-                        className="ml-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors"
-                      >
-                        Refresh
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
           {showSlashCommand &&
             editor &&
-            !editorDisabled &&
             (() => {
               const position = getSlashCommandPosition();
               return (
