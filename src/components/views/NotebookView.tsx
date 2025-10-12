@@ -44,7 +44,8 @@ export const NotebookView = () => {
 
         // Update the note in store if found
         const noteInStore = userNotes.find(
-          (note) => note._id?.toString() === noteId,
+          (note) =>
+            note.pointer_id?.toString() === currentNote?.pointer_id?.toString(),
         );
         if (noteInStore) {
           useNotesStore.getState().updateNoteInCollections({

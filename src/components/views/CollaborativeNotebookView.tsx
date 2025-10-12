@@ -51,7 +51,8 @@ export const CollaborativeNotebookView = ({}) => {
         setNoteContent(parsed.tiptap || "");
 
         const noteInStore = userNotes.find(
-          (note) => note._id?.toString() === noteId,
+          (note) =>
+            note.pointer_id?.toString() === currentNote?.pointer_id?.toString(),
         );
         if (noteInStore) {
           useNotesStore.getState().updateNoteInCollections({
