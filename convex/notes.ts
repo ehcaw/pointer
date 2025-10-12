@@ -179,7 +179,7 @@ export const updateNoteInDb = mutation({
 
         // Create content entry
         const content: NoteContent = {
-          tiptap: fields.content?.tiptap || "{}", // Default to empty object
+          tiptap: fields.content?.tiptap || JSON.stringify({}), // Default to empty object
           text: fields.content?.text || "", // Default to empty string
         };
 
@@ -199,7 +199,6 @@ export const updateNoteInDb = mutation({
   },
 });
 
-// Add a mutation to update a note by pointer_id
 // Add a mutation to update a note by pointer_id
 export const updateNoteByPointerId = mutation({
   args: {
@@ -239,7 +238,7 @@ export const updateNoteByPointerId = mutation({
 
         const content = {
           text: fields.content.text || "",
-          tiptap: fields.content.tiptap || "{}",
+          tiptap: fields.content.tiptap || JSON.stringify({}),
         };
 
         if (noteContentEntry) {
