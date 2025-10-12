@@ -9,13 +9,15 @@ import { useRouter } from "next/navigation";
 import { Editor } from "@tiptap/react";
 import { useConvex } from "convex/react";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
-import { useNotesStore } from "@/lib/stores/notes-store";
+import { useNotesStore, useRecentNotes } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
 
-  const { isSignedIn, isLoaded } = useUser();
-  const router = useRouter();
+  const { setCurrentNote } = useNotesStore();
+  const { currentView } = usePreferencesStore();
+
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [noteContent, setNoteContent] = useState(
@@ -29,11 +31,10 @@ export const CollaborativeNotebookView = ({}) => {
   // Track the current note ID to prevent race conditions
   const currentNoteIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push("/");
-    }
-  }, [isSignedIn, isLoaded, router]);
+  const updateNoteInCollections = useNotesStore(
+    (state) => state.updateNoteInCollections,
+  );
+  const lastOpenedNote = useRecentNotes()[0];
 
   // Memoized content loading function
   const loadNoteContent = useCallback(
@@ -56,7 +57,7 @@ export const CollaborativeNotebookView = ({}) => {
               currentNote?.pointer_id?.toString(),
           );
         if (noteInStore) {
-          useNotesStore.getState().updateNoteInCollections({
+          updateNoteInCollections({
             ...noteInStore,
             content: parsed,
           });
@@ -68,11 +69,16 @@ export const CollaborativeNotebookView = ({}) => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, currentNote],
+    [fetchNoteContentById, currentNote, updateNoteInCollections],
   );
 
   // Handle content loading when currentNote changes
   useEffect(() => {
+    if (!currentNote && currentView === "note") {
+      setCurrentNote(lastOpenedNote);
+      return;
+    }
+
     if (!currentNote) return;
 
     const noteId =
@@ -89,7 +95,13 @@ export const CollaborativeNotebookView = ({}) => {
     } else {
       setNoteContent(currentNote.content.tiptap || "");
     }
-  }, [currentNote, loadNoteContent]);
+  }, [
+    currentNote,
+    loadNoteContent,
+    currentView,
+    lastOpenedNote,
+    setCurrentNote,
+  ]);
 
   // Reset note ID ref when component unmounts or note changes
   useEffect(() => {
@@ -99,19 +111,6 @@ export const CollaborativeNotebookView = ({}) => {
       }
     };
   }, [currentNote]);
-
-  // const mostCurrentNote = useNotesStore.getState().currentNote;
-  // const noteContent =
-  //   mostCurrentNote && mostCurrentNote.content.tiptap !== undefined
-  //     ? mostCurrentNote.content.tiptap
-  //     : {
-  //         type: "doc",
-  //         content: [
-  //           {
-  //             type: "paragraph",
-  //           },
-  //         ],
-  //       };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">

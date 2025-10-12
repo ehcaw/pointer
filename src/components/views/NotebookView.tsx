@@ -11,7 +11,7 @@ import { useConvex } from "convex/react";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
 
 export const NotebookView = () => {
-  const { currentNote, editorRef, createEmptyNote } = useNoteEditor();
+  const { currentNote, editorRef } = useNoteEditor();
   const { setCurrentNote } = useNotesStore();
   const { currentView } = usePreferencesStore();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
@@ -27,6 +27,9 @@ export const NotebookView = () => {
   // Track the current note ID to prevent race conditions
   const currentNoteIdRef = useRef<string | null>(null);
 
+  const updateNoteInCollections = useNotesStore(
+    (state) => state.updateNoteInCollections,
+  );
   const lastOpenedNote = useRecentNotes()[0];
 
   // Memoized content loading function
@@ -51,7 +54,7 @@ export const NotebookView = () => {
               currentNote?.pointer_id?.toString(),
           );
         if (noteInStore) {
-          useNotesStore.getState().updateNoteInCollections({
+          updateNoteInCollections({
             ...noteInStore,
             content: parsed,
           });
@@ -63,7 +66,7 @@ export const NotebookView = () => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, currentNote],
+    [fetchNoteContentById, currentNote, updateNoteInCollections],
   );
 
   // Create an empty note if there isn't one already and handle content loading
@@ -89,16 +92,20 @@ export const NotebookView = () => {
     } else {
       setNoteContent(currentNote.content.tiptap || "");
     }
-  }, [currentNote, currentView, createEmptyNote, loadNoteContent]);
+  }, [
+    currentNote,
+    currentView,
+    loadNoteContent,
+    lastOpenedNote,
+    setCurrentNote,
+  ]);
 
   // Reset note ID ref when component unmounts or note changes
   useEffect(() => {
     return () => {
-      if (!currentNote) {
-        currentNoteIdRef.current = null;
-      }
+      currentNoteIdRef.current = null;
     };
-  }, [currentNote]);
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">
