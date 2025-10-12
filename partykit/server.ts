@@ -1,13 +1,6 @@
 import type * as Party from "partykit/server";
 import { onConnect } from "y-partykit";
 
-interface UserInfo {
-  id: string;
-  name?: string;
-  color?: string;
-  avatar?: string;
-}
-
 export default class YjsServer implements Party.Server {
   constructor(public room: Party.Room) {
     // PartyKit storage doesn't have setTimeout method
@@ -27,7 +20,9 @@ export default class YjsServer implements Party.Server {
   }
 
   onConnectionClose(conn: Party.Connection) {
-    console.log(`Connection closed for user: ${conn.id} in room: ${this.room.id}`);
+    console.log(
+      `Connection closed for user: ${conn.id} in room: ${this.room.id}`,
+    );
   }
 
   // Optional: Handle authentication/authorization
