@@ -3,8 +3,6 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { generateText } from "ai";
 import { createGroq } from "@ai-sdk/groq";
-import { deleteNotesContent } from "./migration";
-// import { createNoteContentInternal } from "./notesContent";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
