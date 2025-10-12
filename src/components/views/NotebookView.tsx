@@ -47,7 +47,10 @@ export const NotebookView = () => {
           (note) => note._id?.toString() === noteId,
         );
         if (noteInStore) {
-          noteInStore.content = parsed;
+          useNotesStore.getState().updateNoteInCollections({
+            ...noteInStore,
+            content: parsed,
+          });
         }
       } catch (error) {
         console.error("Failed to load note content:", error);
