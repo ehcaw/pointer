@@ -1,19 +1,23 @@
 "use client";
-import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/collaborative-editor";
-import { FloatingToolbar } from "../tiptap/tiptap-templates/toolbar/FloatingToolbar";
-import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useNoteContent } from "@/hooks/use-note-content";
-import { useRef, useState } from "react";
+import { FloatingToolbar } from "../../tiptap/tiptap-templates/toolbar/FloatingToolbar";
 import { Clock } from "lucide-react";
 import { Editor } from "@tiptap/react";
+import { ReactNode } from "react";
+import { Node } from "@/types/note";
 
-export const CollaborativeNotebookView = ({}) => {
-  const { currentNote, editorRef } = useNoteEditor();
-  const { noteContent, isLoadingContent } = useNoteContent();
+interface NotebookLayoutProps {
+  editor: Editor | null;
+  editorContainerRef: React.RefObject<HTMLDivElement | null>;
+  children: ReactNode;
+  currentNote: Node | null;
+}
 
-  const editorContainerRef = useRef<HTMLDivElement | null>(null);
-  const [editor, setEditor] = useState<Editor | null>(null);
-
+export const NotebookLayout = ({
+  editor,
+  editorContainerRef,
+  children,
+  currentNote,
+}: NotebookLayoutProps) => {
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">
       {/* Main Editor */}
@@ -31,13 +35,7 @@ export const CollaborativeNotebookView = ({}) => {
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
             >
-              <CollaborativeEditor
-                id={currentNote?.pointer_id || "default-doc"}
-                key={currentNote?.pointer_id || "default-doc"}
-                content={isLoadingContent ? "" : noteContent}
-                editorRef={editorRef}
-                onEditorReady={setEditor}
-              />
+              {children}
             </div>
           </div>
         </div>

@@ -11,7 +11,7 @@ export const useNoteContent = () => {
   const { currentView } = usePreferencesStore();
 
   const [noteContent, setNoteContent] = useState(
-    currentNote?.content?.tiptap || ""
+    currentNote?.content?.tiptap || "",
   );
   const [isLoadingContent, setIsLoadingContent] = useState(false);
 
@@ -22,7 +22,7 @@ export const useNoteContent = () => {
   const currentNoteIdRef = useRef<string | null>(null);
 
   const updateNoteInCollections = useNotesStore(
-    (state) => state.updateNoteInCollections
+    (state) => state.updateNoteInCollections,
   );
   const lastOpenedNote = useRecentNotes()[0];
 
@@ -45,7 +45,7 @@ export const useNoteContent = () => {
           .userNotes.find(
             (note) =>
               note.pointer_id?.toString() ===
-              currentNote?.pointer_id?.toString()
+              currentNote?.pointer_id?.toString(),
           );
         if (noteInStore) {
           updateNoteInCollections({
@@ -60,7 +60,7 @@ export const useNoteContent = () => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, currentNote, updateNoteInCollections]
+    [fetchNoteContentById, currentNote, updateNoteInCollections],
   );
 
   // Handle content loading when currentNote changes
