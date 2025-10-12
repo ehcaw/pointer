@@ -73,8 +73,13 @@ export function CollaborativeEditor({
   // const [editor, setEditor] = useState<any>(null);
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
+  type ConnectionStatus = "connecting" | "connected" | "disconnected" | "reconnecting";
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
 
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
@@ -83,6 +88,15 @@ export function CollaborativeEditor({
 
   // Get authenticated user information for collaboration
   const { user } = useUser();
+
+  // Exponential backoff function for reconnection attempts
+  const getReconnectDelay = (attempt: number): number => {
+    const baseDelay = 1000; // 1 second
+    const maxDelay = 30000; // 30 seconds
+    const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+    // Add jitter to prevent thundering herd
+    return delay + Math.random() * 1000;
+  };
 
   // Generate consistent user color based on user ID
   const generateUserColor = (userId: string): string => {
@@ -160,6 +174,151 @@ export function CollaborativeEditor({
     room: `document-${id}`,
     doc: yDoc,
   });
+
+  // Monitor connection status and handle reconnections
+  useEffect(() => {
+    if (!provider) return;
+
+    let connectionTimeout: NodeJS.Timeout | null = null;
+
+    const checkConnectionState = () => {
+      if (!provider.ws) {
+        setConnectionStatus("disconnected");
+        return false;
+      }
+
+      const ws = provider.ws;
+
+      switch (ws.readyState) {
+        case WebSocket.CONNECTING:
+          return "connecting";
+        case WebSocket.OPEN:
+          return "connected";
+        case WebSocket.CLOSING:
+        case WebSocket.CLOSED:
+          return "disconnected";
+        default:
+          return "disconnected";
+      }
+    };
+
+    const handleConnect = () => {
+      console.log("Connected to PartyKit");
+      setConnectionStatus("connected");
+      reconnectAttemptsRef.current = 0;
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+        connectionTimeout = null;
+      }
+    };
+
+    const handleDisconnect = () => {
+      console.log("Disconnected from PartyKit");
+      setConnectionStatus("disconnected");
+
+      // Attempt to reconnect with exponential backoff
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = getReconnectDelay(reconnectAttemptsRef.current);
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+
+        setConnectionStatus("reconnecting");
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectAttemptsRef.current++;
+          // Force reconnection by destroying and recreating the provider connection
+          if (provider.ws) {
+            provider.ws.close();
+          }
+        }, delay);
+      } else {
+        console.error("Max reconnection attempts reached");
+        setConnectionStatus("disconnected");
+      }
+    };
+
+    const handleError = (error: Error | unknown) => {
+      console.error("PartyKit connection error:", error);
+      setConnectionStatus("disconnected");
+      handleDisconnect();
+    };
+
+    // Set up connection timeout for initial connection
+    const setupConnectionTimeout = () => {
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
+      connectionTimeout = setTimeout(() => {
+        const currentState = checkConnectionState();
+        if (currentState === "connecting") {
+          console.log("Connection establishment timeout, forcing reconnect");
+          if (provider.ws) {
+            provider.ws.close();
+          }
+        }
+      }, 15000); // 15 second timeout for connection establishment
+    };
+
+    // Try to set up event listeners on the WebSocket directly
+    const setupWebSocketListeners = () => {
+      if (provider.ws) {
+        provider.ws.addEventListener('open', handleConnect);
+        provider.ws.addEventListener('close', handleDisconnect);
+        provider.ws.addEventListener('error', handleError);
+      }
+    };
+
+    const cleanupWebSocketListeners = () => {
+      if (provider.ws) {
+        provider.ws.removeEventListener('open', handleConnect);
+        provider.ws.removeEventListener('close', handleDisconnect);
+        provider.ws.removeEventListener('error', handleError);
+      }
+    };
+
+    // Check initial connection status
+    const initialState = checkConnectionState();
+    if (initialState === "connected") {
+      handleConnect();
+    } else if (initialState === "connecting") {
+      setConnectionStatus("connecting");
+      setupConnectionTimeout();
+    } else {
+      setConnectionStatus("disconnected");
+      if (reconnectAttemptsRef.current === 0) {
+        handleDisconnect();
+      }
+    }
+
+    // Set up WebSocket listeners
+    setupWebSocketListeners();
+
+    // Monitor connection state changes more frequently
+    const intervalId = setInterval(() => {
+      const currentState = checkConnectionState();
+      if (currentState !== connectionStatus) {
+        console.log(`Connection state changed from ${connectionStatus} to ${currentState}`);
+        if (currentState === "connected") {
+          handleConnect();
+        } else if (currentState === "disconnected") {
+          handleDisconnect();
+        } else if (currentState === "connecting") {
+          setConnectionStatus("connecting");
+          setupConnectionTimeout();
+        }
+      }
+    }, 500);
+
+    return () => {
+      cleanupWebSocketListeners();
+      clearInterval(intervalId);
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
+    };
+  }, [provider, connectionStatus]);
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -575,18 +734,64 @@ export function CollaborativeEditor({
 
   useEffect(() => {
     return () => {
+      // Clear all timeouts
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+
+      // Clean up provider connection
+      if (provider?.ws) {
+        provider.ws.close();
+      }
     };
-  }, []);
+  }, [provider]);
 
   return (
     <EditorContext.Provider value={{ editor }}>
       <div style={{ position: "relative", height: "100%" }}>
+        {/* Connection Status Indicator */}
+        <div
+          style={{
+            position: "absolute",
+            top: "8px",
+            right: "8px",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            backgroundColor: connectionStatus === "connected" ? "#22c55e" :
+                            connectionStatus === "connecting" ? "#3b82f6" :
+                            connectionStatus === "reconnecting" ? "#f59e0b" : "#ef4444",
+            color: "white",
+            opacity: 0.8,
+          }}
+        >
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              backgroundColor: "white",
+              opacity: connectionStatus === "connected" ? 1 : 0.5,
+              animation: connectionStatus === "connecting" || connectionStatus === "reconnecting"
+                ? "pulse 1.5s infinite"
+                : "none",
+            }}
+          />
+          {connectionStatus === "connected" ? "Connected" :
+           connectionStatus === "connecting" ? "Connecting..." :
+           connectionStatus === "reconnecting" ? `Reconnecting... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})` :
+           "Disconnected"}
+        </div>
         <div className="content-wrapper">
           <EditorContent
             editor={editor}
