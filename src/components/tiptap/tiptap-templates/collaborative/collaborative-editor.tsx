@@ -151,10 +151,7 @@ export function CollaborativeEditor({
   const yDoc = yDocRef.current;
 
   const provider = useYProvider({
-    host:
-      process.env.NODE_ENV == "development"
-        ? "localhost:1999"
-        : "https://pointer-collaborative-editor.ehcaw.partykit.dev",
+    host: process.env.NEXT_PUBLIC_PARTYKIT_URL,
     room: `document-${id}`,
     doc: yDoc,
   });
