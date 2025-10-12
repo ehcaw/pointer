@@ -132,10 +132,18 @@ export const updateNoteInDb = mutation({
           .query("notesContent")
           .withIndex("by_noteid", (q) => q.eq("noteId", existingNote._id))
           .first();
-        if (notesContentEntry)
-          await ctx.db.patch(notesContentEntry?._id, {
+        if (notesContentEntry) {
+          await ctx.db.patch(notesContentEntry._id, {
             content: fields.content,
           });
+        } else {
+          await ctx.db.insert("notesContent", {
+            noteId: existingNote._id,
+            content: fields.content,
+            tenantId: existingNote.tenantId,
+          });
+        }
+      }
       }
 
       fields.content = undefined; // Update in notesContent above, do not update here
@@ -177,16 +185,16 @@ export const updateNoteInDb = mutation({
   },
 });
 
-// Add a query to find a note by pointer_id
-export const findNoteByPointerId = query({
-  args: { pointer_id: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
-      .first();
-  },
-});
+// // Add a query to find a note by pointer_id
+// export const findNoteByPointerId = query({
+//   args: { pointer_id: v.string() },
+//   handler: async (ctx, args) => {
+//     return await ctx.db
+//       .query("notes")
+//       .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+//       .first();
+//   },
+// });
 
 // Add a mutation to update a note by pointer_id
 export const updateNoteByPointerId = mutation({
@@ -208,10 +216,6 @@ export const updateNoteByPointerId = mutation({
       .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
       .first();
 
-    if (!note) {
-      throw new Error(`Note with pointer_id ${pointer_id} not found`);
-    }
-
     if (fields.content) {
       const noteContentEntry = await ctx.db
         .query("notesContent")
@@ -225,8 +229,18 @@ export const updateNoteByPointerId = mutation({
         await ctx.db.patch(noteContentEntry._id, {
           content,
         });
-        fields.content = undefined; // Prevent updating in notes table
+      } else {
+        await ctx.db.insert("notesContent", {
+          noteId: note._id,
+          content: {
+            text: fields.content.text || "",
+            tiptap: fields.content.tiptap || {},
+          },
+          tenantId: note.tenantId,
+        });
       }
+      fields.content = undefined; // Prevent updating in notes table
+    }
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: Record<string, any> = {};

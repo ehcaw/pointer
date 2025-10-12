@@ -49,7 +49,7 @@ export default function LoginPage() {
               alt="Pen icon"
               width={24}
               height={24}
-              className="h-6 w-6 object-contain"
+              className="h-6 w-6 object-contain dark:bg-white"
             />
             <h1 className="text-2xl font-bold text-stone-800">Pointer</h1>
           </div>

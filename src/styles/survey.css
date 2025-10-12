@@ -254,12 +254,6 @@
   gap: 0.5rem 0.75rem;
 }
 
-/* Ensure inherited theming in dark mode without extra overrides */
-.dark #pointer-survey-container,
-.dark #pointer-survey-container * {
-  /* colors already point to dark-mode variables */
-}
-
 #pointer-survey-container div[role="radiogroup"] label {
   position: relative;
   display: flex;
