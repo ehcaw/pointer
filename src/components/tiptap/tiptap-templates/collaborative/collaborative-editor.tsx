@@ -80,7 +80,7 @@ export function CollaborativeEditor({
     | "reconnecting";
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("connecting");
-  const [editorDisabled, setEditorDisabled] = useState(false);
+  const [editorDisabled, setEditorDisabled] = useState(true);
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -176,13 +176,6 @@ export function CollaborativeEditor({
   const partykitUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL!;
 
   // Try different URL formats to debug the issue
-  const debugUrls = [
-    partykitUrl,
-    "pointer-collaborative-editor.ehcaw.partykit.dev", // Without protocol
-    "http://pointer-collaborative-editor.ehcaw.partykit.dev", // HTTP instead of HTTPS
-  ];
-
-  console.log("Trying different URL formats:", debugUrls);
 
   const provider = useYProvider({
     host: partykitUrl,
@@ -995,9 +988,9 @@ export function CollaborativeEditor({
 
           {/* Disconnection Overlay */}
           {editorDisabled && (
-            <div className="absolute inset-0 bg-black/ dark:bg-white/5 z-40 cursor-not-allowed">
+            <div className="absolute inset-0 bg-black/10 dark:bg-white/5 z-40 cursor-not-allowed">
               <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg   px-4 py-2 shadow-sm">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg px-4 py-2 shadow-sm">
                   <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
                     <svg
                       width="14"
