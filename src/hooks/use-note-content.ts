@@ -40,13 +40,7 @@ export const useNoteContent = () => {
         setNoteContent(parsed.tiptap || "");
 
         // Update the note in store if found
-        const noteInStore = useNotesStore
-          .getState()
-          .userNotes.find(
-            (note) =>
-              note.pointer_id?.toString() ===
-              currentNote?.pointer_id?.toString(),
-          );
+        const noteInStore = useNotesStore.getState().findNoteById(noteId);
         if (noteInStore) {
           updateNoteInCollections({
             ...noteInStore,
@@ -60,7 +54,7 @@ export const useNoteContent = () => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, currentNote, updateNoteInCollections],
+    [fetchNoteContentById, updateNoteInCollections],
   );
 
   // Handle content loading when currentNote changes

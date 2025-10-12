@@ -18,7 +18,7 @@ interface NotesStore {
   unsavedNotes: Map<string, Node>; // Key: stringified _id, Value: modified note
   newUnsavedNotes: Node[]; // New notes that haven't been saved to DB yet
   dbSavedNotes: Map<string, Node>; // keeping track of how notes are currently saved in db
-  
+
   // Content caching for performance
   noteContentCache: Map<string, string>; // Key: noteId, Value: cached content JSON
   contentFetchPromises: Map<string, Promise<string>>; // Key: noteId, Value: fetch promise
@@ -38,6 +38,7 @@ interface NotesStore {
   addOpenUserNote: (note: Node) => void;
   closeUserNote: (noteId: string) => void;
   addUserNote: (note: Node) => void;
+  findNoteById: (noteId: string) => Node | undefined;
 
   // Unsaved changes management (pure state operations)
   markNoteAsUnsaved: (note: Node) => void;
@@ -59,7 +60,10 @@ interface NotesStore {
   getCachedContent: (noteId: string) => string | undefined;
   setCachedContent: (noteId: string, content: string) => void;
   invalidateContentCache: (noteId: string) => void;
-  fetchAndCacheContent: (noteId: string, fetcher: (noteId: string) => Promise<string>) => Promise<string>;
+  fetchAndCacheContent: (
+    noteId: string,
+    fetcher: (noteId: string) => Promise<string>,
+  ) => Promise<string>;
 }
 
 export const useNotesStore = create<NotesStore>((set, get) => ({
@@ -185,6 +189,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
         currentNote: note,
       });
     }
+  },
+  findNoteById: (noteId: string) => {
+    const state = get();
+    return state.userNotes.find(
+      (note) => note.pointer_id?.toString() === noteId,
+    );
   },
 
   // Unsaved changes management
@@ -518,9 +528,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     set({ noteContentCache, contentFetchPromises });
   },
 
-  fetchAndCacheContent: async (noteId: string, fetcher: (noteId: string) => Promise<string>) => {
+  fetchAndCacheContent: async (
+    noteId: string,
+    fetcher: (noteId: string) => Promise<string>,
+  ) => {
     const state = get();
-    
+
     // Return cached content if available
     const cached = state.noteContentCache.get(noteId);
     if (cached) {
@@ -534,25 +547,27 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     }
 
     // Create new fetch promise
-    const fetchPromise = fetcher(noteId).then(content => {
-      // Cache the result
-      const currentState = get();
-      const noteContentCache = new Map(currentState.noteContentCache);
-      const contentFetchPromises = new Map(currentState.contentFetchPromises);
-      
-      noteContentCache.set(noteId, content);
-      contentFetchPromises.delete(noteId);
-      
-      set({ noteContentCache, contentFetchPromises });
-      return content;
-    }).catch(error => {
-      // Clean up on error
-      const currentState = get();
-      const contentFetchPromises = new Map(currentState.contentFetchPromises);
-      contentFetchPromises.delete(noteId);
-      set({ contentFetchPromises });
-      throw error;
-    });
+    const fetchPromise = fetcher(noteId)
+      .then((content) => {
+        // Cache the result
+        const currentState = get();
+        const noteContentCache = new Map(currentState.noteContentCache);
+        const contentFetchPromises = new Map(currentState.contentFetchPromises);
+
+        noteContentCache.set(noteId, content);
+        contentFetchPromises.delete(noteId);
+
+        set({ noteContentCache, contentFetchPromises });
+        return content;
+      })
+      .catch((error) => {
+        // Clean up on error
+        const currentState = get();
+        const contentFetchPromises = new Map(currentState.contentFetchPromises);
+        contentFetchPromises.delete(noteId);
+        set({ contentFetchPromises });
+        throw error;
+      });
 
     // Store the promise
     const contentFetchPromises = new Map(state.contentFetchPromises);
@@ -566,7 +581,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 // Optimized selectors for performance
 export const useRecentNotes = () => {
   const userNotes = useNotesStore((state) => state.userNotes);
-  
+
   return useMemo(() => {
     return userNotes
       .sort(
@@ -579,7 +594,7 @@ export const useRecentNotes = () => {
 
 export const useUnsavedNotesArray = () => {
   const unsavedNotes = useNotesStore((state) => state.unsavedNotes);
-  
+
   return useMemo(() => {
     return Array.from(unsavedNotes.values());
   }, [unsavedNotes]);
@@ -587,7 +602,7 @@ export const useUnsavedNotesArray = () => {
 
 export const useUnsavedNotesCount = () => {
   const unsavedNotes = useNotesStore((state) => state.unsavedNotes);
-  
+
   return useMemo(() => {
     return unsavedNotes.size;
   }, [unsavedNotes]);
