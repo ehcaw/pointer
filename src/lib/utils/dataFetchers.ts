@@ -43,6 +43,19 @@ export const createDataFetchers = (convex: ConvexReactClient) => ({
       throw new Error(`Failed to fetch user notes: ${error}`);
     }
   },
+
+  fetchNoteContentById: async (noteId: string) => {
+    try {
+      const { api } = await import("../../../convex/_generated/api");
+      const noteContent = await convex.query(
+        api.notesContent.getNoteContentById,
+        { noteId },
+      );
+      return JSON.stringify(noteContent);
+    } catch (error) {
+      throw new Error(`Failed to fetch note content: ${error}`);
+    }
+  },
 });
 
 // Type for the data fetchers

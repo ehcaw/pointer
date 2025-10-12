@@ -1,25 +1,14 @@
 import { action, mutation, query } from "./_generated/server";
+import { NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { generateText } from "ai";
-import { createGroq } from "@ai-sdk/groq";
-
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-interface NoteContent {
-  text: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tiptap: any; // Using 'any' as requested
-}
 
 export const readNoteFromDb = query({
   args: { pointer_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
       .first();
   },
 });
@@ -33,8 +22,7 @@ export const readNotesFromDb = query({
     }
     return await ctx.db
       .query("notes")
-      // .filter((q) => q.eq(q.field("tenantId"), args.user_id))
-      .filter((q) => q.eq(q.field("tenantId"), identity.subject))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", identity.subject))
       .collect();
   },
 });
@@ -44,7 +32,7 @@ export const readNotesFromDbByUserId = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("tenantId"), args.userId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.userId))
       .collect();
   },
 });
@@ -52,11 +40,11 @@ export const readNotesFromDbByUserId = query({
 export const createNoteInDb = mutation({
   args: {
     name: v.string(),
-    content: v.object({
-      tiptap: v.optional(v.any()),
-      text: v.optional(v.string()),
-    }),
     tenantId: v.string(),
+    content: v.object({
+      text: v.string(),
+      tiptap: v.string(),
+    }),
     pointer_id: v.string(), // Add pointer_id for client-side reference
     createdAt: v.string(),
     updatedAt: v.string(),
@@ -68,20 +56,14 @@ export const createNoteInDb = mutation({
     // Store the pointer_id along with other fields
     const existingNote = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
       .first();
     if (existingNote !== null) {
       return existingNote._id;
     }
 
-    const content = {
-      // This is to satisfy type requirements
-      text: args.content.text || "",
-      tiptap: args.content.tiptap || "",
-    };
     const noteId = await ctx.db.insert("notes", {
       name: args.name,
-      content: content,
       tenantId: args.tenantId,
       pointer_id: args.pointer_id,
       lastAccessed: args.lastAccessed || new Date().toISOString(),
@@ -90,6 +72,13 @@ export const createNoteInDb = mutation({
       updatedAt: args.updatedAt,
       collaborative: args.collaborative || false,
     });
+
+    await ctx.db.insert("notesContent", {
+      noteId: noteId,
+      content: args.content,
+      tenantId: args.tenantId,
+    });
+
     return noteId;
   },
 });
@@ -105,9 +94,7 @@ export const updateNoteInDb = mutation({
     type: v.optional(v.string()), // "file" or "folder"
 
     // Optional fields for both operations
-    content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
-    ),
+    content: v.optional(v.object({ tiptap: v.any(), text: v.string() })),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
     createdAt: v.optional(v.string()),
@@ -117,71 +104,100 @@ export const updateNoteInDb = mutation({
   handler: async (ctx, args) => {
     const { pointer_id, ...fields } = args;
 
+    // Validate pointer_id
+    if (!pointer_id || pointer_id.trim() === "") {
+      throw new Error("Invalid pointer_id: cannot be empty");
+    }
+
     // First check if the note exists
     const existingNote = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", pointer_id))
       .first();
 
     if (existingNote) {
       // UPDATE: Note exists, update it
-      //eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const update: Record<string, any> = {};
+      try {
+        if (args.content) {
+          // Update or create the notesContent entry
+          const notesContentEntry = await ctx.db
+            .query("notesContent")
+            .withIndex("by_noteid", (q) => q.eq("noteId", existingNote._id))
+            .first();
 
-      // Only include defined fields
-      Object.entries(fields).forEach(([key, value]) => {
-        if (value !== undefined) {
-          update[key] = value;
+          if (notesContentEntry) {
+            // Update existing content
+            await ctx.db.patch(notesContentEntry._id, {
+              content: args.content,
+            });
+          } else {
+            // Create new content entry
+            await ctx.db.insert("notesContent", {
+              noteId: existingNote._id,
+              content: args.content,
+              tenantId: existingNote.tenantId,
+            });
+          }
         }
-      });
 
-      // Always update the updatedAt timestamp
-      update.updatedAt = String(new Date());
+        // Prepare update fields (exclude content as it's handled above)
+        const updateFields = { ...fields };
+        delete updateFields.content;
+        updateFields.updatedAt = String(new Date());
 
-      // Update using the Convex ID
-      await ctx.db.patch(existingNote._id, update);
-
-      return existingNote._id; // Return the Convex ID
+        // Update the note
+        await ctx.db.patch(existingNote._id, updateFields);
+        return existingNote._id;
+      } catch (error) {
+        throw new Error(
+          `Failed to update note: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
     } else {
       // CREATE: Note doesn't exist, create a new one
-      const now = String(new Date());
+      if (!fields.tenantId) {
+        throw new Error("tenantId is required when creating a new note");
+      }
 
-      // Add content
-      const content: NoteContent = {
-        tiptap: fields.content?.tiptap || {}, // Default to empty object
-        text: fields.content?.text || "", // Default to empty string
-      };
+      try {
+        const now = String(new Date());
 
-      // Prepare document for insertion with all required fields
-      const doc = {
-        pointer_id,
-        name: fields.name,
-        tenantId: fields.tenantId || "12345678", // Use default if not provided
-        content: content,
-        createdAt: fields.createdAt || now,
-        updatedAt: fields.updatedAt || now,
-        lastAccessed: fields.lastAccessed || now,
-        lastEdited: fields.lastEdited || now,
-        collaborative: fields.collaborative || false,
-      };
+        // Prepare document for insertion with all required fields
+        const doc = {
+          pointer_id,
+          name: fields.name,
+          tenantId: fields.tenantId,
+          createdAt: fields.createdAt || now,
+          updatedAt: fields.updatedAt || now,
+          lastAccessed: fields.lastAccessed || now,
+          lastEdited: fields.lastEdited || now,
+          collaborative: fields.collaborative || false,
+        };
 
-      // Insert the new document
-      const newId = await ctx.db.insert("notes", doc);
-      return newId; // Return the new Convex ID
+        // Insert the new document
+        const newId = await ctx.db.insert("notes", doc);
+
+        // Create content entry
+        const content: NoteContent = {
+          tiptap: fields.content?.tiptap || JSON.stringify({}), // Default to empty object
+          text: fields.content?.text || "", // Default to empty string
+        };
+
+        await ctx.db.insert("notesContent", {
+          content: content,
+          tenantId: fields.tenantId,
+          noteId: newId,
+        });
+
+        return newId;
+      } catch (error) {
+        throw new Error(
+          `Failed to create note: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
     }
   },
 });
-
-// // Add a query to find a note by pointer_id
-// export const findNoteByPointerId = query({
-//   args: { pointer_id: v.string() },
-//   handler: async (ctx, args) => {
-//     return await ctx.db
-//       .query("notes")
-//       .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
-//       .first();
-//   },
-// });
 
 // Add a mutation to update a note by pointer_id
 export const updateNoteByPointerId = mutation({
@@ -197,26 +213,74 @@ export const updateNoteByPointerId = mutation({
   handler: async (ctx, args) => {
     const { pointer_id, ...fields } = args;
 
+    // Validate pointer_id
+    if (!pointer_id || pointer_id.trim() === "") {
+      throw new Error("Invalid pointer_id: cannot be empty");
+    }
+
     // Find the note by pointer_id
     const note = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", pointer_id))
       .first();
 
     if (!note) {
-      throw new Error(`Note with pointer_id ${pointer_id} not found`);
+      throw new Error(`Note with pointer_id '${pointer_id}' not found`);
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const update: Record<string, any> = {};
-    Object.entries(fields).forEach(([key, value]) => {
-      if (value !== undefined) {
-        update[key] = value;
-      }
-    });
-    update.updatedAt = String(new Date());
 
-    // Update using the Convex ID
-    await ctx.db.patch(note._id, update);
+    try {
+      // Handle content updates
+      if (fields.content) {
+        const noteContentEntry = await ctx.db
+          .query("notesContent")
+          .withIndex("by_noteid", (q) => q.eq("noteId", note._id))
+          .first();
+
+        const content = {
+          text: fields.content.text || "",
+          tiptap: fields.content.tiptap || JSON.stringify({}),
+        };
+
+        if (noteContentEntry) {
+          // Update existing content
+          await ctx.db.patch(noteContentEntry._id, {
+            content,
+          });
+        } else {
+          // Create new content entry
+          await ctx.db.insert("notesContent", {
+            noteId: note._id,
+            content,
+            tenantId: note.tenantId,
+          });
+        }
+      }
+
+      // Prepare update fields (exclude content as it's handled above)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const update: Record<string, any> = {};
+      Object.entries(fields).forEach(([key, value]) => {
+        if (value !== undefined && key !== "content") {
+          update[key] = value;
+        }
+      });
+      update.updatedAt = String(new Date());
+
+      // Update the note if there are fields to update
+      if (Object.keys(update).length > 1) {
+        // More than just updatedAt
+        await ctx.db.patch(note._id, update);
+      } else if (Object.keys(update).length === 1) {
+        // Only updatedAt, still update to reflect the access
+        await ctx.db.patch(note._id, update);
+      }
+
+      return { success: true, noteId: note._id };
+    } catch (error) {
+      throw new Error(
+        `Failed to update note: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   },
 });
 
@@ -230,7 +294,7 @@ export const deleteNoteByPointerId = mutation({
     // Find the note by pointer_id
     const note = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
       .first();
 
     if (!note) {
@@ -280,11 +344,17 @@ export const deleteNoteByPointerId = mutation({
     // Execute all operations in parallel
     await Promise.all([...deletePromises, ...cleanupPromises]);
 
+    const noteContentEntry = await ctx.db
+      .query("notesContent")
+      .withIndex("by_noteid", (q) => q.eq("noteId", note._id))
+      .first();
+    if (noteContentEntry) await ctx.db.delete(noteContentEntry._id);
+
     // Only return updated notes if needed - consider making this optional
     // or move to a separate query function if the caller needs it
     const notes = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("tenantId"), args.user_id))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.user_id))
       .collect();
 
     return notes;
@@ -297,7 +367,7 @@ export const getPublicNote = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
       .first();
   },
 });

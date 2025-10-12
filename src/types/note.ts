@@ -38,7 +38,7 @@ export interface FileNode extends BaseNode {
    * JSON object representing the file's contents.
    * For TipTap notes, this will contain the editor's JSON structure.
    */
-  content: {
+  content?: {
     /**
      * Raw TipTap JSON content
      */
@@ -49,6 +49,11 @@ export interface FileNode extends BaseNode {
      */
     text?: string;
   };
+}
+
+export interface NoteContent {
+  text: string;
+  tiptap: string;
 }
 
 /**

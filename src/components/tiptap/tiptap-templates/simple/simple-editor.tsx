@@ -79,8 +79,8 @@ export function SimpleEditor({
   const { HandleImageDelete } = useTiptapImage();
 
   const { saveCurrentNote } = useNoteEditor();
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const SAVE_DELAY = 3000; // 2 seconds
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -111,7 +111,6 @@ export function SimpleEditor({
   }, [content]);
 
   const lastContentRef = useRef<string>("");
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -122,53 +121,6 @@ export function SimpleEditor({
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
       },
-      //   handleDrop: (view, event, slice, moved) => {
-      //     // Check if files are being dropped
-      //     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-      //       const files = Array.from(event.dataTransfer.files);
-
-      //       // Filter for image files
-      //       const imageFiles = files.filter((file) =>
-      //         file.type.startsWith("image/"),
-      //       );
-
-      //       if (imageFiles.length > 0) {
-      //         event.preventDefault();
-
-      //         // Get the drop position
-      //         const coordinates = view.posAtCoords({
-      //           left: event.clientX,
-      //           top: event.clientY,
-      //         });
-
-      //         if (coordinates) {
-      //           handleImageDrop(imageFiles, coordinates.pos);
-      //         }
-
-      //         return true; // Handled
-      //       }
-      //     }
-
-      //     return false; // Not handled, let TipTap handle it
-      //   },
-      //   handleDOMEvents: {
-      //     dragover: (view, event) => {
-      //       // Check if dragging files
-      //       if (event.dataTransfer?.types.includes("Files")) {
-      //         event.preventDefault();
-      //         // You could add visual feedback here, like highlighting the editor
-      //         view.dom.classList.add("dragging-files");
-      //       }
-      //     },
-      //     dragleave: (view, _event) => {
-      //       // Remove visual feedback
-      //       view.dom.classList.remove("dragging-files");
-      //     },
-      //     drop: (view, _event) => {
-      //       // Clean up visual feedback
-      //       view.dom.classList.remove("dragging-files");
-      //     },
-      //   },
     },
     extensions: [
       StarterKit.configure({
@@ -215,7 +167,7 @@ export function SimpleEditor({
       }),
     ],
     content: initialContent,
-    // Lightweight onUpdate - only handles UI updates
+    // Optimized onUpdate with single-timer debounced autosave
     onUpdate: async ({ editor, transaction }) => {
       // Handle slash command (lightweight)
       const { selection } = editor.state;
@@ -240,14 +192,8 @@ export function SimpleEditor({
         setSlashCommandQuery("");
       }
 
-      // Debounce the heavy content update operations
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-
-      updateTimeoutRef.current = setTimeout(() => {
-        debouncedContentUpdate();
-      }, 150); // Very short debounce for content updates
+      // Handle content update with single timer approach
+      handleContentUpdate();
 
       if (transaction.docChanged && currentNote) {
         const getImageSrcs = (doc: typeof transaction.doc) => {
@@ -293,8 +239,8 @@ export function SimpleEditor({
     },
   });
 
-  // Debounced content update function
-  const debouncedContentUpdate = useCallback(() => {
+  // Optimized content update with single timer debouncing
+  const handleContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
     const currentEditorJson = editor.getJSON();
@@ -306,6 +252,9 @@ export function SimpleEditor({
       lastContentRef.current = currentContentHash;
 
       // Update content immediately in memory (fast)
+      if (!currentNote.content) {
+        currentNote.content = {};
+      }
       currentNote.content.tiptap = ensureJSONString(currentEditorJson);
       currentNote.content.text = currentEditorText;
       currentNote.updatedAt = new Date().toISOString();
@@ -313,20 +262,20 @@ export function SimpleEditor({
       // Mark as unsaved
       markNoteAsUnsaved(currentNote);
 
-      // Setup auto-save timer
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
+      // Cancel previous save timer and set new one
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
 
-      autoSaveTimeoutRef.current = setTimeout(async () => {
+      saveTimeoutRef.current = setTimeout(async () => {
         try {
           await saveCurrentNote();
-          autoSaveTimeoutRef.current = null;
+          saveTimeoutRef.current = null;
           removeUnsavedNote(currentNote.pointer_id);
         } catch (error) {
           console.error("Auto-save failed:", error);
         }
-      }, AUTO_SAVE_INTERVAL);
+      }, SAVE_DELAY);
     }
   }, [
     currentNote,
@@ -448,6 +397,21 @@ export function SimpleEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && initialContent !== undefined) {
+      const currentEditorContent = editor.getJSON();
+      const currentContentHash = JSON.stringify(currentEditorContent);
+      const newContentHash = JSON.stringify(initialContent);
+
+      // Only update content if it's actually different to avoid unnecessary re-renders
+      if (currentContentHash !== newContentHash) {
+        editor.commands.setContent(initialContent, false); // false = don't trigger update events
+        lastContentRef.current = newContentHash;
+      }
+    }
+  }, [initialContent, editor]);
+
   useEffect(() => {
     if (currentNote && editor) {
       lastContentRef.current = JSON.stringify(editor.getJSON());
@@ -456,11 +420,8 @@ export function SimpleEditor({
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
     };
   }, []);
