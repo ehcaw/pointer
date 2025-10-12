@@ -179,7 +179,7 @@ export const updateNoteInDb = mutation({
 
         // Create content entry
         const content: NoteContent = {
-          tiptap: fields.content?.tiptap || {}, // Default to empty object
+          tiptap: fields.content?.tiptap || "{}", // Default to empty object
           text: fields.content?.text || "", // Default to empty string
         };
 
@@ -239,7 +239,7 @@ export const updateNoteByPointerId = mutation({
 
         const content = {
           text: fields.content.text || "",
-          tiptap: fields.content.tiptap || {},
+          tiptap: fields.content.tiptap || "{}",
         };
 
         if (noteContentEntry) {
@@ -258,6 +258,7 @@ export const updateNoteByPointerId = mutation({
       }
 
       // Prepare update fields (exclude content as it's handled above)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const update: Record<string, any> = {};
       Object.entries(fields).forEach(([key, value]) => {
         if (value !== undefined && key !== "content") {
