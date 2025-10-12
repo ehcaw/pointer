@@ -14,8 +14,6 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
 
-  const { userNotes } = useNotesStore();
-
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
@@ -50,10 +48,13 @@ export const CollaborativeNotebookView = ({}) => {
         // Update the content state
         setNoteContent(parsed.tiptap || "");
 
-        const noteInStore = userNotes.find(
-          (note) =>
-            note.pointer_id?.toString() === currentNote?.pointer_id?.toString(),
-        );
+        const noteInStore = useNotesStore
+          .getState()
+          .userNotes.find(
+            (note) =>
+              note.pointer_id?.toString() ===
+              currentNote?.pointer_id?.toString(),
+          );
         if (noteInStore) {
           useNotesStore.getState().updateNoteInCollections({
             ...noteInStore,
@@ -67,7 +68,7 @@ export const CollaborativeNotebookView = ({}) => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, currentNote, userNotes],
+    [fetchNoteContentById, currentNote],
   );
 
   // Handle content loading when currentNote changes

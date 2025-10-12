@@ -12,7 +12,7 @@ import { createDataFetchers } from "@/lib/utils/dataFetchers";
 
 export const NotebookView = () => {
   const { currentNote, editorRef, createEmptyNote } = useNoteEditor();
-  const { userNotes, setCurrentNote } = useNotesStore();
+  const { setCurrentNote } = useNotesStore();
   const { currentView } = usePreferencesStore();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -43,10 +43,13 @@ export const NotebookView = () => {
         setNoteContent(parsed.tiptap || "");
 
         // Update the note in store if found
-        const noteInStore = userNotes.find(
-          (note) =>
-            note.pointer_id?.toString() === currentNote?.pointer_id?.toString(),
-        );
+        const noteInStore = useNotesStore
+          .getState()
+          .userNotes.find(
+            (note) =>
+              note.pointer_id?.toString() ===
+              currentNote?.pointer_id?.toString(),
+          );
         if (noteInStore) {
           useNotesStore.getState().updateNoteInCollections({
             ...noteInStore,
@@ -60,7 +63,7 @@ export const NotebookView = () => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById, currentNote, userNotes],
+    [fetchNoteContentById, currentNote],
   );
 
   // Create an empty note if there isn't one already and handle content loading
