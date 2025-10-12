@@ -80,6 +80,7 @@ export function CollaborativeEditor({
     | "reconnecting";
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("connecting");
+  const [editorDisabled, setEditorDisabled] = useState(true);
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -174,6 +175,8 @@ export function CollaborativeEditor({
 
   const partykitUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL!;
 
+  // Try different URL formats to debug the issue
+
   const provider = useYProvider({
     host: partykitUrl,
     room: `document-${id}`,
@@ -263,6 +266,7 @@ export function CollaborativeEditor({
     const handleConnect = () => {
       console.log("Connected to PartyKit");
       setConnectionStatus("connected");
+      setEditorDisabled(false);
       reconnectAttemptsRef.current = 0;
       isReconnectingRef.current = false;
       if (reconnectTimeoutRef.current) {
@@ -280,6 +284,7 @@ export function CollaborativeEditor({
       console.log("WebSocket state:", provider.ws?.readyState);
       console.log("Reconnect attempts:", reconnectAttemptsRef.current);
       setConnectionStatus("disconnected");
+      setEditorDisabled(true);
 
       // Prevent multiple concurrent reconnection attempts
       if (isReconnectingRef.current) {
@@ -313,6 +318,7 @@ export function CollaborativeEditor({
       } else {
         console.error("Max reconnection attempts reached");
         setConnectionStatus("disconnected");
+        setEditorDisabled(true);
         isReconnectingRef.current = false;
       }
     };
@@ -532,6 +538,7 @@ export function CollaborativeEditor({
       });
     },
     immediatelyRender: false,
+    editable: !editorDisabled,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -863,6 +870,13 @@ export function CollaborativeEditor({
     return () => document.removeEventListener("keydown", handleEnter, true);
   }, [showSlashCommand]);
 
+  // Update editor editable state when connection status changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!editorDisabled);
+    }
+  }, [editor, editorDisabled]);
+
   useEffect(() => {
     if (editor && editorRef && "current" in editorRef) {
       editorRef.current = {
@@ -964,14 +978,63 @@ export function CollaborativeEditor({
                 ? `Reconnecting... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
                 : "Disconnected"}
         </div>
-        <div className="content-wrapper">
+
+        <div className="content-wrapper relative">
           <EditorContent
             editor={editor}
             role="presentation"
             className="simple-editor-content"
           />
+
+          {/* Disconnection Overlay */}
+          {editorDisabled && (
+            <div className="absolute inset-0 bg-black/10 dark:bg-white/5 z-40 cursor-not-allowed">
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg px-4 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 text-sm text-red-700 dark:text-red-300">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="flex-shrink-0"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                    <span className="font-medium">
+                      {connectionStatus === "reconnecting"
+                        ? "Reconnecting..."
+                        : "Connection Lost"}
+                    </span>
+                    {reconnectAttemptsRef.current >= maxReconnectAttempts && (
+                      <button
+                        onClick={() => {
+                          reconnectAttemptsRef.current = 0;
+                          isReconnectingRef.current = false;
+                          if (provider?.ws) {
+                            provider.ws.close();
+                          }
+                          window.location.reload();
+                        }}
+                        className="ml-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors"
+                      >
+                        Refresh
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {showSlashCommand &&
             editor &&
+            !editorDisabled &&
             (() => {
               const position = getSlashCommandPosition();
               return (
