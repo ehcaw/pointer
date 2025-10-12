@@ -9,9 +9,12 @@ import { useRouter } from "next/navigation";
 import { Editor } from "@tiptap/react";
 import { useConvex } from "convex/react";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
+import { useNotesStore } from "@/lib/stores/notes-store";
 
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
+
+  const { userNotes } = useNotesStore();
 
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
@@ -46,6 +49,13 @@ export const CollaborativeNotebookView = ({}) => {
 
         // Update the content state
         setNoteContent(parsed.tiptap || "");
+
+        const noteInStore = userNotes.find(
+          (note) => note._id?.toString() === noteId,
+        );
+        if (noteInStore) {
+          noteInStore.content = parsed;
+        }
       } catch (error) {
         console.error("Failed to load collaborative note content:", error);
         setNoteContent("");
@@ -53,7 +63,7 @@ export const CollaborativeNotebookView = ({}) => {
         setIsLoadingContent(false);
       }
     },
-    [fetchNoteContentById],
+    [fetchNoteContentById, userNotes],
   );
 
   // Handle content loading when currentNote changes
