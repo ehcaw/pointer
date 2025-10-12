@@ -21,7 +21,7 @@ import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap/tiptap-extension/trailing-node-extension";
-import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
+// import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
 import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command-extension";
 
 // --- Tiptap Node ---
@@ -151,7 +151,7 @@ export function SimpleEditor({
       // }),
       TrailingNode,
       Link.configure({ openOnClick: false }),
-      AutocompleteExtension,
+      // AutocompleteExtension,
       SlashCommand.configure({
         suggestion: {
           char: "/",

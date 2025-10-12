@@ -179,16 +179,16 @@ export const updateNoteInDb = mutation({
   },
 });
 
-// Add a query to find a note by pointer_id
-export const findNoteByPointerId = query({
-  args: { pointer_id: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
-      .first();
-  },
-});
+// // Add a query to find a note by pointer_id
+// export const findNoteByPointerId = query({
+//   args: { pointer_id: v.string() },
+//   handler: async (ctx, args) => {
+//     return await ctx.db
+//       .query("notes")
+//       .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+//       .first();
+//   },
+// });
 
 // Add a mutation to update a note by pointer_id
 export const updateNoteByPointerId = mutation({

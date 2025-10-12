@@ -155,6 +155,7 @@ export default function AppSidebar() {
     unsetCurrentNote,
     currentNote,
     dbSavedNotes,
+    setOpenUserNotes,
   } = useNotesStore();
 
   const { currentView, setCurrentView } = usePreferencesStore();
@@ -162,11 +163,12 @@ export default function AppSidebar() {
 
   const posthog = usePostHog();
 
-  const handleCreateNote = useCallback(() => {
+  const handleCreateNote = async () => {
     const title = `Note ${openUserNotes.length + 1}`;
     setCurrentView("note");
-    createNewNote(title);
-  }, [openUserNotes.length, setCurrentView, createNewNote]);
+    const newNote = await createNewNote(title);
+    setOpenUserNotes([...openUserNotes, newNote]);
+  };
 
   const handleNavClick = useCallback(
     (view: "home" | "graph" | "whiteboard" | "note" | "settings") => {
@@ -356,7 +358,7 @@ export default function AppSidebar() {
                   alt="Pen icon"
                   width={32}
                   height={32}
-                  className="h-8 w-8 object-contain"
+                  className="h-8 w-8 object-contain dark:bg-white"
                 />
               </div>
               <div>
