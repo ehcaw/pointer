@@ -12,9 +12,9 @@ export const migrateData = mutation({
         .query("notesContent")
         .withIndex("by_noteid", (q) => q.eq("noteId", item._id))
         .first();
-      
+
       const content = item.content || { text: "", tiptap: "" };
-      
+
       if (notesContentReference) {
         await ctx.db.patch(notesContentReference._id, {
           content: content,
@@ -41,6 +41,19 @@ export const deleteNotesContent = mutation({
         content: undefined,
       };
       await ctx.db.patch(item._id, newNote);
+    }
+  },
+});
+
+export const duplicateNotesToNotesCopy = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Get all data from old table
+    const oldData = await ctx.db.query("notes").collect();
+
+    // Transform and insert into new table
+    for (const { _id, _creationTime, ...rest } of oldData) {
+      await ctx.db.insert("notesCopy", rest);
     }
   },
 });

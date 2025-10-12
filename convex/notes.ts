@@ -8,7 +8,7 @@ export const readNoteFromDb = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
       .first();
   },
 });
@@ -22,8 +22,7 @@ export const readNotesFromDb = query({
     }
     return await ctx.db
       .query("notes")
-      // .filter((q) => q.eq(q.field("tenantId"), args.user_id))
-      .filter((q) => q.eq(q.field("tenantId"), identity.subject))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", identity.subject))
       .collect();
   },
 });
@@ -33,7 +32,7 @@ export const readNotesFromDbByUserId = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("tenantId"), args.userId))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.userId))
       .collect();
   },
 });
@@ -57,7 +56,7 @@ export const createNoteInDb = mutation({
     // Store the pointer_id along with other fields
     const existingNote = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
       .first();
     if (existingNote !== null) {
       return existingNote._id;
@@ -113,7 +112,7 @@ export const updateNoteInDb = mutation({
     // First check if the note exists
     const existingNote = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", pointer_id))
       .first();
 
     if (existingNote) {
@@ -223,7 +222,7 @@ export const updateNoteByPointerId = mutation({
     // Find the note by pointer_id
     const note = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", pointer_id))
       .first();
 
     if (!note) {
@@ -355,7 +354,7 @@ export const deleteNoteByPointerId = mutation({
     // or move to a separate query function if the caller needs it
     const notes = await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("tenantId"), args.user_id))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.user_id))
       .collect();
 
     return notes;

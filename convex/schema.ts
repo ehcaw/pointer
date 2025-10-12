@@ -18,6 +18,25 @@ export default defineSchema({
     tenantId: v.string(),
     updatedAt: v.string(),
     collaborative: v.boolean(),
+  })
+    .index("by_pointer_id", ["pointer_id"])
+    .index("by_tenant", ["tenantId"]),
+  notesCopy: defineTable({
+    content: v.optional(
+      v.object({
+        text: v.string(),
+        tiptap: v.optional(v.string()),
+      }),
+    ),
+    createdAt: v.string(),
+    lastAccessed: v.string(),
+    lastEdited: v.string(),
+    name: v.string(),
+    quibble_id: v.optional(v.string()),
+    pointer_id: v.string(),
+    tenantId: v.string(),
+    updatedAt: v.string(),
+    collaborative: v.boolean(),
   }).index("by_pointer_id", ["pointer_id"]),
   notesContent: defineTable({
     noteId: v.id("notes"),
