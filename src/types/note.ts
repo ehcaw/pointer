@@ -51,6 +51,11 @@ export interface FileNode extends BaseNode {
   };
 }
 
+export interface NoteContent {
+  text: string;
+  tiptap: string;
+}
+
 /**
  * Discriminated union: either a folder or a file.
  */

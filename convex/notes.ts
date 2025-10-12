@@ -1,18 +1,7 @@
-import { action, mutation, query, internalMutation } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import { NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { generateText } from "ai";
-import { createGroq } from "@ai-sdk/groq";
-
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-interface NoteContent {
-  text: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tiptap: any; // Using 'any' as requested
-}
 
 export const readNoteFromDb = query({
   args: { pointer_id: v.string() },
@@ -123,6 +112,8 @@ export const updateNoteInDb = mutation({
       .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
       .first();
 
+    const content = fields.content || { text: "", tiptap: {} };
+
     if (existingNote) {
       // Always update the updatedAt timestamp
       //
@@ -134,16 +125,15 @@ export const updateNoteInDb = mutation({
           .first();
         if (notesContentEntry) {
           await ctx.db.patch(notesContentEntry._id, {
-            content: fields.content,
+            content,
           });
         } else {
           await ctx.db.insert("notesContent", {
             noteId: existingNote._id,
-            content: fields.content,
+            content,
             tenantId: existingNote.tenantId,
           });
         }
-      }
       }
 
       fields.content = undefined; // Update in notesContent above, do not update here
@@ -185,17 +175,6 @@ export const updateNoteInDb = mutation({
   },
 });
 
-// // Add a query to find a note by pointer_id
-// export const findNoteByPointerId = query({
-//   args: { pointer_id: v.string() },
-//   handler: async (ctx, args) => {
-//     return await ctx.db
-//       .query("notes")
-//       .filter((q) => q.eq(q.field("pointer_id"), args.pointer_id))
-//       .first();
-//   },
-// });
-
 // Add a mutation to update a note by pointer_id
 export const updateNoteByPointerId = mutation({
   args: {
@@ -216,7 +195,7 @@ export const updateNoteByPointerId = mutation({
       .filter((q) => q.eq(q.field("pointer_id"), pointer_id))
       .first();
 
-    if (fields.content) {
+    if (fields.content && note) {
       const noteContentEntry = await ctx.db
         .query("notesContent")
         .withIndex("by_noteid", (q) => q.eq("noteId", note._id))
@@ -241,7 +220,6 @@ export const updateNoteByPointerId = mutation({
       }
       fields.content = undefined; // Prevent updating in notes table
     }
-    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: Record<string, any> = {};
     Object.entries(fields).forEach(([key, value]) => {
@@ -252,7 +230,7 @@ export const updateNoteByPointerId = mutation({
     update.updatedAt = String(new Date());
 
     // Update using the Convex ID
-    await ctx.db.patch(note._id, update);
+    if (note) await ctx.db.patch(note._id, update);
   },
 });
 
