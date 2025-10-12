@@ -8,13 +8,30 @@ export const migrateData = mutation({
 
     // Transform and insert into new table
     for (const item of oldData) {
-      await ctx.db.insert("notesContent", {
-        content: item.content || { text: "", tiptap: "" },
-        tenantId: item.tenantId,
-        noteId: item._id,
-      });
+      const notesContentReference = await ctx.db
+        .query("notesContent")
+        .withIndex("by_noteid", (q) => q.eq("noteId", item._id))
+        .first();
+      if (item.content) {
+        if (notesContentReference) {
+          await ctx.db.patch(notesContentReference._id, {
+            content: item.content || { text: "", tiptap: "" },
+          });
+        } else {
+          await ctx.db.insert("notesContent", {
+            content: item.content || { text: "", tiptap: "" },
+            tenantId: item.tenantId,
+            noteId: item._id,
+          });
+        }
+      } else {
+        await ctx.db.insert("notesContent", {
+          content: { text: "", tiptap: "" },
+          tenantId: item.tenantId,
+          noteId: item._id,
+        });
+      }
     }
-
     return { migrated: oldData.length };
   },
 });

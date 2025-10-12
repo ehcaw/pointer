@@ -18,20 +18,7 @@ export default defineSchema({
     tenantId: v.string(),
     updatedAt: v.string(),
     collaborative: v.boolean(),
-  }).searchIndex("notes_full_text_search_index", {
-    searchField: "content.text",
-    filterFields: ["name"],
-  }),
-  // notesMetadata: defineTable({
-  //   createdaAt: v.string(),
-  //   lastAccessed: v.string(),
-  //   lastEdited: v.string(),
-  //   name: v.string(),
-  //   pointer_id: v.string(),
-  //   tenantId: v.string(),
-  //   updatedAt: v.string(),
-  //   collaborative: v.boolean(),
-  // }),
+  }).index("by_pointer_id", ["pointer_id"]),
   notesContent: defineTable({
     noteId: v.id("notes"),
     content: v.object({
