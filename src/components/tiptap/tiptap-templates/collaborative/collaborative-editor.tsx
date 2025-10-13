@@ -160,13 +160,13 @@ export function CollaborativeEditor({
   // Hocuspocus provider - recreate when document ID changes
   const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
   const currentIdRef = useRef<string>(id);
-  
+
   // Clean up existing provider if document ID changed
   if (currentIdRef.current !== id && hocusPocusProviderRef.current) {
     hocusPocusProviderRef.current.destroy();
     hocusPocusProviderRef.current = null;
   }
-  
+
   if (!hocusPocusProviderRef.current) {
     hocusPocusProviderRef.current = createHocusPocusProvider(
       process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!,
@@ -213,6 +213,7 @@ export function CollaborativeEditor({
 
   const lastContentRef = useRef<string>("");
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncedHandlerRef = useRef<(() => void) | null>(null);
 
   const editor = useEditor({
     enableContentCheck: true,
@@ -220,13 +221,23 @@ export function CollaborativeEditor({
       disableCollaboration();
     },
     onCreate: ({ editor: currentEditor }) => {
-      // Listen for sync event
-      provider.on("synced", () => {
+      // Store the handler function for cleanup
+      syncedHandlerRef.current = () => {
         const yXmlFragment = provider.document.getXmlFragment("prosemirror");
         if (yXmlFragment.length === 0 && initialContent) {
           currentEditor.commands.setContent(initialContent);
         }
-      });
+      };
+
+      // Listen for sync event
+      provider.on("synced", syncedHandlerRef.current);
+    },
+    onDestroy: () => {
+      // Clean up the event listener
+      if (syncedHandlerRef.current) {
+        provider.off("synced", syncedHandlerRef.current);
+        syncedHandlerRef.current = null;
+      }
     },
     immediatelyRender: true,
     editorProps: {
