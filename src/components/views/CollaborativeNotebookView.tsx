@@ -10,7 +10,6 @@ import { Editor } from "@tiptap/react";
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
   const { noteContent } = useNoteContent();
-  console.log(noteContent);
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);

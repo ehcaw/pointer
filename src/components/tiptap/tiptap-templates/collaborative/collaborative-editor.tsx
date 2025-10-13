@@ -21,7 +21,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import * as Y from "yjs";
-import useYProvider from "y-partykit/react";
+import { HocuspocusProvider } from "@hocuspocus/provider";
 
 // --- Custom Extensions ---
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -62,6 +62,14 @@ interface CollaborativeEditorProps {
   } | null>;
   onEditorReady?: (editor: Editor) => void;
 }
+
+const createHocusPocusProvider = (url: string, docName: string, doc: Y.Doc) => {
+  return new HocuspocusProvider({
+    url,
+    name: docName,
+    document: doc,
+  });
+};
 
 export function CollaborativeEditor({
   id,
@@ -107,7 +115,7 @@ export function CollaborativeEditor({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Create user info object for PartyKit
+  // Create user info object for Hocuspocus
   const userInfo = useMemo(() => {
     if (!user) {
       // Fallback for unauthenticated users
@@ -143,18 +151,22 @@ export function CollaborativeEditor({
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
 
-  // Collaboration - use useRef to prevent recreation on every render
   const yDocRef = useRef<Y.Doc | null>(null);
   if (!yDocRef.current) {
     yDocRef.current = new Y.Doc();
   }
   const yDoc = yDocRef.current;
 
-  const provider = useYProvider({
-    host: process.env.NEXT_PUBLIC_PARTYKIT_URL,
-    room: `document-${id}`,
-    doc: yDoc,
-  });
+  // Hocuspocus provider - use useRef to prevent recreation on every render
+  const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
+  if (!hocusPocusProviderRef.current) {
+    hocusPocusProviderRef.current = createHocusPocusProvider(
+      process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!,
+      id,
+      yDoc,
+    );
+  }
+  const provider = hocusPocusProviderRef.current;
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -199,19 +211,20 @@ export function CollaborativeEditor({
       disableCollaboration();
     },
     onCreate: ({ editor: currentEditor }) => {
-      provider.on("synced", () => {
-        // Set content if editor is empty OR if we have different initial content
-        const currentContent = currentEditor.getJSON();
-        const currentHash = JSON.stringify(currentContent);
-        const initialHash = JSON.stringify(initialContent);
+      console.log("Editor created");
 
-        if (currentEditor.isEmpty || currentHash !== initialHash) {
-          currentEditor.commands.setContent(initialContent || "");
-          lastContentRef.current = initialHash;
+      // Listen for sync event
+      provider.on("synced", () => {
+        console.log("Hocuspocus synced event fired");
+        const yXmlFragment = provider.document.getXmlFragment("prosemirror");
+        console.log("Y.js fragment length:", yXmlFragment.length);
+        if (yXmlFragment.length === 0 && initialContent) {
+          console.log("Setting initial content (on sync):", initialContent);
+          currentEditor.commands.setContent(initialContent);
         }
       });
     },
-    immediatelyRender: false,
+    immediatelyRender: true,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -262,14 +275,17 @@ export function CollaborativeEditor({
       TableHeader,
       TableCell,
       Collaboration.configure({
-        document: yDoc,
+        document: provider.document,
       }),
-      CollaborationCaret.extend().configure({
-        provider,
-        user: userInfo,
+      CollaborationCaret.configure({
+        provider: provider,
+        user: {
+          name: userInfo.name,
+          color: userInfo.color,
+        },
       }),
     ],
-    content: initialContent,
+
     // Lightweight onUpdate - only handles UI updates
     onUpdate: async ({ editor, transaction }) => {
       isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
@@ -513,26 +529,14 @@ export function CollaborativeEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
-  // Update editor content when content prop changes
-  useEffect(() => {
-    if (editor && initialContent !== undefined) {
-      const currentEditorContent = editor.getJSON();
-      const currentContentHash = JSON.stringify(currentEditorContent);
-      const newContentHash = JSON.stringify(initialContent);
-
-      // Only update content if it's actually different and editor is empty or synced
-      if (currentContentHash !== newContentHash && editor.isEmpty) {
-        editor.commands.setContent(initialContent, false); // false = don't trigger update events
-        lastContentRef.current = newContentHash;
-      }
-    }
-  }, [initialContent, editor]);
-
-  useEffect(() => {
-    if (currentNote && editor) {
-      lastContentRef.current = JSON.stringify(editor.getJSON());
-    }
-  }, [currentNote, editor]);
+  // Handle provider cleanup
+  // useEffect(() => {
+  //   return () => {
+  //     if (hocusPocusProviderRef.current) {
+  //       hocusPocusProviderRef.current.destroy();
+  //     }
+  //   };
+  // }, []);
 
   useEffect(() => {
     return () => {
