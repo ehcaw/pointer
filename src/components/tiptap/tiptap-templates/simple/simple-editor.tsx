@@ -54,6 +54,9 @@ interface SimpleEditorProps {
     getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
+    cleanupProvider?: () => void;
+    disconnectProvider?: () => void;
+    reconnectProvider?: () => void;
   } | null>;
   onEditorReady?: (editor: Editor) => void;
 }

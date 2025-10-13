@@ -59,6 +59,9 @@ interface CollaborativeEditorProps {
     getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
+    cleanupProvider?: () => void;
+    disconnectProvider?: () => void;
+    reconnectProvider?: () => void;
   } | null>;
   onEditorReady?: (editor: Editor) => void;
 }
@@ -157,15 +160,9 @@ export function CollaborativeEditor({
   }
   const yDoc = yDocRef.current;
 
-  // Hocuspocus provider - recreate when document ID changes
+  // Hocuspocus provider - use useRef to prevent recreation on every render
   const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
-  const currentIdRef = useRef<string>(id);
-
-  // Clean up existing provider if document ID changed
-  if (currentIdRef.current !== id && hocusPocusProviderRef.current) {
-    hocusPocusProviderRef.current.destroy();
-    hocusPocusProviderRef.current = null;
-  }
+  const [isProviderActive, setIsProviderActive] = useState(true);
 
   if (!hocusPocusProviderRef.current) {
     hocusPocusProviderRef.current = createHocusPocusProvider(
@@ -173,9 +170,82 @@ export function CollaborativeEditor({
       id,
       yDoc,
     );
-    currentIdRef.current = id;
+
+    // Add debugging events
+    hocusPocusProviderRef.current.on("connect", () => {
+      console.log("Hocuspocus connected");
+      setIsProviderActive(true);
+    });
+
+    hocusPocusProviderRef.current.on("disconnect", () => {
+      console.log("Hocuspocus disconnected");
+      setIsProviderActive(false);
+    });
+
+    hocusPocusProviderRef.current.on(
+      "status",
+      (event: { status: "connecting" | "connected" | "disconnected" }) => {
+        // Auto-reconnect on connection failures
+        if (event.status === "disconnected") {
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            if (hocusPocusProviderRef.current) {
+              try {
+                hocusPocusProviderRef.current.connect();
+                console.log("Attempting to reconnect...");
+              } catch (error) {
+                console.error("Reconnection failed:", error);
+              }
+            }
+          }, 3000); // 3 second delay
+        }
+      },
+    );
+
+    hocusPocusProviderRef.current.on("synced", () => {
+      console.log("Hocuspocus synced");
+    });
   }
   const provider = hocusPocusProviderRef.current;
+
+  // Graceful disconnect function
+  const disconnectProvider = useCallback(() => {
+    if (provider && isProviderActive) {
+      try {
+        provider.disconnect();
+        console.log("Provider disconnected gracefully");
+        setIsProviderActive(false);
+      } catch (error) {
+        console.error("Error disconnecting provider:", error);
+      }
+    }
+  }, [provider, isProviderActive]);
+
+  // Graceful reconnect function
+  const reconnectProvider = useCallback(() => {
+    if (provider && !isProviderActive) {
+      try {
+        provider.connect();
+        console.log("Provider reconnected gracefully");
+        // Note: The actual state change will happen in the 'connect' event handler
+      } catch (error) {
+        console.error("Error reconnecting provider:", error);
+      }
+    }
+  }, [provider, isProviderActive]);
+
+  // Force cleanup function for permanent component removal
+  const forceCleanupProvider = useCallback(() => {
+    if (hocusPocusProviderRef.current) {
+      try {
+        hocusPocusProviderRef.current.destroy();
+        hocusPocusProviderRef.current = null;
+        console.log("Provider permanently cleaned up");
+      } catch (error) {
+        console.error("Error cleaning up provider:", error);
+      }
+    }
+  }, []);
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -213,7 +283,6 @@ export function CollaborativeEditor({
 
   const lastContentRef = useRef<string>("");
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const syncedHandlerRef = useRef<(() => void) | null>(null);
 
   const editor = useEditor({
     enableContentCheck: true,
@@ -221,23 +290,27 @@ export function CollaborativeEditor({
       disableCollaboration();
     },
     onCreate: ({ editor: currentEditor }) => {
-      // Store the handler function for cleanup
-      syncedHandlerRef.current = () => {
-        const yXmlFragment = provider.document.getXmlFragment("prosemirror");
-        if (yXmlFragment.length === 0 && initialContent) {
-          currentEditor.commands.setContent(initialContent);
-        }
-      };
+      console.log("Editor created");
 
       // Listen for sync event
-      provider.on("synced", syncedHandlerRef.current);
-    },
-    onDestroy: () => {
-      // Clean up the event listener
-      if (syncedHandlerRef.current) {
-        provider.off("synced", syncedHandlerRef.current);
-        syncedHandlerRef.current = null;
-      }
+      provider.on("synced", () => {
+        console.log("Hocuspocus synced event fired");
+        const yXmlFragment = provider.document.getXmlFragment("prosemirror");
+        console.log("Y.js fragment length:", yXmlFragment.length);
+        if (yXmlFragment.length === 0 && initialContent) {
+          console.log("Setting initial content (on sync):", initialContent);
+          currentEditor.commands.setContent(initialContent);
+        }
+      });
+
+      // Also try to set content after a short delay in case sync already happened
+      setTimeout(() => {
+        const yXmlFragment = provider.document.getXmlFragment("prosemirror");
+        if (yXmlFragment.length === 0 && initialContent) {
+          console.log("Setting initial content (timeout):", initialContent);
+          currentEditor.commands.setContent(initialContent);
+        }
+      }, 1000);
     },
     immediatelyRender: true,
     editorProps: {
@@ -292,7 +365,7 @@ export function CollaborativeEditor({
       Collaboration.configure({
         document: provider.document,
       }),
-      CollaborationCaret.extend().configure({
+      CollaborationCaret.configure({
         provider: provider,
         user: {
           name: userInfo.name,
@@ -527,12 +600,22 @@ export function CollaborativeEditor({
         setJSON: (content: Record<string, unknown>) => {
           editor.commands.setContent(content);
         },
+        cleanupProvider: forceCleanupProvider,
+        disconnectProvider: disconnectProvider,
+        reconnectProvider: reconnectProvider,
       };
     }
     if (editor && onEditorReady) {
       onEditorReady(editor);
     }
-  }, [editor, editorRef, onEditorReady]);
+  }, [
+    editor,
+    editorRef,
+    onEditorReady,
+    forceCleanupProvider,
+    disconnectProvider,
+    reconnectProvider,
+  ]);
 
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   useEffect(() => {
@@ -544,20 +627,41 @@ export function CollaborativeEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
-  // Handle provider cleanup
+  // Handle provider lifecycle and cleanup
   useEffect(() => {
+    // Cleanup function for component unmount
     return () => {
-      if (hocusPocusProviderRef.current) {
-        // Small delay to ensure connection is established before cleanup
-        setTimeout(() => {
-          if (hocusPocusProviderRef.current) {
-            hocusPocusProviderRef.current.destroy();
-            hocusPocusProviderRef.current = null;
-          }
-        }, 100);
+      // Only disconnect gracefully, don't destroy the provider
+      // This preserves the provider state for potential remount
+      disconnectProvider();
+    };
+  }, [disconnectProvider]);
+
+  // Handle page visibility changes to manage connection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden, consider disconnecting to save resources
+        disconnectProvider();
+      } else {
+        // Page is visible again, reconnect if needed
+        reconnectProvider();
       }
     };
-  }, []);
+
+    // Handle beforeunload to ensure clean disconnect
+    const handleBeforeUnload = () => {
+      disconnectProvider();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [disconnectProvider, reconnectProvider]);
 
   useEffect(() => {
     return () => {

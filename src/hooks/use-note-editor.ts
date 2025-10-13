@@ -41,6 +41,9 @@ export function useNoteEditor() {
     getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
+    cleanupProvider?: () => void;
+    disconnectProvider?: () => void;
+    reconnectProvider?: () => void;
   }>(null);
 
   // Keep track of last known content to avoid unnecessary updates
