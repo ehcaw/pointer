@@ -34,7 +34,6 @@ export const CollaborativeNotebookView = ({}) => {
               {noteContent.length !== 0 && (
                 <CollaborativeEditor
                   id={currentNote?.pointer_id || "default-doc"}
-                  key={currentNote?.pointer_id || "default-doc"}
                   content={noteContent}
                   editorRef={editorRef}
                   onEditorReady={setEditor}

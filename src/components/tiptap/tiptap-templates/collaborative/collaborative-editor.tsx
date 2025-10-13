@@ -157,14 +157,23 @@ export function CollaborativeEditor({
   }
   const yDoc = yDocRef.current;
 
-  // Hocuspocus provider - use useRef to prevent recreation on every render
+  // Hocuspocus provider - recreate when document ID changes
   const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
+  const currentIdRef = useRef<string>(id);
+  
+  // Clean up existing provider if document ID changed
+  if (currentIdRef.current !== id && hocusPocusProviderRef.current) {
+    hocusPocusProviderRef.current.destroy();
+    hocusPocusProviderRef.current = null;
+  }
+  
   if (!hocusPocusProviderRef.current) {
     hocusPocusProviderRef.current = createHocusPocusProvider(
       process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!,
       id,
       yDoc,
     );
+    currentIdRef.current = id;
   }
   const provider = hocusPocusProviderRef.current;
 
@@ -211,15 +220,10 @@ export function CollaborativeEditor({
       disableCollaboration();
     },
     onCreate: ({ editor: currentEditor }) => {
-      console.log("Editor created");
-
       // Listen for sync event
       provider.on("synced", () => {
-        console.log("Hocuspocus synced event fired");
         const yXmlFragment = provider.document.getXmlFragment("prosemirror");
-        console.log("Y.js fragment length:", yXmlFragment.length);
         if (yXmlFragment.length === 0 && initialContent) {
-          console.log("Setting initial content (on sync):", initialContent);
           currentEditor.commands.setContent(initialContent);
         }
       });
@@ -277,7 +281,7 @@ export function CollaborativeEditor({
       Collaboration.configure({
         document: provider.document,
       }),
-      CollaborationCaret.configure({
+      CollaborationCaret.extend().configure({
         provider: provider,
         user: {
           name: userInfo.name,
@@ -530,13 +534,19 @@ export function CollaborativeEditor({
   }, [currentNote, dbSavedNotes]);
 
   // Handle provider cleanup
-  // useEffect(() => {
-  //   return () => {
-  //     if (hocusPocusProviderRef.current) {
-  //       hocusPocusProviderRef.current.destroy();
-  //     }
-  //   };
-  // }, []);
+  useEffect(() => {
+    return () => {
+      if (hocusPocusProviderRef.current) {
+        // Small delay to ensure connection is established before cleanup
+        setTimeout(() => {
+          if (hocusPocusProviderRef.current) {
+            hocusPocusProviderRef.current.destroy();
+            hocusPocusProviderRef.current = null;
+          }
+        }, 100);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
