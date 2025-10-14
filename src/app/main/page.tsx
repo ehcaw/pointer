@@ -18,7 +18,7 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { NotebookView } from "@/components/views/NotebookView";
-import { CollaborativeNotebookView } from "@/components/views/CollaborativeNotebookView";
+import CollaborativeNotebookView from "@/components/views/CollaborativeNotebookView";
 import { UserSettingsView } from "@/components/views/UserSettingsView";
 import AppSidebar from "@/components/navigation/sidebar";
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { Editor, EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -49,7 +50,14 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { useUser } from "@clerk/nextjs";
+import StatusBadge from "../toolbar/WebsocketStatusBadge";
+import { generateUserColor } from "@/lib/utils/tiptapUtils";
 
+import {
+  getSlashCommandPosition,
+  createHocusPocusProvider,
+  isEmptyContent,
+} from "@/lib/utils/tiptapUtils";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 interface CollaborativeEditorProps {
@@ -66,31 +74,6 @@ interface CollaborativeEditorProps {
   onEditorReady?: (editor: Editor) => void;
 }
 
-const createHocusPocusProvider = (url: string, docName: string, doc: Y.Doc) => {
-  return new HocuspocusProvider({
-    url,
-    name: docName,
-    document: doc,
-  });
-};
-
-// Helper function to check if content is empty (works with strings and objects)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isEmptyContent = (content: any): boolean => {
-  if (!content) return true;
-
-  if (typeof content === "string") {
-    return content.trim() === "";
-  }
-
-  if (typeof content === "object" && content.type) {
-    // Check if it's a TipTap document with no content
-    return !content.content || content.content.length === 0;
-  }
-
-  return false;
-};
-
 export function CollaborativeEditor({
   id,
   content,
@@ -102,6 +85,8 @@ export function CollaborativeEditor({
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
 
+  const userColorCache = new Map<string, string>();
+
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
     useNotesStore();
@@ -109,31 +94,6 @@ export function CollaborativeEditor({
 
   // Get authenticated user information for collaboration
   const { user } = useUser();
-
-  // Generate consistent user color based on user ID
-  const generateUserColor = (userId: string): string => {
-    const colors = [
-      "#ff6b6b",
-      "#4ecdc4",
-      "#45b7d1",
-      "#96ceb4",
-      "#ffeaa7",
-      "#dda0dd",
-      "#98d8c8",
-      "#ff7f50",
-      "#74b9ff",
-      "#a29bfe",
-      "#fd79a8",
-      "#fdcb6e",
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    return colors[Math.abs(hash) % colors.length];
-  };
 
   // Create user info object for Hocuspocus
   const userInfo = useMemo(() => {
@@ -160,7 +120,7 @@ export function CollaborativeEditor({
     return {
       id: user.id,
       name: displayName,
-      color: generateUserColor(user.id),
+      color: generateUserColor(user.id, userColorCache),
       avatar: user.imageUrl,
     };
   }, [user]);
@@ -169,7 +129,7 @@ export function CollaborativeEditor({
 
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 1.5 seconds for better responsiveness
+  const AUTO_SAVE_INTERVAL = 2500;
 
   // Y.js document and provider recreation when id changes
   const yDocRef = useRef<Y.Doc | null>(null);
@@ -177,6 +137,8 @@ export function CollaborativeEditor({
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "disconnected"
   >("connecting");
+  const reconnectionAttemptRef = useRef(0);
+  const MAX_RECONNECTION_ATTEMPTS = 5;
 
   // Recreate Y.js document and provider when id changes
   useEffect(() => {
@@ -186,8 +148,8 @@ export function CollaborativeEditor({
         hocusPocusProviderRef.current.destroy();
       } catch (error) {
         console.error("Error destroying previous provider:", error);
+        hocusPocusProviderRef.current = null;
       }
-      hocusPocusProviderRef.current = null;
     }
 
     if (yDocRef.current) {
@@ -221,15 +183,22 @@ export function CollaborativeEditor({
         // Auto-reconnect on connection failures
         if (event.status === "disconnected") {
           // Attempt to reconnect after a delay
-          setTimeout(() => {
-            if (hocusPocusProviderRef.current) {
-              try {
-                hocusPocusProviderRef.current.connect();
-              } catch (error) {
-                console.error("Reconnection failed:", error);
+          if (reconnectionAttemptRef.current < MAX_RECONNECTION_ATTEMPTS) {
+            reconnectionAttemptRef.current += 1;
+            setTimeout(() => {
+              if (hocusPocusProviderRef.current) {
+                try {
+                  hocusPocusProviderRef.current.connect();
+                } catch (error) {
+                  console.error("Reconnection failed:", error);
+                }
               }
-            }
-          }, 3000); // 3 second delay
+            }, 3000); // 3 second delay
+          }
+        }
+
+        if (event.status == "connected") {
+          reconnectionAttemptRef.current = 0;
         }
       },
     );
@@ -635,60 +604,8 @@ export function CollaborativeEditor({
     saveCurrentNote,
     removeUnsavedNote,
     isInitialContentLoaded,
-    content, // Reset when content prop changes
     id, // Reset when note ID changes
   ]);
-
-  // Calculate position for slash command popup - position relative to viewport
-  const getSlashCommandPosition = () => {
-    if (!editor) return { top: 0, left: 0, position: "fixed" as const };
-
-    const { selection } = editor.state;
-    const { $from } = selection;
-    const coords = editor.view.coordsAtPos($from.pos);
-
-    // Estimate popup height (rough estimate based on typical content)
-    const estimatedPopupHeight = 300;
-    const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - coords.bottom;
-    const spaceAbove = coords.top;
-
-    let topPosition;
-    let shouldFlip = false;
-
-    // Decide whether to show above or below
-    if (
-      spaceBelow < estimatedPopupHeight &&
-      spaceAbove > estimatedPopupHeight
-    ) {
-      // Not enough space below, but enough space above - show above
-      topPosition = coords.top - estimatedPopupHeight - 4;
-      shouldFlip = true;
-    } else if (
-      spaceBelow < estimatedPopupHeight &&
-      spaceAbove <= estimatedPopupHeight
-    ) {
-      // Not enough space in either direction - show in the larger space
-      if (spaceBelow > spaceAbove) {
-        // More space below, show below even if it might be cut off
-        topPosition = coords.bottom + 4;
-      } else {
-        // More space above, show above even if it might be cut off
-        topPosition = Math.max(4, coords.top - estimatedPopupHeight - 4);
-        shouldFlip = true;
-      }
-    } else {
-      // Enough space below, show below (default behavior)
-      topPosition = coords.bottom + 4;
-    }
-
-    return {
-      top: topPosition,
-      left: coords.left,
-      position: "fixed" as const,
-      shouldFlip,
-    };
-  };
 
   // Handle escape key to close slash command
   useEffect(() => {
@@ -702,6 +619,10 @@ export function CollaborativeEditor({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [showSlashCommand]);
+
+  const slashCommandPosition = useMemo(() => {
+    return getSlashCommandPosition(editor);
+  }, [editor, showSlashCommand]);
 
   // Handle enter key when slash command is open
   useEffect(() => {
@@ -828,138 +749,18 @@ export function CollaborativeEditor({
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
+      disconnectProvider();
     };
-  }, []);
-
-  // Enhanced status badge component with better loading states
-  const StatusBadge = () => {
-    const getStatusConfig = () => {
-      switch (connectionStatus) {
-        case "connected":
-          return {
-            color: "#10b981", // green-500
-            bgColor: "#10b98120",
-            text: "Connected",
-            subtitle: isInitialContentLoaded ? "Synced" : "Loading...",
-            isClickable: false,
-            showPulse: false,
-          };
-        case "connecting":
-          return {
-            color: "#f59e0b", // amber-500
-            bgColor: "#f59e0b20",
-            text: "Connecting",
-            subtitle: "Establishing connection...",
-            isClickable: false,
-            showPulse: true,
-          };
-        case "disconnected":
-          return {
-            color: "#ef4444", // red-500
-            bgColor: "#ef444420",
-            text: "Disconnected",
-            subtitle: "Connection lost",
-            isClickable: true,
-            showPulse: false,
-          };
-      }
-    };
-
-    const config = getStatusConfig();
-
-    const handleBadgeClick = () => {
-      if (config.isClickable) {
-        reconnectProvider();
-      }
-    };
-
-    return (
-      <div
-        style={{
-          position: "absolute",
-          top: "12px",
-          right: "12px",
-          zIndex: 1000,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: "4px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 10px",
-            backgroundColor: config.bgColor,
-            border: `1px solid ${config.color}30`,
-            borderRadius: "6px",
-            fontSize: "12px",
-            fontWeight: "500",
-            color: config.color,
-            fontFamily: "system-ui, -apple-system, sans-serif",
-            backdropFilter: "blur(8px)",
-            cursor: config.isClickable ? "pointer" : "default",
-            transition: "all 0.2s ease",
-            ...(config.isClickable && {
-              ":hover": {
-                backgroundColor: config.bgColor.replace("20", "30"),
-                transform: "translateY(-1px)",
-              },
-            }),
-          }}
-          onClick={handleBadgeClick}
-          title={config.isClickable ? "Click to reconnect" : config.subtitle}
-        >
-          <div
-            style={{
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              backgroundColor: config.color,
-              boxShadow: config.showPulse
-                ? `0 0 0 2px ${config.color}40`
-                : "none",
-              animation: config.showPulse
-                ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
-                : "none",
-            }}
-          />
-          <span>{config.text}</span>
-          {config.isClickable && (
-            <span
-              style={{
-                fontSize: "10px",
-                opacity: 0.7,
-                marginLeft: "2px",
-              }}
-            >
-              ↻
-            </span>
-          )}
-        </div>
-        {config.subtitle && (
-          <div
-            style={{
-              fontSize: "10px",
-              color: config.color,
-              opacity: 0.7,
-              fontFamily: "system-ui, -apple-system, sans-serif",
-              marginRight: "16px",
-            }}
-          >
-            {config.subtitle}
-          </div>
-        )}
-      </div>
-    );
-  };
+  }, [disconnectProvider]);
 
   return (
     <EditorContext.Provider value={{ editor }}>
       <div style={{ position: "relative", height: "100%" }}>
-        <StatusBadge />
+        <StatusBadge
+          connectionStatus={connectionStatus}
+          isInitialContentLoaded={isInitialContentLoaded}
+          onReconnect={reconnectProvider}
+        />
         <div className="content-wrapper">
           <EditorContent
             editor={editor}
@@ -973,13 +774,12 @@ export function CollaborativeEditor({
           {showSlashCommand &&
             editor &&
             (() => {
-              const position = getSlashCommandPosition();
               return (
                 <div
                   style={{
                     position: "fixed",
-                    top: position.top,
-                    left: position.left,
+                    top: slashCommandPosition.top,
+                    left: slashCommandPosition.left,
                     zIndex: 1000, // High z-index to ensure it's above everything
                   }}
                 >
@@ -987,7 +787,7 @@ export function CollaborativeEditor({
                     editor={editor}
                     onClose={() => setShowSlashCommand(false)}
                     query={slashCommandQuery}
-                    shouldFlip={position.shouldFlip}
+                    shouldFlip={slashCommandPosition.shouldFlip}
                   />
                 </div>
               );
