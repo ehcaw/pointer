@@ -167,7 +167,7 @@ export function useImageUploadButton(
                 },
               ])
               .run();
-            console.log(error);
+            console.error(error);
           }
         }
 

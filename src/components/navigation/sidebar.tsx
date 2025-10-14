@@ -5,7 +5,6 @@ import {
   Plus,
   Home,
   FileText,
-  Clock,
   GitGraph,
   Trash,
   LineSquiggle,
@@ -37,13 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import {
-  useNotesStore,
-  useRecentNotes,
-  useUnsavedNotesArray,
-  useUnsavedNotesCount,
-} from "@/lib/stores/notes-store";
+import { useNotesStore, useRecentNotes } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -144,8 +137,6 @@ export default function AppSidebar() {
 
   // Use optimized selectors
   const recentNotes = useRecentNotes();
-  const unsavedNotesArray = useUnsavedNotesArray();
-  const unsavedNotesCount = useUnsavedNotesCount();
 
   const {
     userNotes,
@@ -449,7 +440,7 @@ export default function AppSidebar() {
         </SidebarGroup>
 
         {/* Unsaved Changes */}
-        {unsavedNotesCount > 0 && (
+        {/*{unsavedNotesCount > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-accent-foreground dark:text-accent-foreground font-medium flex items-center gap-2">
               <Clock className="h-3 w-3" />
@@ -480,7 +471,7 @@ export default function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
+        )}*/}
 
         {/* Recent Notes */}
         <SidebarGroup>

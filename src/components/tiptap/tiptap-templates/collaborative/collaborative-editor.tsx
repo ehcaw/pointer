@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { Editor, EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -21,7 +22,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import * as Y from "yjs";
-import useYProvider from "y-partykit/react";
+import { HocuspocusProvider } from "@hocuspocus/provider";
 
 // --- Custom Extensions ---
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -49,7 +50,14 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { useUser } from "@clerk/nextjs";
+import StatusBadge from "../toolbar/WebsocketStatusBadge";
+import { generateUserColor } from "@/lib/utils/tiptapUtils";
 
+import {
+  getSlashCommandPosition,
+  createHocusPocusProvider,
+  isEmptyContent,
+} from "@/lib/utils/tiptapUtils";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 interface CollaborativeEditorProps {
@@ -59,6 +67,9 @@ interface CollaborativeEditorProps {
     getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
+    cleanupProvider?: () => void;
+    disconnectProvider?: () => void;
+    reconnectProvider?: () => void;
   } | null>;
   onEditorReady?: (editor: Editor) => void;
 }
@@ -74,6 +85,8 @@ export function CollaborativeEditor({
   const isRemoteChange = useRef(false);
   const ignoreFirstUpdate = useRef(true);
 
+  const userColorCache = new Map<string, string>();
+
   // Get currentNote and state setters from the notes store
   const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
     useNotesStore();
@@ -82,32 +95,7 @@ export function CollaborativeEditor({
   // Get authenticated user information for collaboration
   const { user } = useUser();
 
-  // Generate consistent user color based on user ID
-  const generateUserColor = (userId: string): string => {
-    const colors = [
-      "#ff6b6b",
-      "#4ecdc4",
-      "#45b7d1",
-      "#96ceb4",
-      "#ffeaa7",
-      "#dda0dd",
-      "#98d8c8",
-      "#ff7f50",
-      "#74b9ff",
-      "#a29bfe",
-      "#fd79a8",
-      "#fdcb6e",
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    return colors[Math.abs(hash) % colors.length];
-  };
-
-  // Create user info object for PartyKit
+  // Create user info object for Hocuspocus
   const userInfo = useMemo(() => {
     if (!user) {
       // Fallback for unauthenticated users
@@ -132,7 +120,7 @@ export function CollaborativeEditor({
     return {
       id: user.id,
       name: displayName,
-      color: generateUserColor(user.id),
+      color: generateUserColor(user.id, userColorCache),
       avatar: user.imageUrl,
     };
   }, [user]);
@@ -141,22 +129,143 @@ export function CollaborativeEditor({
 
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+  const AUTO_SAVE_INTERVAL = 2500;
 
-  // Collaboration - use useRef to prevent recreation on every render
+  // Y.js document and provider recreation when id changes
   const yDocRef = useRef<Y.Doc | null>(null);
-  if (!yDocRef.current) {
+  const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
+  const reconnectionAttemptRef = useRef(0);
+  const MAX_RECONNECTION_ATTEMPTS = 5;
+
+  // Recreate Y.js document and provider when id changes
+  useEffect(() => {
+    // Cleanup previous provider and document
+    if (hocusPocusProviderRef.current) {
+      try {
+        hocusPocusProviderRef.current.destroy();
+      } catch (error) {
+        console.error("Error destroying previous provider:", error);
+        hocusPocusProviderRef.current = null;
+      }
+    }
+
+    if (yDocRef.current) {
+      yDocRef.current.destroy();
+      yDocRef.current = null;
+    }
+
+    // Create new document and provider for the new id
     yDocRef.current = new Y.Doc();
-  }
-  const yDoc = yDocRef.current;
 
-  const provider = useYProvider({
-    host: process.env.NEXT_PUBLIC_PARTYKIT_URL,
-    room: `document-${id}`,
-    doc: yDoc,
-  });
+    hocusPocusProviderRef.current = createHocusPocusProvider(
+      process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!,
+      id,
+      yDocRef.current,
+    );
 
-  // Parse content appropriately based on input type
+    // Add debugging events
+    hocusPocusProviderRef.current.on("connect", () => {
+      setConnectionStatus("connected");
+    });
+
+    hocusPocusProviderRef.current.on("disconnect", () => {
+      setConnectionStatus("disconnected");
+    });
+
+    hocusPocusProviderRef.current.on(
+      "status",
+      (event: { status: "connecting" | "connected" | "disconnected" }) => {
+        setConnectionStatus(event.status);
+
+        // Auto-reconnect on connection failures
+        if (event.status === "disconnected") {
+          // Attempt to reconnect after a delay
+          if (reconnectionAttemptRef.current < MAX_RECONNECTION_ATTEMPTS) {
+            reconnectionAttemptRef.current += 1;
+            setTimeout(() => {
+              if (hocusPocusProviderRef.current) {
+                try {
+                  hocusPocusProviderRef.current.connect();
+                } catch (error) {
+                  console.error("Reconnection failed:", error);
+                }
+              }
+            }, 3000); // 3 second delay
+          }
+        }
+
+        if (event.status == "connected") {
+          reconnectionAttemptRef.current = 0;
+        }
+      },
+    );
+
+    // CRITICAL: Reset all state when switching documents to prevent data mixing
+    setIsInitialContentLoaded(false);
+    ignoreFirstUpdate.current = true;
+    lastContentRef.current = "";
+
+    return () => {
+      // Cleanup on unmount or id change
+      if (hocusPocusProviderRef.current) {
+        try {
+          hocusPocusProviderRef.current.destroy();
+        } catch (error) {
+          console.error("Error cleaning up provider:", error);
+        }
+        hocusPocusProviderRef.current = null;
+      }
+      if (yDocRef.current) {
+        yDocRef.current.destroy();
+        yDocRef.current = null;
+      }
+    };
+  }, [id]); // Recreate when id changes
+
+  const provider = hocusPocusProviderRef.current;
+
+  // Graceful disconnect function
+  const disconnectProvider = useCallback(() => {
+    if (provider) {
+      try {
+        provider.disconnect();
+        setConnectionStatus("disconnected");
+      } catch (error) {
+        console.error("Error disconnecting provider:", error);
+      }
+    }
+  }, [provider]);
+
+  // Graceful reconnect function
+  const reconnectProvider = useCallback(() => {
+    if (provider) {
+      try {
+        setConnectionStatus("connecting");
+        provider.connect();
+        // Note: The actual state change to 'connected' will happen in the 'connect' event handler
+      } catch (error) {
+        console.error("Error reconnecting provider:", error);
+        setConnectionStatus("disconnected");
+      }
+    }
+  }, [provider]);
+
+  // Force cleanup function for permanent component removal
+  const forceCleanupProvider = useCallback(() => {
+    if (hocusPocusProviderRef.current) {
+      try {
+        hocusPocusProviderRef.current.destroy();
+        hocusPocusProviderRef.current = null;
+      } catch (error) {
+        console.error("Error cleaning up provider:", error);
+      }
+    }
+  }, []);
+
+  // Parse content appropriately based on input type with validation
   const initialContent = useMemo(() => {
     if (content === null || content === undefined) {
       return "";
@@ -173,6 +282,13 @@ export function CollaborativeEditor({
         const parsed = JSON.parse(content);
         // Verify it looks like TipTap JSON (has type and content properties)
         if (parsed && typeof parsed === "object" && parsed.type) {
+          // Validate the content structure - TipTap documents SHOULD have content as an array
+          if (!Array.isArray(parsed.content)) {
+            console.warn(
+              "Invalid TipTap structure: content should be an array",
+            );
+            return "";
+          }
           return parsed;
         }
       } catch (e) {
@@ -181,8 +297,15 @@ export function CollaborativeEditor({
       return content;
     }
 
-    // If content is already an object, use it directly
+    // If content is already an object, validate it
     if (typeof content === "object") {
+      // Ensure content is a valid TipTap document object
+      if (!content.type || Array.isArray(content)) {
+        console.warn(
+          "Invalid content structure: must have 'type' property and not be an array",
+        );
+        return "";
+      }
       return content;
     }
 
@@ -192,171 +315,231 @@ export function CollaborativeEditor({
 
   const lastContentRef = useRef<string>("");
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isInitialContentLoaded, setIsInitialContentLoaded] = useState(false);
 
-  const editor = useEditor({
-    enableContentCheck: true,
-    onContentError: ({ disableCollaboration }) => {
-      disableCollaboration();
-    },
-    onCreate: ({ editor: currentEditor }) => {
-      provider.on("synced", () => {
-        // Set content if editor is empty OR if we have different initial content
-        const currentContent = currentEditor.getJSON();
-        const currentHash = JSON.stringify(currentContent);
-        const initialHash = JSON.stringify(initialContent);
-
-        if (currentEditor.isEmpty || currentHash !== initialHash) {
-          currentEditor.commands.setContent(initialContent || "");
-          lastContentRef.current = initialHash;
-        }
-      });
-    },
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        autocomplete: "off",
-        autocorrect: "on",
-        autocapitalize: "off",
-        "aria-label": "Main content area, start typing to enter text.",
+  const editor = useEditor(
+    {
+      enableContentCheck: true,
+      onContentError: ({ disableCollaboration }) => {
+        disableCollaboration();
       },
-    },
-    extensions: [
-      StarterKit.configure({
-        // Disable history for collaborative editing - Y.js handles this
-        history: false,
-      }),
-      Placeholder.configure({
-        placeholder: "Start writing something...",
-      }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Underline,
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Highlight.configure({ multicolor: true }),
-      Image,
-      Typography,
-      Superscript,
-      Subscript,
-      Selection,
-      TrailingNode,
-      Link.configure({ openOnClick: false }),
-      SlashCommand.configure({
-        suggestion: {
-          char: "/",
-          startOfLine: false,
-        },
-      }),
-      Emoji.configure({
-        emojis: emojis,
-        enableEmoticons: true,
-      }),
-      TableKit.configure({
-        table: {
-          resizable: true,
-          HTMLAttributes: {
-            class: "tiptap-table",
-          },
-        },
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      Collaboration.configure({
-        document: yDoc,
-      }),
-      CollaborationCaret.extend().configure({
-        provider,
-        user: userInfo,
-      }),
-    ],
-    content: initialContent,
-    // Lightweight onUpdate - only handles UI updates
-    onUpdate: async ({ editor, transaction }) => {
-      isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
-      // Handle slash command (lightweight)
-      const { selection } = editor.state;
-      const { $from } = selection;
-      const textBefore = $from.nodeBefore?.textContent || "";
+      onCreate: ({ editor: currentEditor }) => {
+        // CRITICAL: Clear any existing content first to prevent data mixing
+        currentEditor.commands.setContent("");
 
-      const slashIndex = textBefore.lastIndexOf("/");
-      if (slashIndex !== -1) {
-        const textAfterSlash = textBefore.slice(slashIndex + 1);
-        if (
-          textAfterSlash.length === 0 ||
-          (!textAfterSlash.includes(" ") && textAfterSlash.length < 20)
-        ) {
-          setShowSlashCommand(true);
-          setSlashCommandQuery(textAfterSlash);
+        // Set content immediately for instant display only if we have valid content
+        if (initialContent && !isEmptyContent(initialContent)) {
+          currentEditor.commands.setContent(initialContent);
+          setIsInitialContentLoaded(true);
+        } else {
+          // If no content, mark as loaded immediately
+          setIsInitialContentLoaded(true);
+        }
+
+        // Listen for sync event to handle remote updates (only if provider exists)
+        if (provider) {
+          provider.on("synced", () => {
+            const yXmlFragment =
+              provider.document.getXmlFragment("prosemirror");
+
+            // Only set content if the fragment is empty and we have initial content
+            // This means we're the first to connect and should load the content
+            if (
+              yXmlFragment.length === 0 &&
+              initialContent &&
+              !isEmptyContent(initialContent)
+            ) {
+              currentEditor.commands.setContent(initialContent);
+              setIsInitialContentLoaded(true);
+            }
+
+            // If there's remote content, it will automatically be loaded by the collaboration extension
+          });
+        }
+      },
+      immediatelyRender: true,
+      editorProps: {
+        attributes: {
+          autocomplete: "off",
+          autocorrect: "on",
+          autocapitalize: "off",
+          "aria-label": "Main content area, start typing to enter text.",
+        },
+      },
+      extensions: (() => {
+        const baseExtensions = [
+          StarterKit.configure({
+            // Disable history for collaborative editing - Y.js handles this
+            history: false,
+          }),
+          Placeholder.configure({
+            placeholder: "Start writing something...",
+          }),
+          TextAlign.configure({ types: ["heading", "paragraph"] }),
+          Underline,
+          TaskList,
+          TaskItem.configure({ nested: true }),
+          Highlight.configure({ multicolor: true }),
+          Image,
+          Typography,
+          Superscript,
+          Subscript,
+          Selection,
+          TrailingNode,
+          Link.configure({ openOnClick: false }),
+          SlashCommand.configure({
+            suggestion: {
+              char: "/",
+              startOfLine: false,
+            },
+          }),
+          Emoji.configure({
+            emojis: emojis,
+            enableEmoticons: true,
+          }),
+          TableKit.configure({
+            table: {
+              resizable: true,
+              HTMLAttributes: {
+                class: "tiptap-table",
+              },
+            },
+          }),
+          TableRow,
+          TableHeader,
+          TableCell,
+        ];
+
+        // Only add collaboration extensions if provider exists
+        if (provider) {
+          baseExtensions.push(
+            Collaboration.configure({
+              document: provider.document,
+            }),
+            CollaborationCaret.configure({
+              provider: provider,
+              user: {
+                name: userInfo.name,
+                color: userInfo.color,
+              },
+            }),
+          );
+        }
+
+        return baseExtensions;
+      })(),
+
+      // Lightweight onUpdate - only handles UI updates
+      onUpdate: async ({ editor, transaction }) => {
+        // Enhanced first update detection to prevent saving initial content load
+        if (ignoreFirstUpdate.current) {
+          ignoreFirstUpdate.current = false;
+          // Store the initial content hash for comparison
+          if (initialContent && !isEmptyContent(initialContent)) {
+            lastContentRef.current = JSON.stringify(initialContent);
+          } else {
+            lastContentRef.current = JSON.stringify(editor.getJSON());
+          }
+          return;
+        }
+
+        isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
+
+        // Enhanced check: Don't process updates if we're still loading initial content
+        if (!isInitialContentLoaded) {
+          return;
+        }
+        // Handle slash command (lightweight)
+        const { selection } = editor.state;
+        const { $from } = selection;
+        const textBefore = $from.nodeBefore?.textContent || "";
+
+        const slashIndex = textBefore.lastIndexOf("/");
+        if (slashIndex !== -1) {
+          const textAfterSlash = textBefore.slice(slashIndex + 1);
+          if (
+            textAfterSlash.length === 0 ||
+            (!textAfterSlash.includes(" ") && textAfterSlash.length < 20)
+          ) {
+            setShowSlashCommand(true);
+            setSlashCommandQuery(textAfterSlash);
+          } else {
+            setShowSlashCommand(false);
+            setSlashCommandQuery("");
+          }
         } else {
           setShowSlashCommand(false);
           setSlashCommandQuery("");
         }
-      } else {
-        setShowSlashCommand(false);
-        setSlashCommandQuery("");
-      }
 
-      // Debounce the heavy content update operations
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
+        // Debounce the heavy content update operations
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
 
-      updateTimeoutRef.current = setTimeout(() => {
-        debouncedContentUpdate();
-      }, 150); // Very short debounce for content updates
+        updateTimeoutRef.current = setTimeout(() => {
+          debouncedContentUpdate();
+        }, 150); // Reduced debounce for faster updates
 
-      if (transaction.docChanged && currentNote) {
-        const getImageSrcs = (doc: typeof transaction.doc) => {
-          const srcs = new Set<string>();
-          doc.descendants((node) => {
-            if (node.type.name === "image" && node.attrs?.src) {
-              srcs.add(node.attrs.src);
+        if (transaction.docChanged && currentNote) {
+          const getImageSrcs = (doc: typeof transaction.doc) => {
+            const srcs = new Set<string>();
+            doc.descendants((node) => {
+              if (node.type.name === "image" && node.attrs?.src) {
+                srcs.add(node.attrs.src);
+              }
+              return true;
+            });
+            return srcs;
+          };
+          const beforeSrcs = getImageSrcs(transaction.before);
+          const afterSrcs = getImageSrcs(transaction.doc);
+
+          // Find images that were deleted (in before but not in after)
+          const deletedImageSrcs = [...beforeSrcs].filter(
+            (src) => !afterSrcs.has(src),
+          );
+
+          // Process deleted images in parallel
+          if (deletedImageSrcs.length > 0 && currentNote._id) {
+            try {
+              await Promise.all(
+                deletedImageSrcs
+                  .map(async (src) => {
+                    const storageId = extractStorageIdFromUrl(src);
+                    if (storageId && currentNoteRef.current) {
+                      return HandleImageDelete(
+                        storageId as Id<"_storage">,
+                        currentNoteRef.current._id!, // Use ! since we checked above
+                        "notes",
+                      );
+                    }
+                  })
+                  .filter(Boolean), // Remove undefined promises
+              );
+            } catch (error) {
+              console.error("Failed to unlink images:", error);
             }
-            return true;
-          });
-          return srcs;
-        };
-        const beforeSrcs = getImageSrcs(transaction.before);
-        const afterSrcs = getImageSrcs(transaction.doc);
-
-        // Find images that were deleted (in before but not in after)
-        const deletedImageSrcs = [...beforeSrcs].filter(
-          (src) => !afterSrcs.has(src),
-        );
-
-        // Process deleted images in parallel
-        if (deletedImageSrcs.length > 0 && currentNote._id) {
-          try {
-            await Promise.all(
-              deletedImageSrcs
-                .map(async (src) => {
-                  const storageId = extractStorageIdFromUrl(src);
-                  if (storageId && currentNoteRef.current) {
-                    return HandleImageDelete(
-                      storageId as Id<"_storage">,
-                      currentNoteRef.current._id!, // Use ! since we checked above
-                      "notes",
-                    );
-                  }
-                })
-                .filter(Boolean), // Remove undefined promises
-            );
-          } catch (error) {
-            console.error("Failed to unlink images:", error);
           }
         }
-      }
+      },
     },
-  });
+    [id, provider, userInfo],
+  ); // Recreate editor when id, provider, or userInfo changes
 
-  // Debounced content update function
+  // Enhanced debounced content update function with validation
   const debouncedContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
-    // On the very first update after mounting, just update the last content ref and ignore
-    if (ignoreFirstUpdate.current) {
-      ignoreFirstUpdate.current = false;
+    // CRITICAL: Don't save until initial content has been loaded
+    if (!isInitialContentLoaded) {
+      // Still update the last content ref to track the initial state
       lastContentRef.current = JSON.stringify(editor.getJSON());
+      return;
+    }
+
+    // CRITICAL: Don't save if this is a remote change during initial loading
+    if (isRemoteChange.current && !lastContentRef.current) {
       return;
     }
 
@@ -364,37 +547,55 @@ export function CollaborativeEditor({
     const currentEditorText = editor.getText();
     const currentContentHash = JSON.stringify(currentEditorJson);
 
-    // Only update if content actually changed
+    // Enhanced check: Only update if content actually changed significantly
     if (currentContentHash !== lastContentRef.current) {
-      lastContentRef.current = currentContentHash;
+      // CRITICAL: Additional validation to prevent data overwriting
+      const hasSignificantContent =
+        currentEditorText.trim().length > 0 ||
+        (currentEditorJson.content && currentEditorJson.content.length > 0);
 
-      // Update content immediately in memory (fast)
-      if (!currentNote.content) {
-        currentNote.content = {};
-      }
-      currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-      currentNote.content.text = currentEditorText;
-      currentNote.updatedAt = new Date().toISOString();
-
-      // Mark as unsaved only if the change is not remote
-      if (!isRemoteChange.current) {
-        markNoteAsUnsaved(currentNote);
-      }
-
-      // Setup auto-save timer
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
+      // CRITICAL: Prevent overwriting if this is a different note than expected
+      const isMatchingNote = currentNote && currentNote.pointer_id === id;
+      if (!isMatchingNote) {
+        console.warn("Warning: Update attempted for wrong note ID", {
+          expected: id,
+          actual: currentNote?.pointer_id,
+          noteName: currentNote?.name,
+        });
+        return;
       }
 
-      autoSaveTimeoutRef.current = setTimeout(async () => {
-        try {
-          await saveCurrentNote();
-          autoSaveTimeoutRef.current = null;
-          removeUnsavedNote(currentNote.pointer_id);
-        } catch (error) {
-          console.error("Auto-save failed:", error);
+      if (hasSignificantContent || currentEditorText.trim() === "") {
+        lastContentRef.current = currentContentHash;
+
+        // Update content immediately in memory (fast)
+        if (!currentNote.content) {
+          currentNote.content = {};
         }
-      }, AUTO_SAVE_INTERVAL);
+        currentNote.content.tiptap = ensureJSONString(currentEditorJson);
+        currentNote.content.text = currentEditorText;
+        currentNote.updatedAt = new Date().toISOString();
+
+        // Mark as unsaved only if the change is not remote and not during initial loading
+        if (!isRemoteChange.current) {
+          markNoteAsUnsaved(currentNote);
+        }
+
+        // Setup auto-save timer
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        autoSaveTimeoutRef.current = setTimeout(async () => {
+          try {
+            await saveCurrentNote();
+            autoSaveTimeoutRef.current = null;
+            removeUnsavedNote(currentNote.pointer_id);
+          } catch (error) {
+            console.error("Auto-save failed:", error);
+          }
+        }, AUTO_SAVE_INTERVAL);
+      }
     }
   }, [
     currentNote,
@@ -402,58 +603,9 @@ export function CollaborativeEditor({
     markNoteAsUnsaved,
     saveCurrentNote,
     removeUnsavedNote,
+    isInitialContentLoaded,
+    id, // Reset when note ID changes
   ]);
-
-  // Calculate position for slash command popup - position relative to viewport
-  const getSlashCommandPosition = () => {
-    if (!editor) return { top: 0, left: 0, position: "fixed" as const };
-
-    const { selection } = editor.state;
-    const { $from } = selection;
-    const coords = editor.view.coordsAtPos($from.pos);
-
-    // Estimate popup height (rough estimate based on typical content)
-    const estimatedPopupHeight = 300;
-    const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - coords.bottom;
-    const spaceAbove = coords.top;
-
-    let topPosition;
-    let shouldFlip = false;
-
-    // Decide whether to show above or below
-    if (
-      spaceBelow < estimatedPopupHeight &&
-      spaceAbove > estimatedPopupHeight
-    ) {
-      // Not enough space below, but enough space above - show above
-      topPosition = coords.top - estimatedPopupHeight - 4;
-      shouldFlip = true;
-    } else if (
-      spaceBelow < estimatedPopupHeight &&
-      spaceAbove <= estimatedPopupHeight
-    ) {
-      // Not enough space in either direction - show in the larger space
-      if (spaceBelow > spaceAbove) {
-        // More space below, show below even if it might be cut off
-        topPosition = coords.bottom + 4;
-      } else {
-        // More space above, show above even if it might be cut off
-        topPosition = Math.max(4, coords.top - estimatedPopupHeight - 4);
-        shouldFlip = true;
-      }
-    } else {
-      // Enough space below, show below (default behavior)
-      topPosition = coords.bottom + 4;
-    }
-
-    return {
-      top: topPosition,
-      left: coords.left,
-      position: "fixed" as const,
-      shouldFlip,
-    };
-  };
 
   // Handle escape key to close slash command
   useEffect(() => {
@@ -467,6 +619,10 @@ export function CollaborativeEditor({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [showSlashCommand]);
+
+  const slashCommandPosition = useMemo(() => {
+    return getSlashCommandPosition(editor);
+  }, [editor, showSlashCommand]);
 
   // Handle enter key when slash command is open
   useEffect(() => {
@@ -496,12 +652,22 @@ export function CollaborativeEditor({
         setJSON: (content: Record<string, unknown>) => {
           editor.commands.setContent(content);
         },
+        cleanupProvider: forceCleanupProvider,
+        disconnectProvider: disconnectProvider,
+        reconnectProvider: reconnectProvider,
       };
     }
     if (editor && onEditorReady) {
       onEditorReady(editor);
     }
-  }, [editor, editorRef, onEditorReady]);
+  }, [
+    editor,
+    editorRef,
+    onEditorReady,
+    forceCleanupProvider,
+    disconnectProvider,
+    reconnectProvider,
+  ]);
 
   // This ensures dbSavedNotes always holds the content *as it was loaded from the DB*.
   useEffect(() => {
@@ -513,26 +679,67 @@ export function CollaborativeEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
-  // Update editor content when content prop changes
+  // Handle editor editability based on connection status
   useEffect(() => {
-    if (editor && initialContent !== undefined) {
-      const currentEditorContent = editor.getJSON();
-      const currentContentHash = JSON.stringify(currentEditorContent);
-      const newContentHash = JSON.stringify(initialContent);
+    if (editor) {
+      const isEditable = connectionStatus === "connected";
+      editor.setEditable(isEditable);
 
-      // Only update content if it's actually different and editor is empty or synced
-      if (currentContentHash !== newContentHash && editor.isEmpty) {
-        editor.commands.setContent(initialContent, false); // false = don't trigger update events
-        lastContentRef.current = newContentHash;
+      // Also disable slash command when not connected
+      if (!isEditable) {
+        setShowSlashCommand(false);
+        setSlashCommandQuery("");
       }
     }
-  }, [initialContent, editor]);
+  }, [connectionStatus, editor]);
 
+  // Handle initial content loading completion - simplified since we set content immediately
   useEffect(() => {
-    if (currentNote && editor) {
-      lastContentRef.current = JSON.stringify(editor.getJSON());
+    if (
+      editor &&
+      !isInitialContentLoaded &&
+      (!initialContent || initialContent === "")
+    ) {
+      // If there's no initial content, mark as loaded immediately
+      setIsInitialContentLoaded(true);
     }
-  }, [currentNote, editor]);
+  }, [editor, initialContent, isInitialContentLoaded]);
+
+  // Handle provider lifecycle and cleanup
+  useEffect(() => {
+    // Cleanup function for component unmount
+    return () => {
+      // Only disconnect gracefully, don't destroy the provider
+      // This preserves the provider state for potential remount
+      disconnectProvider();
+    };
+  }, [disconnectProvider]);
+
+  // Handle page visibility changes to manage connection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is hidden, consider disconnecting to save resources
+        disconnectProvider();
+      } else {
+        // Page is visible again, reconnect if needed
+        reconnectProvider();
+      }
+    };
+
+    // Handle beforeunload to ensure clean disconnect
+    const handleBeforeUnload = () => {
+      disconnectProvider();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [disconnectProvider, reconnectProvider]);
 
   useEffect(() => {
     return () => {
@@ -542,28 +749,37 @@ export function CollaborativeEditor({
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
+      disconnectProvider();
     };
-  }, []);
+  }, [disconnectProvider]);
 
   return (
     <EditorContext.Provider value={{ editor }}>
       <div style={{ position: "relative", height: "100%" }}>
+        <StatusBadge
+          connectionStatus={connectionStatus}
+          isInitialContentLoaded={isInitialContentLoaded}
+          onReconnect={reconnectProvider}
+        />
         <div className="content-wrapper">
           <EditorContent
             editor={editor}
             role="presentation"
-            className="simple-editor-content"
+            className={`simple-editor-content ${connectionStatus !== "connected" ? "editor-disabled" : ""}`}
+            style={{
+              opacity: connectionStatus !== "connected" ? 0.6 : 1,
+              pointerEvents: connectionStatus !== "connected" ? "none" : "auto",
+            }}
           />
           {showSlashCommand &&
             editor &&
             (() => {
-              const position = getSlashCommandPosition();
               return (
                 <div
                   style={{
                     position: "fixed",
-                    top: position.top,
-                    left: position.left,
+                    top: slashCommandPosition.top,
+                    left: slashCommandPosition.left,
                     zIndex: 1000, // High z-index to ensure it's above everything
                   }}
                 >
@@ -571,7 +787,7 @@ export function CollaborativeEditor({
                     editor={editor}
                     onClose={() => setShowSlashCommand(false)}
                     query={slashCommandQuery}
-                    shouldFlip={position.shouldFlip}
+                    shouldFlip={slashCommandPosition.shouldFlip}
                   />
                 </div>
               );

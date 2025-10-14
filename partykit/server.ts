@@ -1,42 +1,47 @@
 import type * as Party from "partykit/server";
-import { onConnect } from "y-partykit";
 
-export default class YjsServer implements Party.Server {
-  constructor(public room: Party.Room) {
-    // PartyKit storage doesn't have setTimeout method
-    // We'll handle timeouts on the connection level
-  }
+export default class TestServer implements Party.Server {
+  constructor(public room: Party.Room) {}
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-    console.log(`New connection to room: ${this.room.id}, user: ${conn.id}`);
+    console.log(`Connection ${conn.id} joined room ${this.room.id}`);
 
-    // y-partykit passes user info through the connection's partykit info
-    // The user info comes from the client when they connect
-    return onConnect(conn, this.room, {
-      readOnly: false,
-      // y-partykit will automatically handle user awareness
-      // when the client provides user info
-    });
-  }
-
-  onConnectionClose(conn: Party.Connection) {
-    console.log(
-      `Connection closed for user: ${conn.id} in room: ${this.room.id}`,
+    // Send a welcome message
+    conn.send(
+      JSON.stringify({
+        type: "welcome",
+        message: "Connected to PartyKit server",
+        roomId: this.room.id,
+        connectionId: conn.id,
+      }),
     );
   }
 
-  // Optional: Handle authentication/authorization
-  async onRequest(req: Party.Request) {
-    // You could add auth middleware here if needed
-    const url = new URL(req.url);
-    if (url.pathname === "/health") {
-      // Return basic health info. Avoid leaking sensitive data.
+  onMessage(message: string, sender: Party.Connection) {
+    console.log(`Message from ${sender.id}: ${message}`);
+
+    // Broadcast message to all connections in the room
+    this.room.broadcast(message, [sender.id]);
+  }
+
+  onClose(connection: Party.Connection) {
+    console.log(`Connection ${connection.id} left room ${this.room.id}`);
+  }
+
+  async onRequest(req: Party.Request): Promise<Response> {
+    if (req.method === "GET") {
       return new Response(
-        JSON.stringify({ status: "ok", time: new Date().toISOString() }),
-        { status: 200, headers: { "content-type": "application/json" } },
+        JSON.stringify({
+          status: "ok",
+          room: this.room.id,
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
-    return new Response("OK", { status: 200 });
+    return new Response("Method not allowed", { status: 405 });
   }
 }

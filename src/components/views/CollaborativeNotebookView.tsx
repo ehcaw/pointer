@@ -3,17 +3,23 @@ import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/co
 import { FloatingToolbar } from "../tiptap/tiptap-templates/toolbar/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useNoteContent } from "@/hooks/use-note-content";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo, memo } from "react";
 import { Clock } from "lucide-react";
 import { Editor } from "@tiptap/react";
+import { Loader2 } from "lucide-react";
 
-export const CollaborativeNotebookView = ({}) => {
+const CollaborativeNotebookView = memo(({}) => {
   const { currentNote, editorRef } = useNoteEditor();
-  const { noteContent } = useNoteContent();
-  console.log(noteContent);
+  const { noteContent, isLoadingContent } = useNoteContent();
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
+
+  const lastSavedTime = useMemo(() => {
+    return currentNote
+      ? new Date(currentNote.updatedAt).toLocaleString()
+      : new Date().toLocaleString();
+  }, [currentNote]);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">
@@ -32,10 +38,16 @@ export const CollaborativeNotebookView = ({}) => {
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
             >
-              {noteContent.length !== 0 && (
+              {isLoadingContent ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading content...</span>
+                  </div>
+                </div>
+              ) : (
                 <CollaborativeEditor
                   id={currentNote?.pointer_id || "default-doc"}
-                  key={currentNote?.pointer_id || "default-doc"}
                   content={noteContent}
                   editorRef={editorRef}
                   onEditorReady={setEditor}
@@ -55,9 +67,7 @@ export const CollaborativeNotebookView = ({}) => {
 
               <div className="flex items-center gap-2">
                 <Clock className="h-3 w-3" />
-                <span>
-                  Last saved {new Date(currentNote.updatedAt).toLocaleString()}
-                </span>
+                <span>Last saved {lastSavedTime}</span>
               </div>
             </div>
           </div>
@@ -65,4 +75,8 @@ export const CollaborativeNotebookView = ({}) => {
       )}
     </div>
   );
-};
+});
+
+CollaborativeNotebookView.displayName = "CollaborativeNotebookView";
+
+export default CollaborativeNotebookView;
