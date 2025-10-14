@@ -6,10 +6,11 @@ import { useNoteContent } from "@/hooks/use-note-content";
 import { useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import { Editor } from "@tiptap/react";
+import { Loader2 } from "lucide-react";
 
 export const CollaborativeNotebookView = ({}) => {
   const { currentNote, editorRef } = useNoteEditor();
-  const { noteContent } = useNoteContent();
+  const { noteContent, isLoadingContent } = useNoteContent();
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -31,7 +32,14 @@ export const CollaborativeNotebookView = ({}) => {
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
             >
-              {noteContent.length !== 0 && (
+              {isLoadingContent ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading content...</span>
+                  </div>
+                </div>
+              ) : (
                 <CollaborativeEditor
                   id={currentNote?.pointer_id || "default-doc"}
                   content={noteContent}

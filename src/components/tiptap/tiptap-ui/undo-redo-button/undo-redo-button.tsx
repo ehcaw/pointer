@@ -65,12 +65,17 @@ export function canExecuteHistoryAction(
   // Check if the editor has history capabilities (collaborative editors may disable history)
   try {
     const can = editor.can();
-    if (!can || typeof can.undo !== 'function' || typeof can.redo !== 'function') {
+    if (
+      !can ||
+      typeof can.undo !== "function" ||
+      typeof can.redo !== "function"
+    ) {
       return false;
     }
     return action === "undo" ? can.undo() : can.redo();
   } catch (error) {
     // History is not available (e.g., in collaborative mode)
+    console.log(error);
     return false;
   }
 }
@@ -91,7 +96,11 @@ export function executeHistoryAction(
   // Check if the editor has history capabilities before attempting to use them
   try {
     const can = editor.can();
-    if (!can || typeof can.undo !== 'function' || typeof can.redo !== 'function') {
+    if (
+      !can ||
+      typeof can.undo !== "function" ||
+      typeof can.redo !== "function"
+    ) {
       return false;
     }
 
@@ -99,6 +108,7 @@ export function executeHistoryAction(
     return action === "undo" ? chain.undo().run() : chain.redo().run();
   } catch (error) {
     // History is not available (e.g., in collaborative mode)
+    console.log(error);
     return false;
   }
 }

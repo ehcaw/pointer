@@ -74,6 +74,23 @@ const createHocusPocusProvider = (url: string, docName: string, doc: Y.Doc) => {
   });
 };
 
+// Helper function to check if content is empty (works with strings and objects)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isEmptyContent = (content: any): boolean => {
+  if (!content) return true;
+
+  if (typeof content === "string") {
+    return content.trim() === "";
+  }
+
+  if (typeof content === "object" && content.type) {
+    // Check if it's a TipTap document with no content
+    return !content.content || content.content.length === 0;
+  }
+
+  return false;
+};
+
 export function CollaborativeEditor({
   id,
   content,
@@ -225,9 +242,10 @@ export function CollaborativeEditor({
       console.log("Hocuspocus synced");
     });
 
-    // Reset initial content loading state when switching documents
+    // CRITICAL: Reset all state when switching documents to prevent data mixing
     setIsInitialContentLoaded(false);
     ignoreFirstUpdate.current = true;
+    lastContentRef.current = "";
 
     return () => {
       // Cleanup on unmount or id change
@@ -246,7 +264,6 @@ export function CollaborativeEditor({
     };
   }, [id]); // Recreate when id changes
 
-  const yDoc = yDocRef.current;
   const provider = hocusPocusProviderRef.current;
 
   // Graceful disconnect function
@@ -288,7 +305,7 @@ export function CollaborativeEditor({
     }
   }, []);
 
-  // Parse content appropriately based on input type
+  // Parse content appropriately based on input type with validation
   const initialContent = useMemo(() => {
     if (content === null || content === undefined) {
       return "";
@@ -305,6 +322,13 @@ export function CollaborativeEditor({
         const parsed = JSON.parse(content);
         // Verify it looks like TipTap JSON (has type and content properties)
         if (parsed && typeof parsed === "object" && parsed.type) {
+          // Validate the content structure - TipTap documents SHOULD have content as an array
+          if (!Array.isArray(parsed.content)) {
+            console.warn(
+              "Invalid TipTap structure: content should be an array",
+            );
+            return "";
+          }
           return parsed;
         }
       } catch (e) {
@@ -313,8 +337,15 @@ export function CollaborativeEditor({
       return content;
     }
 
-    // If content is already an object, use it directly
+    // If content is already an object, validate it
     if (typeof content === "object") {
+      // Ensure content is a valid TipTap document object
+      if (!content.type || Array.isArray(content)) {
+        console.warn(
+          "Invalid content structure: must have 'type' property and not be an array",
+        );
+        return "";
+      }
       return content;
     }
 
@@ -333,18 +364,26 @@ export function CollaborativeEditor({
         disableCollaboration();
       },
       onCreate: ({ editor: currentEditor }) => {
-        console.log("Editor created");
+        console.log("Editor created for note:", id);
 
-        // Set content immediately for instant display
-        if (initialContent && initialContent !== "") {
+        // CRITICAL: Clear any existing content first to prevent data mixing
+        currentEditor.commands.setContent("");
+
+        // Set content immediately for instant display only if we have valid content
+        if (initialContent && !isEmptyContent(initialContent)) {
+          console.log("Setting initial content immediately");
           currentEditor.commands.setContent(initialContent);
+          setIsInitialContentLoaded(true);
+        } else {
+          // If no content, mark as loaded immediately
           setIsInitialContentLoaded(true);
         }
 
         // Listen for sync event to handle remote updates (only if provider exists)
         if (provider) {
           provider.on("synced", () => {
-            const yXmlFragment = provider.document.getXmlFragment("prosemirror");
+            const yXmlFragment =
+              provider.document.getXmlFragment("prosemirror");
             console.log("Hocuspocus synced event fired");
             console.log("Y.js fragment length:", yXmlFragment.length);
 
@@ -353,9 +392,9 @@ export function CollaborativeEditor({
             if (
               yXmlFragment.length === 0 &&
               initialContent &&
-              initialContent !== ""
+              !isEmptyContent(initialContent)
             ) {
-              console.log("Setting initial content (on sync):", initialContent);
+              console.log("Setting initial content (on sync)");
               currentEditor.commands.setContent(initialContent);
               setIsInitialContentLoaded(true);
             }
@@ -438,13 +477,24 @@ export function CollaborativeEditor({
 
       // Lightweight onUpdate - only handles UI updates
       onUpdate: async ({ editor, transaction }) => {
-        // Skip the first update to prevent saving initial content load
+        // Enhanced first update detection to prevent saving initial content load
         if (ignoreFirstUpdate.current) {
           ignoreFirstUpdate.current = false;
+          // Store the initial content hash for comparison
+          if (initialContent && !isEmptyContent(initialContent)) {
+            lastContentRef.current = JSON.stringify(initialContent);
+          } else {
+            lastContentRef.current = JSON.stringify(editor.getJSON());
+          }
           return;
         }
 
         isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
+
+        // Enhanced check: Don't process updates if we're still loading initial content
+        if (!isInitialContentLoaded) {
+          return;
+        }
         // Handle slash command (lightweight)
         const { selection } = editor.state;
         const { $from } = selection;
@@ -523,14 +573,20 @@ export function CollaborativeEditor({
     [id, provider, userInfo],
   ); // Recreate editor when id, provider, or userInfo changes
 
-  // Debounced content update function
+  // Enhanced debounced content update function with validation
   const debouncedContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
-    // Don't save until initial content has been loaded
+    // CRITICAL: Don't save until initial content has been loaded
     if (!isInitialContentLoaded) {
       // Still update the last content ref to track the initial state
       lastContentRef.current = JSON.stringify(editor.getJSON());
+      return;
+    }
+
+    // CRITICAL: Don't save if this is a remote change during initial loading
+    if (isRemoteChange.current && !lastContentRef.current) {
+      console.log("Skipping save for remote change during initial loading");
       return;
     }
 
@@ -538,37 +594,55 @@ export function CollaborativeEditor({
     const currentEditorText = editor.getText();
     const currentContentHash = JSON.stringify(currentEditorJson);
 
-    // Only update if content actually changed
+    // Enhanced check: Only update if content actually changed significantly
     if (currentContentHash !== lastContentRef.current) {
-      lastContentRef.current = currentContentHash;
+      // CRITICAL: Additional validation to prevent data overwriting
+      const hasSignificantContent =
+        currentEditorText.trim().length > 0 ||
+        (currentEditorJson.content && currentEditorJson.content.length > 0);
 
-      // Update content immediately in memory (fast)
-      if (!currentNote.content) {
-        currentNote.content = {};
-      }
-      currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-      currentNote.content.text = currentEditorText;
-      currentNote.updatedAt = new Date().toISOString();
-
-      // Mark as unsaved only if the change is not remote
-      if (!isRemoteChange.current) {
-        markNoteAsUnsaved(currentNote);
-      }
-
-      // Setup auto-save timer
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
+      // CRITICAL: Prevent overwriting if this is a different note than expected
+      const isMatchingNote = currentNote && currentNote.pointer_id === id;
+      if (!isMatchingNote) {
+        console.warn("Warning: Update attempted for wrong note ID", {
+          expected: id,
+          actual: currentNote?.pointer_id,
+          noteName: currentNote?.name,
+        });
+        return;
       }
 
-      autoSaveTimeoutRef.current = setTimeout(async () => {
-        try {
-          await saveCurrentNote();
-          autoSaveTimeoutRef.current = null;
-          removeUnsavedNote(currentNote.pointer_id);
-        } catch (error) {
-          console.error("Auto-save failed:", error);
+      if (hasSignificantContent || currentEditorText.trim() === "") {
+        lastContentRef.current = currentContentHash;
+
+        // Update content immediately in memory (fast)
+        if (!currentNote.content) {
+          currentNote.content = {};
         }
-      }, AUTO_SAVE_INTERVAL);
+        currentNote.content.tiptap = ensureJSONString(currentEditorJson);
+        currentNote.content.text = currentEditorText;
+        currentNote.updatedAt = new Date().toISOString();
+
+        // Mark as unsaved only if the change is not remote and not during initial loading
+        if (!isRemoteChange.current) {
+          markNoteAsUnsaved(currentNote);
+        }
+
+        // Setup auto-save timer
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        autoSaveTimeoutRef.current = setTimeout(async () => {
+          try {
+            await saveCurrentNote();
+            autoSaveTimeoutRef.current = null;
+            removeUnsavedNote(currentNote.pointer_id);
+          } catch (error) {
+            console.error("Auto-save failed:", error);
+          }
+        }, AUTO_SAVE_INTERVAL);
+      }
     }
   }, [
     currentNote,
@@ -577,6 +651,8 @@ export function CollaborativeEditor({
     saveCurrentNote,
     removeUnsavedNote,
     isInitialContentLoaded,
+    content, // Reset when content prop changes
+    id, // Reset when note ID changes
   ]);
 
   // Calculate position for slash command popup - position relative to viewport
