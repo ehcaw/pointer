@@ -206,19 +206,16 @@ export function CollaborativeEditor({
 
     // Add debugging events
     hocusPocusProviderRef.current.on("connect", () => {
-      console.log("Hocuspocus connected");
       setConnectionStatus("connected");
     });
 
     hocusPocusProviderRef.current.on("disconnect", () => {
-      console.log("Hocuspocus disconnected");
       setConnectionStatus("disconnected");
     });
 
     hocusPocusProviderRef.current.on(
       "status",
       (event: { status: "connecting" | "connected" | "disconnected" }) => {
-        console.log("Hocuspocus status:", event.status);
         setConnectionStatus(event.status);
 
         // Auto-reconnect on connection failures
@@ -228,7 +225,6 @@ export function CollaborativeEditor({
             if (hocusPocusProviderRef.current) {
               try {
                 hocusPocusProviderRef.current.connect();
-                console.log("Attempting to reconnect...");
               } catch (error) {
                 console.error("Reconnection failed:", error);
               }
@@ -237,10 +233,6 @@ export function CollaborativeEditor({
         }
       },
     );
-
-    hocusPocusProviderRef.current.on("synced", () => {
-      console.log("Hocuspocus synced");
-    });
 
     // CRITICAL: Reset all state when switching documents to prevent data mixing
     setIsInitialContentLoaded(false);
@@ -298,7 +290,6 @@ export function CollaborativeEditor({
       try {
         hocusPocusProviderRef.current.destroy();
         hocusPocusProviderRef.current = null;
-        console.log("Provider permanently cleaned up");
       } catch (error) {
         console.error("Error cleaning up provider:", error);
       }
@@ -364,14 +355,11 @@ export function CollaborativeEditor({
         disableCollaboration();
       },
       onCreate: ({ editor: currentEditor }) => {
-        console.log("Editor created for note:", id);
-
         // CRITICAL: Clear any existing content first to prevent data mixing
         currentEditor.commands.setContent("");
 
         // Set content immediately for instant display only if we have valid content
         if (initialContent && !isEmptyContent(initialContent)) {
-          console.log("Setting initial content immediately");
           currentEditor.commands.setContent(initialContent);
           setIsInitialContentLoaded(true);
         } else {
@@ -384,8 +372,6 @@ export function CollaborativeEditor({
           provider.on("synced", () => {
             const yXmlFragment =
               provider.document.getXmlFragment("prosemirror");
-            console.log("Hocuspocus synced event fired");
-            console.log("Y.js fragment length:", yXmlFragment.length);
 
             // Only set content if the fragment is empty and we have initial content
             // This means we're the first to connect and should load the content
@@ -394,7 +380,6 @@ export function CollaborativeEditor({
               initialContent &&
               !isEmptyContent(initialContent)
             ) {
-              console.log("Setting initial content (on sync)");
               currentEditor.commands.setContent(initialContent);
               setIsInitialContentLoaded(true);
             }
@@ -586,7 +571,6 @@ export function CollaborativeEditor({
 
     // CRITICAL: Don't save if this is a remote change during initial loading
     if (isRemoteChange.current && !lastContentRef.current) {
-      console.log("Skipping save for remote change during initial loading");
       return;
     }
 
