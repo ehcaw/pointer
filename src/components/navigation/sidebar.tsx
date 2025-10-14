@@ -36,12 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  useNotesStore,
-  useRecentNotes,
-  useUnsavedNotesArray,
-  useUnsavedNotesCount,
-} from "@/lib/stores/notes-store";
+import { useNotesStore, useRecentNotes } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Node } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
