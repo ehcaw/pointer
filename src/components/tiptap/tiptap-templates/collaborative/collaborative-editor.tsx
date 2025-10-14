@@ -152,25 +152,39 @@ export function CollaborativeEditor({
 
   const { saveCurrentNote } = useNoteEditor();
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+  const AUTO_SAVE_INTERVAL = 2500; // 1.5 seconds for better responsiveness
 
+  // Y.js document and provider recreation when id changes
   const yDocRef = useRef<Y.Doc | null>(null);
-  if (!yDocRef.current) {
-    yDocRef.current = new Y.Doc();
-  }
-  const yDoc = yDocRef.current;
-
-  // Hocuspocus provider - use useRef to prevent recreation on every render
   const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "disconnected"
   >("connecting");
 
-  if (!hocusPocusProviderRef.current) {
+  // Recreate Y.js document and provider when id changes
+  useEffect(() => {
+    // Cleanup previous provider and document
+    if (hocusPocusProviderRef.current) {
+      try {
+        hocusPocusProviderRef.current.destroy();
+      } catch (error) {
+        console.error("Error destroying previous provider:", error);
+      }
+      hocusPocusProviderRef.current = null;
+    }
+
+    if (yDocRef.current) {
+      yDocRef.current.destroy();
+      yDocRef.current = null;
+    }
+
+    // Create new document and provider for the new id
+    yDocRef.current = new Y.Doc();
+
     hocusPocusProviderRef.current = createHocusPocusProvider(
       process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!,
       id,
-      yDoc,
+      yDocRef.current,
     );
 
     // Add debugging events
@@ -210,7 +224,29 @@ export function CollaborativeEditor({
     hocusPocusProviderRef.current.on("synced", () => {
       console.log("Hocuspocus synced");
     });
-  }
+
+    // Reset initial content loading state when switching documents
+    setIsInitialContentLoaded(false);
+    ignoreFirstUpdate.current = true;
+
+    return () => {
+      // Cleanup on unmount or id change
+      if (hocusPocusProviderRef.current) {
+        try {
+          hocusPocusProviderRef.current.destroy();
+        } catch (error) {
+          console.error("Error cleaning up provider:", error);
+        }
+        hocusPocusProviderRef.current = null;
+      }
+      if (yDocRef.current) {
+        yDocRef.current.destroy();
+        yDocRef.current = null;
+      }
+    };
+  }, [id]); // Recreate when id changes
+
+  const yDoc = yDocRef.current;
   const provider = hocusPocusProviderRef.current;
 
   // Graceful disconnect function
@@ -290,169 +326,202 @@ export function CollaborativeEditor({
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialContentLoaded, setIsInitialContentLoaded] = useState(false);
 
-  const editor = useEditor({
-    enableContentCheck: true,
-    onContentError: ({ disableCollaboration }) => {
-      disableCollaboration();
-    },
-    onCreate: ({ editor: currentEditor }) => {
-      console.log("Editor created");
+  const editor = useEditor(
+    {
+      enableContentCheck: true,
+      onContentError: ({ disableCollaboration }) => {
+        disableCollaboration();
+      },
+      onCreate: ({ editor: currentEditor }) => {
+        console.log("Editor created");
 
-      // Listen for sync event
-      provider.on("synced", () => {
-        const yXmlFragment = provider.document.getXmlFragment("prosemirror");
-        if (yXmlFragment.length === 0 && initialContent) {
+        // Set content immediately for instant display
+        if (initialContent && initialContent !== "") {
           currentEditor.commands.setContent(initialContent);
           setIsInitialContentLoaded(true);
         }
-      });
-    },
-    immediatelyRender: true,
-    editorProps: {
-      attributes: {
-        autocomplete: "off",
-        autocorrect: "on",
-        autocapitalize: "off",
-        "aria-label": "Main content area, start typing to enter text.",
+
+        // Listen for sync event to handle remote updates (only if provider exists)
+        if (provider) {
+          provider.on("synced", () => {
+            const yXmlFragment = provider.document.getXmlFragment("prosemirror");
+            console.log("Hocuspocus synced event fired");
+            console.log("Y.js fragment length:", yXmlFragment.length);
+
+            // Only set content if the fragment is empty and we have initial content
+            // This means we're the first to connect and should load the content
+            if (
+              yXmlFragment.length === 0 &&
+              initialContent &&
+              initialContent !== ""
+            ) {
+              console.log("Setting initial content (on sync):", initialContent);
+              currentEditor.commands.setContent(initialContent);
+              setIsInitialContentLoaded(true);
+            }
+
+            // If there's remote content, it will automatically be loaded by the collaboration extension
+          });
+        }
       },
-    },
-    extensions: [
-      StarterKit.configure({
-        // Disable history for collaborative editing - Y.js handles this
-        history: false,
-      }),
-      Placeholder.configure({
-        placeholder: "Start writing something...",
-      }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Underline,
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Highlight.configure({ multicolor: true }),
-      Image,
-      Typography,
-      Superscript,
-      Subscript,
-      Selection,
-      TrailingNode,
-      Link.configure({ openOnClick: false }),
-      SlashCommand.configure({
-        suggestion: {
-          char: "/",
-          startOfLine: false,
+      immediatelyRender: true,
+      editorProps: {
+        attributes: {
+          autocomplete: "off",
+          autocorrect: "on",
+          autocapitalize: "off",
+          "aria-label": "Main content area, start typing to enter text.",
         },
-      }),
-      Emoji.configure({
-        emojis: emojis,
-        enableEmoticons: true,
-      }),
-      TableKit.configure({
-        table: {
-          resizable: true,
-          HTMLAttributes: {
-            class: "tiptap-table",
-          },
-        },
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      Collaboration.configure({
-        document: provider.document,
-      }),
-      CollaborationCaret.configure({
-        provider: provider,
-        user: {
-          name: userInfo.name,
-          color: userInfo.color,
-        },
-      }),
-    ],
+      },
+      extensions: (() => {
+        const baseExtensions = [
+          StarterKit.configure({
+            // Disable history for collaborative editing - Y.js handles this
+            history: false,
+          }),
+          Placeholder.configure({
+            placeholder: "Start writing something...",
+          }),
+          TextAlign.configure({ types: ["heading", "paragraph"] }),
+          Underline,
+          TaskList,
+          TaskItem.configure({ nested: true }),
+          Highlight.configure({ multicolor: true }),
+          Image,
+          Typography,
+          Superscript,
+          Subscript,
+          Selection,
+          TrailingNode,
+          Link.configure({ openOnClick: false }),
+          SlashCommand.configure({
+            suggestion: {
+              char: "/",
+              startOfLine: false,
+            },
+          }),
+          Emoji.configure({
+            emojis: emojis,
+            enableEmoticons: true,
+          }),
+          TableKit.configure({
+            table: {
+              resizable: true,
+              HTMLAttributes: {
+                class: "tiptap-table",
+              },
+            },
+          }),
+          TableRow,
+          TableHeader,
+          TableCell,
+        ];
 
-    // Lightweight onUpdate - only handles UI updates
-    onUpdate: async ({ editor, transaction }) => {
-      // Skip the first update to prevent saving initial content load
-      if (ignoreFirstUpdate.current) {
-        ignoreFirstUpdate.current = false;
-        return;
-      }
+        // Only add collaboration extensions if provider exists
+        if (provider) {
+          baseExtensions.push(
+            Collaboration.configure({
+              document: provider.document,
+            }),
+            CollaborationCaret.configure({
+              provider: provider,
+              user: {
+                name: userInfo.name,
+                color: userInfo.color,
+              },
+            }),
+          );
+        }
 
-      isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
-      // Handle slash command (lightweight)
-      const { selection } = editor.state;
-      const { $from } = selection;
-      const textBefore = $from.nodeBefore?.textContent || "";
+        return baseExtensions;
+      })(),
 
-      const slashIndex = textBefore.lastIndexOf("/");
-      if (slashIndex !== -1) {
-        const textAfterSlash = textBefore.slice(slashIndex + 1);
-        if (
-          textAfterSlash.length === 0 ||
-          (!textAfterSlash.includes(" ") && textAfterSlash.length < 20)
-        ) {
-          setShowSlashCommand(true);
-          setSlashCommandQuery(textAfterSlash);
+      // Lightweight onUpdate - only handles UI updates
+      onUpdate: async ({ editor, transaction }) => {
+        // Skip the first update to prevent saving initial content load
+        if (ignoreFirstUpdate.current) {
+          ignoreFirstUpdate.current = false;
+          return;
+        }
+
+        isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
+        // Handle slash command (lightweight)
+        const { selection } = editor.state;
+        const { $from } = selection;
+        const textBefore = $from.nodeBefore?.textContent || "";
+
+        const slashIndex = textBefore.lastIndexOf("/");
+        if (slashIndex !== -1) {
+          const textAfterSlash = textBefore.slice(slashIndex + 1);
+          if (
+            textAfterSlash.length === 0 ||
+            (!textAfterSlash.includes(" ") && textAfterSlash.length < 20)
+          ) {
+            setShowSlashCommand(true);
+            setSlashCommandQuery(textAfterSlash);
+          } else {
+            setShowSlashCommand(false);
+            setSlashCommandQuery("");
+          }
         } else {
           setShowSlashCommand(false);
           setSlashCommandQuery("");
         }
-      } else {
-        setShowSlashCommand(false);
-        setSlashCommandQuery("");
-      }
 
-      // Debounce the heavy content update operations
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
+        // Debounce the heavy content update operations
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
 
-      updateTimeoutRef.current = setTimeout(() => {
-        debouncedContentUpdate();
-      }, 150); // Very short debounce for content updates
+        updateTimeoutRef.current = setTimeout(() => {
+          debouncedContentUpdate();
+        }, 150); // Reduced debounce for faster updates
 
-      if (transaction.docChanged && currentNote) {
-        const getImageSrcs = (doc: typeof transaction.doc) => {
-          const srcs = new Set<string>();
-          doc.descendants((node) => {
-            if (node.type.name === "image" && node.attrs?.src) {
-              srcs.add(node.attrs.src);
+        if (transaction.docChanged && currentNote) {
+          const getImageSrcs = (doc: typeof transaction.doc) => {
+            const srcs = new Set<string>();
+            doc.descendants((node) => {
+              if (node.type.name === "image" && node.attrs?.src) {
+                srcs.add(node.attrs.src);
+              }
+              return true;
+            });
+            return srcs;
+          };
+          const beforeSrcs = getImageSrcs(transaction.before);
+          const afterSrcs = getImageSrcs(transaction.doc);
+
+          // Find images that were deleted (in before but not in after)
+          const deletedImageSrcs = [...beforeSrcs].filter(
+            (src) => !afterSrcs.has(src),
+          );
+
+          // Process deleted images in parallel
+          if (deletedImageSrcs.length > 0 && currentNote._id) {
+            try {
+              await Promise.all(
+                deletedImageSrcs
+                  .map(async (src) => {
+                    const storageId = extractStorageIdFromUrl(src);
+                    if (storageId && currentNoteRef.current) {
+                      return HandleImageDelete(
+                        storageId as Id<"_storage">,
+                        currentNoteRef.current._id!, // Use ! since we checked above
+                        "notes",
+                      );
+                    }
+                  })
+                  .filter(Boolean), // Remove undefined promises
+              );
+            } catch (error) {
+              console.error("Failed to unlink images:", error);
             }
-            return true;
-          });
-          return srcs;
-        };
-        const beforeSrcs = getImageSrcs(transaction.before);
-        const afterSrcs = getImageSrcs(transaction.doc);
-
-        // Find images that were deleted (in before but not in after)
-        const deletedImageSrcs = [...beforeSrcs].filter(
-          (src) => !afterSrcs.has(src),
-        );
-
-        // Process deleted images in parallel
-        if (deletedImageSrcs.length > 0 && currentNote._id) {
-          try {
-            await Promise.all(
-              deletedImageSrcs
-                .map(async (src) => {
-                  const storageId = extractStorageIdFromUrl(src);
-                  if (storageId && currentNoteRef.current) {
-                    return HandleImageDelete(
-                      storageId as Id<"_storage">,
-                      currentNoteRef.current._id!, // Use ! since we checked above
-                      "notes",
-                    );
-                  }
-                })
-                .filter(Boolean), // Remove undefined promises
-            );
-          } catch (error) {
-            console.error("Failed to unlink images:", error);
           }
         }
-      }
+      },
     },
-  });
+    [id, provider, userInfo],
+  ); // Recreate editor when id, provider, or userInfo changes
 
   // Debounced content update function
   const debouncedContentUpdate = useCallback(() => {
@@ -643,18 +712,17 @@ export function CollaborativeEditor({
     }
   }, [connectionStatus, editor]);
 
-  // Handle initial content loading completion
+  // Handle initial content loading completion - simplified since we set content immediately
   useEffect(() => {
-    if (editor && connectionStatus === "connected") {
-      // If there's no initial content, mark as loaded after a short delay
-      if (!initialContent || initialContent === "") {
-        const timer = setTimeout(() => {
-          setIsInitialContentLoaded(true);
-        }, 500);
-        return () => clearTimeout(timer);
-      }
+    if (
+      editor &&
+      !isInitialContentLoaded &&
+      (!initialContent || initialContent === "")
+    ) {
+      // If there's no initial content, mark as loaded immediately
+      setIsInitialContentLoaded(true);
     }
-  }, [editor, connectionStatus, initialContent]);
+  }, [editor, initialContent, isInitialContentLoaded]);
 
   // Handle provider lifecycle and cleanup
   useEffect(() => {
@@ -703,7 +771,7 @@ export function CollaborativeEditor({
     };
   }, []);
 
-  // Status badge component
+  // Enhanced status badge component with better loading states
   const StatusBadge = () => {
     const getStatusConfig = () => {
       switch (connectionStatus) {
@@ -712,21 +780,27 @@ export function CollaborativeEditor({
             color: "#10b981", // green-500
             bgColor: "#10b98120",
             text: "Connected",
+            subtitle: isInitialContentLoaded ? "Synced" : "Loading...",
             isClickable: false,
+            showPulse: false,
           };
         case "connecting":
           return {
             color: "#f59e0b", // amber-500
             bgColor: "#f59e0b20",
-            text: "Connecting...",
+            text: "Connecting",
+            subtitle: "Establishing connection...",
             isClickable: false,
+            showPulse: true,
           };
         case "disconnected":
           return {
             color: "#ef4444", // red-500
             bgColor: "#ef444420",
             text: "Disconnected",
+            subtitle: "Connection lost",
             isClickable: true,
+            showPulse: false,
           };
       }
     };
@@ -747,56 +821,76 @@ export function CollaborativeEditor({
           right: "12px",
           zIndex: 1000,
           display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px 10px",
-          backgroundColor: config.bgColor,
-          border: `1px solid ${config.color}30`,
-          borderRadius: "6px",
-          fontSize: "12px",
-          fontWeight: "500",
-          color: config.color,
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          backdropFilter: "blur(8px)",
-          cursor: config.isClickable ? "pointer" : "default",
-          transition: "all 0.2s ease",
-          ...(config.isClickable && {
-            ":hover": {
-              backgroundColor: config.bgColor.replace("20", "30"),
-              transform: "translateY(-1px)",
-            },
-          }),
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: "4px",
         }}
-        onClick={handleBadgeClick}
-        title={config.isClickable ? "Click to reconnect" : "Connection status"}
       >
         <div
           style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            backgroundColor: config.color,
-            boxShadow:
-              connectionStatus === "connecting"
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 10px",
+            backgroundColor: config.bgColor,
+            border: `1px solid ${config.color}30`,
+            borderRadius: "6px",
+            fontSize: "12px",
+            fontWeight: "500",
+            color: config.color,
+            fontFamily: "system-ui, -apple-system, sans-serif",
+            backdropFilter: "blur(8px)",
+            cursor: config.isClickable ? "pointer" : "default",
+            transition: "all 0.2s ease",
+            ...(config.isClickable && {
+              ":hover": {
+                backgroundColor: config.bgColor.replace("20", "30"),
+                transform: "translateY(-1px)",
+              },
+            }),
+          }}
+          onClick={handleBadgeClick}
+          title={config.isClickable ? "Click to reconnect" : config.subtitle}
+        >
+          <div
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: config.color,
+              boxShadow: config.showPulse
                 ? `0 0 0 2px ${config.color}40`
                 : "none",
-            animation:
-              connectionStatus === "connecting"
+              animation: config.showPulse
                 ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
                 : "none",
-          }}
-        />
-        <span>{config.text}</span>
-        {config.isClickable && (
-          <span
+            }}
+          />
+          <span>{config.text}</span>
+          {config.isClickable && (
+            <span
+              style={{
+                fontSize: "10px",
+                opacity: 0.7,
+                marginLeft: "2px",
+              }}
+            >
+              ↻
+            </span>
+          )}
+        </div>
+        {config.subtitle && (
+          <div
             style={{
               fontSize: "10px",
+              color: config.color,
               opacity: 0.7,
-              marginLeft: "2px",
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              marginRight: "16px",
             }}
           >
-            ↻
-          </span>
+            {config.subtitle}
+          </div>
         )}
       </div>
     );
