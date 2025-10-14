@@ -449,7 +449,7 @@ export default function AppSidebar() {
         </SidebarGroup>
 
         {/* Unsaved Changes */}
-        {unsavedNotesCount > 0 && (
+        {/*{unsavedNotesCount > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-accent-foreground dark:text-accent-foreground font-medium flex items-center gap-2">
               <Clock className="h-3 w-3" />
@@ -480,7 +480,7 @@ export default function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
+        )}*/}
 
         {/* Recent Notes */}
         <SidebarGroup>
