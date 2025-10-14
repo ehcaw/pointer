@@ -550,6 +550,35 @@ html.dark .slash-command-item-icon,
   transition: all 0.2s ease;
 }
 
+/* Disabled editor styles */
+.simple-editor-content.editor-disabled {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(1px);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .tiptap.ProseMirror {
+    cursor: not-allowed;
+    filter: grayscale(0.2);
+  }
+}
+
+.dark .simple-editor-content.editor-disabled {
+  &::before {
+    background: rgba(0, 0, 0, 0.1);
+  }
+}
+
 .collaboration-carets__caret {
   border-left: 1px solid #0d0d0d;
   border-right: 1px solid #0d0d0d;

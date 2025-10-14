@@ -162,7 +162,9 @@ export function CollaborativeEditor({
 
   // Hocuspocus provider - use useRef to prevent recreation on every render
   const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
-  const [isProviderActive, setIsProviderActive] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
 
   if (!hocusPocusProviderRef.current) {
     hocusPocusProviderRef.current = createHocusPocusProvider(
@@ -174,17 +176,20 @@ export function CollaborativeEditor({
     // Add debugging events
     hocusPocusProviderRef.current.on("connect", () => {
       console.log("Hocuspocus connected");
-      setIsProviderActive(true);
+      setConnectionStatus("connected");
     });
 
     hocusPocusProviderRef.current.on("disconnect", () => {
       console.log("Hocuspocus disconnected");
-      setIsProviderActive(false);
+      setConnectionStatus("disconnected");
     });
 
     hocusPocusProviderRef.current.on(
       "status",
       (event: { status: "connecting" | "connected" | "disconnected" }) => {
+        console.log("Hocuspocus status:", event.status);
+        setConnectionStatus(event.status);
+
         // Auto-reconnect on connection failures
         if (event.status === "disconnected") {
           // Attempt to reconnect after a delay
@@ -210,29 +215,29 @@ export function CollaborativeEditor({
 
   // Graceful disconnect function
   const disconnectProvider = useCallback(() => {
-    if (provider && isProviderActive) {
+    if (provider) {
       try {
         provider.disconnect();
-        console.log("Provider disconnected gracefully");
-        setIsProviderActive(false);
+        setConnectionStatus("disconnected");
       } catch (error) {
         console.error("Error disconnecting provider:", error);
       }
     }
-  }, [provider, isProviderActive]);
+  }, [provider]);
 
   // Graceful reconnect function
   const reconnectProvider = useCallback(() => {
-    if (provider && !isProviderActive) {
+    if (provider) {
       try {
+        setConnectionStatus("connecting");
         provider.connect();
-        console.log("Provider reconnected gracefully");
-        // Note: The actual state change will happen in the 'connect' event handler
+        // Note: The actual state change to 'connected' will happen in the 'connect' event handler
       } catch (error) {
         console.error("Error reconnecting provider:", error);
+        setConnectionStatus("disconnected");
       }
     }
-  }, [provider, isProviderActive]);
+  }, [provider]);
 
   // Force cleanup function for permanent component removal
   const forceCleanupProvider = useCallback(() => {
@@ -283,6 +288,7 @@ export function CollaborativeEditor({
 
   const lastContentRef = useRef<string>("");
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isInitialContentLoaded, setIsInitialContentLoaded] = useState(false);
 
   const editor = useEditor({
     enableContentCheck: true,
@@ -294,23 +300,12 @@ export function CollaborativeEditor({
 
       // Listen for sync event
       provider.on("synced", () => {
-        console.log("Hocuspocus synced event fired");
         const yXmlFragment = provider.document.getXmlFragment("prosemirror");
-        console.log("Y.js fragment length:", yXmlFragment.length);
         if (yXmlFragment.length === 0 && initialContent) {
-          console.log("Setting initial content (on sync):", initialContent);
           currentEditor.commands.setContent(initialContent);
+          setIsInitialContentLoaded(true);
         }
       });
-
-      // Also try to set content after a short delay in case sync already happened
-      setTimeout(() => {
-        const yXmlFragment = provider.document.getXmlFragment("prosemirror");
-        if (yXmlFragment.length === 0 && initialContent) {
-          console.log("Setting initial content (timeout):", initialContent);
-          currentEditor.commands.setContent(initialContent);
-        }
-      }, 1000);
     },
     immediatelyRender: true,
     editorProps: {
@@ -376,6 +371,12 @@ export function CollaborativeEditor({
 
     // Lightweight onUpdate - only handles UI updates
     onUpdate: async ({ editor, transaction }) => {
+      // Skip the first update to prevent saving initial content load
+      if (ignoreFirstUpdate.current) {
+        ignoreFirstUpdate.current = false;
+        return;
+      }
+
       isRemoteChange.current = !!transaction.getMeta("y-prosemirror-plugin$");
       // Handle slash command (lightweight)
       const { selection } = editor.state;
@@ -457,9 +458,9 @@ export function CollaborativeEditor({
   const debouncedContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
-    // On the very first update after mounting, just update the last content ref and ignore
-    if (ignoreFirstUpdate.current) {
-      ignoreFirstUpdate.current = false;
+    // Don't save until initial content has been loaded
+    if (!isInitialContentLoaded) {
+      // Still update the last content ref to track the initial state
       lastContentRef.current = JSON.stringify(editor.getJSON());
       return;
     }
@@ -506,6 +507,7 @@ export function CollaborativeEditor({
     markNoteAsUnsaved,
     saveCurrentNote,
     removeUnsavedNote,
+    isInitialContentLoaded,
   ]);
 
   // Calculate position for slash command popup - position relative to viewport
@@ -627,6 +629,33 @@ export function CollaborativeEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
+  // Handle editor editability based on connection status
+  useEffect(() => {
+    if (editor) {
+      const isEditable = connectionStatus === "connected";
+      editor.setEditable(isEditable);
+
+      // Also disable slash command when not connected
+      if (!isEditable) {
+        setShowSlashCommand(false);
+        setSlashCommandQuery("");
+      }
+    }
+  }, [connectionStatus, editor]);
+
+  // Handle initial content loading completion
+  useEffect(() => {
+    if (editor && connectionStatus === "connected") {
+      // If there's no initial content, mark as loaded after a short delay
+      if (!initialContent || initialContent === "") {
+        const timer = setTimeout(() => {
+          setIsInitialContentLoaded(true);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [editor, connectionStatus, initialContent]);
+
   // Handle provider lifecycle and cleanup
   useEffect(() => {
     // Cleanup function for component unmount
@@ -674,14 +703,118 @@ export function CollaborativeEditor({
     };
   }, []);
 
+  // Status badge component
+  const StatusBadge = () => {
+    const getStatusConfig = () => {
+      switch (connectionStatus) {
+        case "connected":
+          return {
+            color: "#10b981", // green-500
+            bgColor: "#10b98120",
+            text: "Connected",
+            isClickable: false,
+          };
+        case "connecting":
+          return {
+            color: "#f59e0b", // amber-500
+            bgColor: "#f59e0b20",
+            text: "Connecting...",
+            isClickable: false,
+          };
+        case "disconnected":
+          return {
+            color: "#ef4444", // red-500
+            bgColor: "#ef444420",
+            text: "Disconnected",
+            isClickable: true,
+          };
+      }
+    };
+
+    const config = getStatusConfig();
+
+    const handleBadgeClick = () => {
+      if (config.isClickable) {
+        reconnectProvider();
+      }
+    };
+
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: "12px",
+          right: "12px",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "6px 10px",
+          backgroundColor: config.bgColor,
+          border: `1px solid ${config.color}30`,
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "500",
+          color: config.color,
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          backdropFilter: "blur(8px)",
+          cursor: config.isClickable ? "pointer" : "default",
+          transition: "all 0.2s ease",
+          ...(config.isClickable && {
+            ":hover": {
+              backgroundColor: config.bgColor.replace("20", "30"),
+              transform: "translateY(-1px)",
+            },
+          }),
+        }}
+        onClick={handleBadgeClick}
+        title={config.isClickable ? "Click to reconnect" : "Connection status"}
+      >
+        <div
+          style={{
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            backgroundColor: config.color,
+            boxShadow:
+              connectionStatus === "connecting"
+                ? `0 0 0 2px ${config.color}40`
+                : "none",
+            animation:
+              connectionStatus === "connecting"
+                ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+                : "none",
+          }}
+        />
+        <span>{config.text}</span>
+        {config.isClickable && (
+          <span
+            style={{
+              fontSize: "10px",
+              opacity: 0.7,
+              marginLeft: "2px",
+            }}
+          >
+            ↻
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <EditorContext.Provider value={{ editor }}>
       <div style={{ position: "relative", height: "100%" }}>
+        <StatusBadge />
         <div className="content-wrapper">
           <EditorContent
             editor={editor}
             role="presentation"
-            className="simple-editor-content"
+            className={`simple-editor-content ${connectionStatus !== "connected" ? "editor-disabled" : ""}`}
+            style={{
+              opacity: connectionStatus !== "connected" ? 0.6 : 1,
+              pointerEvents: connectionStatus !== "connected" ? "none" : "auto",
+            }}
           />
           {showSlashCommand &&
             editor &&
