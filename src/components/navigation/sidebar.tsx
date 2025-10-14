@@ -5,7 +5,6 @@ import {
   Plus,
   Home,
   FileText,
-  Clock,
   GitGraph,
   Trash,
   LineSquiggle,
@@ -37,7 +36,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import {
   useNotesStore,
   useRecentNotes,
@@ -144,8 +142,6 @@ export default function AppSidebar() {
 
   // Use optimized selectors
   const recentNotes = useRecentNotes();
-  const unsavedNotesArray = useUnsavedNotesArray();
-  const unsavedNotesCount = useUnsavedNotesCount();
 
   const {
     userNotes,
