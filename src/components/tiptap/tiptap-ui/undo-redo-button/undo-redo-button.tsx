@@ -75,7 +75,7 @@ export function canExecuteHistoryAction(
     return action === "undo" ? can.undo() : can.redo();
   } catch (error) {
     // History is not available (e.g., in collaborative mode)
-    console.log(error);
+    console.error(error);
     return false;
   }
 }
@@ -108,7 +108,7 @@ export function executeHistoryAction(
     return action === "undo" ? chain.undo().run() : chain.redo().run();
   } catch (error) {
     // History is not available (e.g., in collaborative mode)
-    console.log(error);
+    console.error(error);
     return false;
   }
 }
