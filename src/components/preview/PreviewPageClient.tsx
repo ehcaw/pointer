@@ -11,6 +11,9 @@ import Image from "next/image";
 
 function PreviewContent({ slug }: { slug: string }) {
   const note = useQuery(api.notes.getPublicNote, { pointer_id: slug });
+  const content = useQuery(api.notesContent.getNoteContentById, {
+    noteId: note?._id.toString() || "",
+  });
 
   if (note === undefined) {
     return (
@@ -40,10 +43,10 @@ function PreviewContent({ slug }: { slug: string }) {
     );
   }
 
-  const noteContent = note.content?.tiptap
-    ? typeof note.content?.tiptap === "string"
-      ? JSON.parse(note.content?.tiptap || "")
-      : note.content?.tiptap
+  const noteContent = content
+    ? typeof content?.tiptap === "string"
+      ? JSON.parse(content?.tiptap || "")
+      : content?.tiptap
     : {
         type: "doc",
         content: [
@@ -58,6 +61,7 @@ function PreviewContent({ slug }: { slug: string }) {
           },
         ],
       };
+  console.log("NOTE CONTENT ", noteContent);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
