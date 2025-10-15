@@ -6,7 +6,6 @@ import { useNoteContent } from "@/hooks/use-note-content";
 import { useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import { Editor } from "@tiptap/react";
-import { MemorizedToC } from "../tiptap/tiptap-extension/table-of-contents";
 
 export const NotebookView = () => {
   const { currentNote, editorRef } = useNoteEditor();
@@ -40,7 +39,6 @@ export const NotebookView = () => {
             </div>
           </div>
         </div>
-        <MemorizedToC currentNote={currentNote} editor={editor} />
       </div>
 
       {/* Footer with note info */}
