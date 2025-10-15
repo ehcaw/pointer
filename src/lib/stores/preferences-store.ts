@@ -3,11 +3,11 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 interface PreferencesStore {
   // UI state preferences
-  currentView: "home" | "note" | "graph" | "whiteboard";
+  currentView: "home" | "note" | "graph" | "whiteboard" | "settings";
   currentNoteId: string | null;
 
   // Preference setters
-  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") => void;
+  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard" | "settings") => void;
   setCurrentNoteId: (noteId: string | null) => void;
 }
 
@@ -19,7 +19,7 @@ export const usePreferencesStore = create<PreferencesStore>()(
       currentNoteId: null,
 
       // Preference setters
-      setCurrentView: (view: "home" | "note" | "graph" | "whiteboard") => {
+      setCurrentView: (view: "home" | "note" | "graph" | "whiteboard" | "settings") => {
         set({ currentView: view });
       },
       setCurrentNoteId: (noteId: string | null) => {

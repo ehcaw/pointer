@@ -91,29 +91,29 @@ export default function NoteViewHeader() {
   }, [title, saveCurrentNote]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 backdrop-blur-sm px-4">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem className="hidden md:block">
             <BreadcrumbLink
               href="#"
-              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <Home className="h-3 w-3" />
               workspace
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
+          <BreadcrumbSeparator className="hidden md:block text-muted-foreground" />
           <BreadcrumbItem className="hidden md:block">
             <BreadcrumbLink
               href="#"
-              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <FileText className="h-3 w-3" />
               notes
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-slate-600" />
+          <BreadcrumbSeparator className="hidden md:block text-muted-foreground" />
           <BreadcrumbItem>
             <div className="relative group">
               <Input
@@ -125,12 +125,12 @@ export default function NoteViewHeader() {
                 placeholder="Untitled Note"
                 className={cn(
                   "text-lg font-semibold bg-transparent border-0 shadow-none px-3 py-2 h-auto rounded-md",
-                  "text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                  "text-foreground placeholder:text-muted-foreground",
                   "focus:outline-none focus-visible:ring-0 transition-all duration-200",
                   "min-w-[200px] max-w-[400px]",
                   isTitleFocused
-                    ? "bg-white dark:bg-slate-800 shadow-sm ring-2 ring-primary/20 border border-primary/30"
-                    : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent",
+                    ? "bg-card shadow-sm ring-2 ring-primary/20 border border-primary/30"
+                    : "hover:bg-accent border border-transparent",
                 )}
               />
               {/* Visual indicator for editable state */}
@@ -139,7 +139,7 @@ export default function NoteViewHeader() {
                   "absolute inset-0 rounded-md border-2 border-dashed transition-opacity duration-200 pointer-events-none",
                   isTitleFocused
                     ? "opacity-0"
-                    : "opacity-0 group-hover:opacity-30 border-slate-300 dark:border-slate-600",
+                    : "opacity-0 group-hover:opacity-30 border-border",
                 )}
               />
             </div>

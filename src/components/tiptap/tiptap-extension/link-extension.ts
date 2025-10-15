@@ -1,7 +1,7 @@
-import TiptapLink from "@tiptap/extension-link"
-import type { EditorView } from "@tiptap/pm/view"
-import { getMarkRange } from "@tiptap/react"
-import { Plugin, TextSelection } from "@tiptap/pm/state"
+import TiptapLink from "@tiptap/extension-link";
+import type { EditorView } from "@tiptap/pm/view";
+import { getMarkRange } from "@tiptap/react";
+import { Plugin, TextSelection } from "@tiptap/pm/state";
 
 export const Link = TiptapLink.extend({
   inclusive: false,
@@ -11,55 +11,57 @@ export const Link = TiptapLink.extend({
       {
         tag: 'a[href]:not([data-type="button"]):not([href *= "javascript:" i])',
       },
-    ]
+    ];
   },
 
   addProseMirrorPlugins() {
-    const { editor } = this
+    const { editor } = this;
 
     return [
       ...(this.parent?.() || []),
       new Plugin({
         props: {
           handleKeyDown: (_: EditorView, event: KeyboardEvent) => {
-            const { selection } = editor.state
+            const { selection } = editor.state;
 
             if (event.key === "Escape" && selection.empty !== true) {
-              editor.commands.focus(selection.to, { scrollIntoView: false })
+              editor.commands.focus(selection.to, { scrollIntoView: false });
             }
 
-            return false
+            return false;
           },
           handleClick(view, pos) {
-            const { schema, doc, tr } = view.state
-            let range: ReturnType<typeof getMarkRange> | undefined
+            const { schema, doc, tr } = view.state;
+            let range: ReturnType<typeof getMarkRange> | undefined;
 
             if (schema.marks.link) {
-              range = getMarkRange(doc.resolve(pos), schema.marks.link)
+              range = getMarkRange(doc.resolve(pos), schema.marks.link);
             }
 
             if (!range) {
-              return
+              return;
             }
 
-            const { from, to } = range
-            const start = Math.min(from, to)
-            const end = Math.max(from, to)
+            const { from, to } = range;
+            const start = Math.min(from, to);
+            const end = Math.max(from, to);
 
             if (pos < start || pos > end) {
-              return
+              return;
             }
 
-            const $start = doc.resolve(start)
-            const $end = doc.resolve(end)
-            const transaction = tr.setSelection(new TextSelection($start, $end))
+            const $start = doc.resolve(start);
+            const $end = doc.resolve(end);
+            const transaction = tr.setSelection(
+              new TextSelection($start, $end),
+            );
 
-            view.dispatch(transaction)
+            view.dispatch(transaction);
           },
         },
       }),
-    ]
+    ];
   },
-})
+});
 
-export default Link
+export default Link;

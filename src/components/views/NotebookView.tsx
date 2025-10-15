@@ -1,67 +1,24 @@
 "use client";
 import { SimpleEditor } from "../tiptap/tiptap-templates/simple/simple-editor";
-import { FloatingToolbar } from "../tiptap/tiptap-templates/simple/FloatingToolbar";
+import { FloatingToolbar } from "../tiptap/tiptap-templates/toolbar/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useEffect, useRef, useState } from "react";
-import { useNotesStore } from "@/lib/stores/notes-store";
+import { useNoteContent } from "@/hooks/use-note-content";
+import { useRef, useState } from "react";
 import { Clock } from "lucide-react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Editor } from "@tiptap/react";
 import { MemorizedToC } from "../tiptap/tiptap-extension/table-of-contents";
 
 export const NotebookView = () => {
-  const { currentNote, editorRef, saveCurrentNote, createEmptyNote } =
-    useNoteEditor(); // Imported handleEditorUpdate
-
-  const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
-  const { currentView } = usePreferencesStore();
+  const { currentNote, editorRef } = useNoteEditor();
+  const { noteContent, isLoadingContent } = useNoteContent();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
 
-  // Create an empty note if there isn\'t one already
-  useEffect(() => {
-    if (!currentNote && currentView === "note") {
-      createEmptyNote("Untitled Note");
-    }
-  }, [currentNote, currentView, createEmptyNote]); // Added createEmptyNote to deps
-
-  useHotkeys(
-    "meta+s",
-    async (e) => {
-      console.log("Save hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      const successful = await saveCurrentNote();
-      if (successful && mostCurrentNote) {
-        saveDBSavedNote(mostCurrentNote);
-        removeUnsavedNote(mostCurrentNote.pointer_id);
-      }
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
-
-  const mostCurrentNote = useNotesStore.getState().currentNote;
-  const noteContent = mostCurrentNote
-    ? mostCurrentNote.content.tiptap
-    : {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-          },
-        ],
-      };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">
       {/* Main Editor */}
       <div className="px-6 py-8 pb-20">
-        <div className="mx-auto max-w-[80%]">
+        <div className="mx-auto max-w-[100%]">
           {/* Floating Toolbar */}
           {editor && editorContainerRef.current && (
             <FloatingToolbar
@@ -69,14 +26,14 @@ export const NotebookView = () => {
               editorContainerRef={editorContainerRef}
             />
           )}
-          <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-card dark:bg-card rounded-sm shadow-sm border border-border overflow-hidden">
             <div
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
             >
               <SimpleEditor
                 key={currentNote?.pointer_id || "new-note"}
-                content={noteContent}
+                content={isLoadingContent ? "" : noteContent}
                 editorRef={editorRef}
                 onEditorReady={setEditor}
               />
@@ -88,9 +45,9 @@ export const NotebookView = () => {
 
       {/* Footer with note info */}
       {currentNote && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 h-16">
+        <div className="absolute bottom-0 left-0 right-0 bg-background/80 dark:bg-background/80 backdrop-blur-sm border-t border-border dark:border-border h-16">
           <div className="px-6 py-4 h-full">
-            <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 h-full">
+            <div className="flex items-center justify-between text-sm text-muted-foreground h-full">
               <div className="flex items-center gap-4"></div>
 
               <div className="flex items-center gap-2">

@@ -5,6 +5,9 @@ import "./globals.css";
 import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { PostHogContextProvider } from "@/providers/PostHogProvider";
+import { SWRConfig } from "swr";
+
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -36,7 +39,8 @@ export default function RootLayout({
       signInUrl="/"
       signUpUrl="/sign-up"
     >
-      <html lang="en" className="light" suppressHydrationWarning={true}>
+      {/* Remove className="light" from here */}
+      <html lang="en" suppressHydrationWarning={true}>
         <head>
           <script
             dangerouslySetInnerHTML={{
@@ -44,7 +48,9 @@ export default function RootLayout({
               try {
                 const theme = localStorage.getItem('theme') || 'system';
                 if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                  document.documentElement.className = document.documentElement.className.replace('light', 'dark');
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.add('light');
                 }
               } catch (e) {}
             `,
@@ -58,12 +64,16 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <ThemeProvider defaultTheme="system" storageKey="theme">
-            <ConvexClientProvider>
-              <CommandMenuProvider>{children}</CommandMenuProvider>
-              <Toaster position="top-right" />
-            </ConvexClientProvider>
-          </ThemeProvider>
+          <SWRConfig>
+            <PostHogContextProvider>
+              <ThemeProvider defaultTheme="system" storageKey="theme">
+                <ConvexClientProvider>
+                  <CommandMenuProvider>{children}</CommandMenuProvider>
+                  <Toaster position="top-right" />
+                </ConvexClientProvider>
+              </ThemeProvider>
+            </PostHogContextProvider>
+          </SWRConfig>
         </body>
       </html>
     </ClerkProvider>

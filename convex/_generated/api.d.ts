@@ -18,8 +18,11 @@ import type * as crons from "../crons.js";
 import type * as graph from "../graph.js";
 import type * as http from "../http.js";
 import type * as imageReferences from "../imageReferences.js";
+import type * as migration from "../migration.js";
 import type * as notes from "../notes.js";
+import type * as notesContent from "../notesContent.js";
 import type * as shared from "../shared.js";
+import type * as taskManagement from "../taskManagement.js";
 import type * as whiteboards from "../whiteboards.js";
 
 /**
@@ -36,8 +39,11 @@ declare const fullApi: ApiFromModules<{
   graph: typeof graph;
   http: typeof http;
   imageReferences: typeof imageReferences;
+  migration: typeof migration;
   notes: typeof notes;
+  notesContent: typeof notesContent;
   shared: typeof shared;
+  taskManagement: typeof taskManagement;
   whiteboards: typeof whiteboards;
 }>;
 export declare const api: FilterApi<

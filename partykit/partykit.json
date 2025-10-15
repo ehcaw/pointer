@@ -1,5 +1,5 @@
 {
-  "name": "pointer-collaborative-editor",
+  "name": "pointer-collaboration",
   "main": "./server.ts",
   "compatibilityDate": "2024-01-01"
 }

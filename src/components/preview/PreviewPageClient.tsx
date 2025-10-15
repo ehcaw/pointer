@@ -40,10 +40,10 @@ function PreviewContent({ slug }: { slug: string }) {
     );
   }
 
-  const noteContent = note.content.tiptap
-    ? typeof note.content.tiptap === "string"
-      ? JSON.parse(note.content.tiptap)
-      : note.content.tiptap
+  const noteContent = note.content?.tiptap
+    ? typeof note.content?.tiptap === "string"
+      ? JSON.parse(note.content?.tiptap || "")
+      : note.content?.tiptap
     : {
         type: "doc",
         content: [
@@ -52,7 +52,7 @@ function PreviewContent({ slug }: { slug: string }) {
             content: [
               {
                 type: "text",
-                text: note.content.text || "This note appears to be empty.",
+                text: note.content?.text || "This note appears to be empty.",
               },
             ],
           },

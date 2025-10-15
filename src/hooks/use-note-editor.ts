@@ -30,6 +30,7 @@ export function useNoteEditor() {
     addOpenUserNote,
     setTreeStructure,
     dbSavedNotes,
+    addUserNote,
   } = useNotesStore();
 
   // Local state for save operations
@@ -40,6 +41,9 @@ export function useNoteEditor() {
     getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
+    cleanupProvider?: () => void;
+    disconnectProvider?: () => void;
+    reconnectProvider?: () => void;
   }>(null);
 
   // Keep track of last known content to avoid unnecessary updates
@@ -65,19 +69,19 @@ export function useNoteEditor() {
     }
   };
 
-  const fetchNoteById = async (noteId: string) => {
-    try {
-      const note = await convex.query(api.notes.findNoteByPointerId, {
-        pointer_id: noteId,
-      });
-      if (!note) {
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  // const fetchNoteById = async (noteId: string) => {
+  //   try {
+  //     const note = await convex.query(api.notes.findNoteByPointerId, {
+  //       pointer_id: noteId,
+  //     });
+  //     if (!note) {
+  //       return false;
+  //     }
+  //     return true;
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
 
   /**
    * Create a new note in the database
@@ -104,6 +108,7 @@ export function useNoteEditor() {
     // Add to store as unsaved
     addNewUnsavedNote(newNote);
     addOpenUserNote(newNote);
+    addUserNote(newNote);
     setCurrentView("note");
     setCurrentNote(newNote);
 
@@ -136,7 +141,7 @@ export function useNoteEditor() {
   const saveNote = async (note: Node): Promise<boolean> => {
     try {
       const noteData = note;
-      const rawTiptapContent = (noteData as FileNode).content.tiptap;
+      const rawTiptapContent = (noteData as FileNode).content?.tiptap || "";
       const serializedTiptapContent = ensureJSONString(rawTiptapContent);
       const mutationData = {
         pointer_id: noteData.pointer_id,
@@ -148,17 +153,11 @@ export function useNoteEditor() {
         lastEdited: String(noteData.lastEdited || new Date()),
         content: {
           tiptap: serializedTiptapContent,
-          text: (noteData as FileNode).content.text,
+          text: (noteData as FileNode).content?.text || "",
         },
         collaborative: noteData.collaborative,
       };
-
-      const doesNoteExist = await fetchNoteById(note.pointer_id);
-      if (doesNoteExist) {
-        await convex.mutation(api.notes.updateNoteInDb, mutationData);
-      } else {
-        await convex.mutation(api.notes.createNoteInDb, mutationData);
-      }
+      await convex.mutation(api.notes.updateNoteInDb, mutationData);
       const savedNote = { ...note, _id: note.pointer_id };
       updateNoteInCollections(savedNote);
       clearUnsavedNote(note.pointer_id.toString());
@@ -252,7 +251,7 @@ export function useNoteEditor() {
 
     // Note CRUD operations
     fetchAllNotes,
-    fetchNoteById,
+    // fetchNoteById,
     createNewNote,
     createEmptyNote,
     openNote,

@@ -1,65 +1,31 @@
 "use client";
 import { CollaborativeEditor } from "../tiptap/tiptap-templates/collaborative/collaborative-editor";
-import { FloatingToolbar } from "../tiptap/tiptap-templates/simple/FloatingToolbar";
+import { FloatingToolbar } from "../tiptap/tiptap-templates/toolbar/FloatingToolbar";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { useEffect, useRef, useState } from "react";
-import { useNotesStore } from "@/lib/stores/notes-store";
+import { useNoteContent } from "@/hooks/use-note-content";
+import { useRef, useState, useMemo, memo } from "react";
 import { Clock } from "lucide-react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { Editor } from "@tiptap/react";
+import { Loader2 } from "lucide-react";
 
-export const CollaborativeNotebookView = ({}) => {
-  const { currentNote, editorRef, saveCurrentNote } = useNoteEditor();
+const CollaborativeNotebookView = memo(({}) => {
+  const { currentNote, editorRef } = useNoteEditor();
+  const { noteContent, isLoadingContent } = useNoteContent();
 
-  const { saveDBSavedNote, removeUnsavedNote } = useNotesStore();
-  const { isSignedIn, isLoaded } = useUser();
-  const router = useRouter();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push("/");
-    }
-  }, [isSignedIn, isLoaded, router]);
-
-  useHotkeys(
-    "meta+s",
-    async (e) => {
-      console.log("Save hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      const successful = await saveCurrentNote();
-      if (successful && currentNote) {
-        saveDBSavedNote(currentNote);
-        removeUnsavedNote(currentNote.pointer_id);
-      }
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
-
-  const noteContent = currentNote
-    ? currentNote.content.tiptap
-    : {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-          },
-        ],
-      };
+  const lastSavedTime = useMemo(() => {
+    return currentNote
+      ? new Date(currentNote.updatedAt).toLocaleString()
+      : new Date().toLocaleString();
+  }, [currentNote]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="relative min-h-screen bg-gradient-to-br from-background via-background to-background dark:from-background dark:via-background dark:to-background">
       {/* Main Editor */}
       <div className="px-6 py-8 pb-20">
-        <div className="mx-auto max-w-[80%]">
+        <div className="mx-auto max-w-[100%]">
           {/* Floating Toolbar */}
           {editor && editorContainerRef.current && (
             <FloatingToolbar
@@ -67,18 +33,26 @@ export const CollaborativeNotebookView = ({}) => {
               editorContainerRef={editorContainerRef}
             />
           )}
-          <div className="bg-white dark:bg-slate-800 rounded-sm shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="bg-card rounded-sm shadow-sm border border-border overflow-hidden">
             <div
               className="w-full min-h-[calc(100vh-240px)]"
               ref={editorContainerRef}
             >
-              <CollaborativeEditor
-                id={currentNote?.pointer_id || "default-doc"}
-                key={currentNote?.pointer_id || "default-doc"}
-                content={noteContent}
-                editorRef={editorRef}
-                onEditorReady={setEditor}
-              />
+              {isLoadingContent ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading content...</span>
+                  </div>
+                </div>
+              ) : (
+                <CollaborativeEditor
+                  id={currentNote?.pointer_id || "default-doc"}
+                  content={noteContent}
+                  editorRef={editorRef}
+                  onEditorReady={setEditor}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -86,16 +60,14 @@ export const CollaborativeNotebookView = ({}) => {
 
       {/* Footer with note info */}
       {currentNote && (
-        <div className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 h-16">
+        <div className="absolute bottom-0 left-0 right-0 bg-background/80 dark:bg-background/80 backdrop-blur-sm border-t border-border dark:border-border h-16">
           <div className="px-6 py-4 h-full">
-            <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 h-full">
+            <div className="flex items-center justify-between text-sm text-muted-foreground dark:text-muted-foreground h-full">
               <div className="flex items-center gap-4"></div>
 
               <div className="flex items-center gap-2">
                 <Clock className="h-3 w-3" />
-                <span>
-                  Last saved {new Date(currentNote.updatedAt).toLocaleString()}
-                </span>
+                <span>Last saved {lastSavedTime}</span>
               </div>
             </div>
           </div>
@@ -103,4 +75,8 @@ export const CollaborativeNotebookView = ({}) => {
       )}
     </div>
   );
-};
+});
+
+CollaborativeNotebookView.displayName = "CollaborativeNotebookView";
+
+export default CollaborativeNotebookView;

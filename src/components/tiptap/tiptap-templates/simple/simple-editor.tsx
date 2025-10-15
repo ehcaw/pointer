@@ -26,7 +26,7 @@ import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
 import { Link } from "@/components/tiptap/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap/tiptap-extension/trailing-node-extension";
-import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
+// import { AutocompleteExtension } from "../../../../providers/AutocompleteProvider";
 import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command-extension";
 
 // --- Tiptap Node ---
@@ -59,6 +59,9 @@ interface SimpleEditorProps {
     getJSON: () => Record<string, unknown>;
     getText: () => string;
     setJSON: (content: Record<string, unknown>) => void;
+    cleanupProvider?: () => void;
+    disconnectProvider?: () => void;
+    reconnectProvider?: () => void;
   } | null>;
   onEditorReady?: (editor: Editor) => void;
 }
@@ -84,8 +87,8 @@ export function SimpleEditor({
   const { HandleImageDelete } = useTiptapImage();
 
   const { saveCurrentNote } = useNoteEditor();
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 3 seconds
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const SAVE_DELAY = 3000; // 2 seconds
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -116,7 +119,6 @@ export function SimpleEditor({
   }, [content]);
 
   const lastContentRef = useRef<string>("");
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -149,7 +151,7 @@ export function SimpleEditor({
       Selection,
       TrailingNode,
       Link.configure({ openOnClick: false }),
-      AutocompleteExtension,
+      // AutocompleteExtension,
       SlashCommand.configure({
         suggestion: {
           char: "/",
@@ -168,7 +170,7 @@ export function SimpleEditor({
       }),
     ],
     content: initialContent,
-    // Lightweight onUpdate - only handles UI updates
+    // Optimized onUpdate with single-timer debounced autosave
     onUpdate: async ({ editor, transaction }) => {
       // Handle slash command (lightweight)
       const { selection } = editor.state;
@@ -193,14 +195,8 @@ export function SimpleEditor({
         setSlashCommandQuery("");
       }
 
-      // Debounce the heavy content update operations
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-
-      updateTimeoutRef.current = setTimeout(() => {
-        debouncedContentUpdate();
-      }, 150); // Very short debounce for content updates
+      // Handle content update with single timer approach
+      handleContentUpdate();
 
       if (transaction.docChanged && currentNote) {
         const getImageSrcs = (doc: typeof transaction.doc) => {
@@ -246,8 +242,8 @@ export function SimpleEditor({
     },
   });
 
-  // Debounced content update function
-  const debouncedContentUpdate = useCallback(() => {
+  // Optimized content update with single timer debouncing
+  const handleContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
     const currentEditorJson = editor.getJSON();
@@ -259,6 +255,9 @@ export function SimpleEditor({
       lastContentRef.current = currentContentHash;
 
       // Update content immediately in memory (fast)
+      if (!currentNote.content) {
+        currentNote.content = {};
+      }
       currentNote.content.tiptap = ensureJSONString(currentEditorJson);
       currentNote.content.text = currentEditorText;
       currentNote.updatedAt = new Date().toISOString();
@@ -266,20 +265,20 @@ export function SimpleEditor({
       // Mark as unsaved
       markNoteAsUnsaved(currentNote);
 
-      // Setup auto-save timer
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
+      // Cancel previous save timer and set new one
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
 
-      autoSaveTimeoutRef.current = setTimeout(async () => {
+      saveTimeoutRef.current = setTimeout(async () => {
         try {
           await saveCurrentNote();
-          autoSaveTimeoutRef.current = null;
+          saveTimeoutRef.current = null;
           removeUnsavedNote(currentNote.pointer_id);
         } catch (error) {
           console.error("Auto-save failed:", error);
         }
-      }, AUTO_SAVE_INTERVAL);
+      }, SAVE_DELAY);
     }
   }, [
     currentNote,
@@ -289,7 +288,7 @@ export function SimpleEditor({
     removeUnsavedNote,
   ]);
 
-  // Calculate position for slash command popup - position relative to viewport
+  // Calculate position for slash command popup - position relative to viewport with awareness
   const getSlashCommandPosition = () => {
     if (!editor) return { top: 0, left: 0, position: "fixed" as const };
 
@@ -297,11 +296,46 @@ export function SimpleEditor({
     const { $from } = selection;
     const coords = editor.view.coordsAtPos($from.pos);
 
-    // Position relative to viewport (fixed positioning)
+    // Estimate popup height (rough estimate based on typical content)
+    const estimatedPopupHeight = 300;
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - coords.bottom;
+    const spaceAbove = coords.top;
+
+    let topPosition;
+    let shouldFlip = false;
+
+    // Decide whether to show above or below
+    if (
+      spaceBelow < estimatedPopupHeight &&
+      spaceAbove > estimatedPopupHeight
+    ) {
+      // Not enough space below, but enough space above - show above
+      topPosition = coords.top - estimatedPopupHeight - 4;
+      shouldFlip = true;
+    } else if (
+      spaceBelow < estimatedPopupHeight &&
+      spaceAbove <= estimatedPopupHeight
+    ) {
+      // Not enough space in either direction - show in the larger space
+      if (spaceBelow > spaceAbove) {
+        // More space below, show below even if it might be cut off
+        topPosition = coords.bottom + 4;
+      } else {
+        // More space above, show above even if it might be cut off
+        topPosition = Math.max(4, coords.top - estimatedPopupHeight - 4);
+        shouldFlip = true;
+      }
+    } else {
+      // Enough space below, show below (default behavior)
+      topPosition = coords.bottom + 4;
+    }
+
     return {
-      top: coords.bottom + 4, // 4px below the cursor
+      top: topPosition,
       left: coords.left,
       position: "fixed" as const,
+      shouldFlip,
     };
   };
 
@@ -366,6 +400,21 @@ export function SimpleEditor({
     }
   }, [currentNote, dbSavedNotes]);
 
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && initialContent !== undefined) {
+      const currentEditorContent = editor.getJSON();
+      const currentContentHash = JSON.stringify(currentEditorContent);
+      const newContentHash = JSON.stringify(initialContent);
+
+      // Only update content if it's actually different to avoid unnecessary re-renders
+      if (currentContentHash !== newContentHash) {
+        editor.commands.setContent(initialContent, false); // false = don't trigger update events
+        lastContentRef.current = newContentHash;
+      }
+    }
+  }, [initialContent, editor]);
+
   useEffect(() => {
     if (currentNote && editor) {
       lastContentRef.current = JSON.stringify(editor.getJSON());
@@ -374,11 +423,8 @@ export function SimpleEditor({
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
     };
   }, []);
@@ -392,22 +438,28 @@ export function SimpleEditor({
             role="presentation"
             className="simple-editor-content"
           />
-          {showSlashCommand && editor && (
-            <div
-              style={{
-                position: "fixed",
-                top: getSlashCommandPosition().top,
-                left: getSlashCommandPosition().left,
-                zIndex: 1000, // High z-index to ensure it's above everything
-              }}
-            >
-              <SlashCommandPopup
-                editor={editor}
-                onClose={() => setShowSlashCommand(false)}
-                query={slashCommandQuery}
-              />
-            </div>
-          )}
+          {showSlashCommand &&
+            editor &&
+            (() => {
+              const position = getSlashCommandPosition();
+              return (
+                <div
+                  style={{
+                    position: "fixed",
+                    top: position.top,
+                    left: position.left,
+                    zIndex: 1000, // High z-index to ensure it's above everything
+                  }}
+                >
+                  <SlashCommandPopup
+                    editor={editor}
+                    onClose={() => setShowSlashCommand(false)}
+                    query={slashCommandQuery}
+                    shouldFlip={position.shouldFlip}
+                  />
+                </div>
+              );
+            })()}
         </div>
       </div>
     </EditorContext.Provider>
