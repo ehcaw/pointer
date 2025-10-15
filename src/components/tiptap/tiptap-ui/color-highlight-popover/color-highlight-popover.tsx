@@ -82,8 +82,6 @@ export const DEFAULT_HIGHLIGHT_COLORS: ColorHighlightPopoverColor[] = [
   },
 ];
 
-
-
 export const ColorHighlightPopoverButton = React.forwardRef<
   HTMLButtonElement,
   ButtonProps
@@ -117,7 +115,7 @@ export function ColorHighlightPopoverContent({
   // Use dynamic colors if not provided
   const highlightColors = React.useMemo(
     () => colors || DEFAULT_HIGHLIGHT_COLORS,
-    [colors]
+    [colors],
   );
 
   const removeHighlight = React.useCallback(() => {
@@ -195,11 +193,11 @@ export function ColorHighlightPopover({
   const [isDisabled, setIsDisabled] = React.useState(false);
 
   const markAvailable = isMarkInSchema("highlight", editor);
-  
+
   // Use dynamic colors if not provided
   const highlightColors = React.useMemo(
     () => colors || DEFAULT_HIGHLIGHT_COLORS,
-    [colors]
+    [colors],
   );
 
   React.useEffect(() => {

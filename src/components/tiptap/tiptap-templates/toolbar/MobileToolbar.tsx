@@ -18,6 +18,7 @@ export const MobileToolbarContent = ({
   type: "highlighter" | "link";
   onBack: () => void;
   editor?: Editor;
+  isDisabled?: boolean;
 }) => (
   <>
     <ToolbarGroup>

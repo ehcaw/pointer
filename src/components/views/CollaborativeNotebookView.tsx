@@ -14,6 +14,10 @@ const CollaborativeNotebookView = memo(({}) => {
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
 
   const lastSavedTime = useMemo(() => {
     return currentNote
@@ -51,6 +55,7 @@ const CollaborativeNotebookView = memo(({}) => {
                   content={noteContent}
                   editorRef={editorRef}
                   onEditorReady={setEditor}
+                  onConnectionStatusChange={setConnectionStatus}
                 />
               )}
             </div>

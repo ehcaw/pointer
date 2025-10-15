@@ -38,6 +38,9 @@ export const MainToolbarContent = ({
   onLinkClick: () => void;
   isMobile: boolean;
   editor?: Editor;
+  isDisabled?: boolean;
+  connectionStatus?: "connecting" | "connected" | "disconnected";
+  isCollaborative?: boolean;
 }) => {
   const { isRecording, stopAndTranscribe, startRecording } =
     useVoiceRecorderStore();
