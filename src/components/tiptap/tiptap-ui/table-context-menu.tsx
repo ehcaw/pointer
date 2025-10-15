@@ -19,9 +19,10 @@ import "./table-context-menu.scss";
 
 export interface TableContextMenuProps {
   editor?: Editor | null;
+  disabled?: boolean;
 }
 
-export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) => {
+export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor, disabled = false }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const isTableActive = editor?.isActive("table") ?? false;
@@ -31,6 +32,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
   }
 
   const handleAction = (action: () => void) => {
+    if (disabled) return;
     action();
     setIsOpen(false);
   };
@@ -42,7 +44,8 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
           data-style="ghost"
           data-size="small"
           className="table-context-menu-trigger"
-          onClick={() => setIsOpen(true)}
+          onClick={() => !disabled && setIsOpen(true)}
+          disabled={disabled}
         >
           Table
         </Button>
@@ -55,6 +58,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().addColumnBefore().run())}
+              disabled={disabled}
             >
               Add Column Before
             </Button>
@@ -62,6 +66,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().addColumnAfter().run())}
+              disabled={disabled}
             >
               Add Column After
             </Button>
@@ -69,6 +74,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().deleteColumn().run())}
+              disabled={disabled}
             >
               Delete Column
             </Button>
@@ -82,6 +88,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().addRowBefore().run())}
+              disabled={disabled}
             >
               Add Row Before
             </Button>
@@ -89,6 +96,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().addRowAfter().run())}
+              disabled={disabled}
             >
               Add Row After
             </Button>
@@ -96,6 +104,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().deleteRow().run())}
+              disabled={disabled}
             >
               Delete Row
             </Button>
@@ -109,6 +118,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().mergeCells().run())}
+              disabled={disabled}
             >
               Merge Cells
             </Button>
@@ -116,6 +126,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().splitCell().run())}
+              disabled={disabled}
             >
               Split Cell
             </Button>
@@ -123,6 +134,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().mergeOrSplit().run())}
+              disabled={disabled}
             >
               Merge or Split
             </Button>
@@ -136,6 +148,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().toggleHeaderColumn().run())}
+              disabled={disabled}
             >
               Toggle Header Column
             </Button>
@@ -143,6 +156,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().toggleHeaderRow().run())}
+              disabled={disabled}
             >
               Toggle Header Row
             </Button>
@@ -150,6 +164,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().toggleHeaderCell().run())}
+              disabled={disabled}
             >
               Toggle Header Cell
             </Button>
@@ -162,6 +177,7 @@ export const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) =>
               data-style="ghost"
               data-size="small"
               onClick={() => handleAction(() => editor.chain().focus().deleteTable().run())}
+              disabled={disabled}
             >
               Delete Table
             </Button>

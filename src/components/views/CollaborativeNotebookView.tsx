@@ -14,7 +14,6 @@ const CollaborativeNotebookView = memo(({}) => {
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "disconnected"
   >("connecting");
@@ -35,6 +34,8 @@ const CollaborativeNotebookView = memo(({}) => {
             <FloatingToolbar
               editor={editor}
               editorContainerRef={editorContainerRef}
+              connectionStatus={connectionStatus}
+              isCollaborative={true}
             />
           )}
           <div className="bg-card rounded-sm shadow-sm border border-border overflow-hidden">

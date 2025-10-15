@@ -43,6 +43,7 @@ export interface ColorHighlightPopoverContentProps {
   editor?: Editor | null;
   colors?: ColorHighlightPopoverColor[];
   onClose?: () => void;
+  disabled?: boolean;
 }
 
 export interface ColorHighlightPopoverProps extends Omit<ButtonProps, "type"> {
@@ -52,6 +53,8 @@ export interface ColorHighlightPopoverProps extends Omit<ButtonProps, "type"> {
   colors?: ColorHighlightPopoverColor[];
   /** Whether to hide the highlight popover when unavailable. */
   hideWhenUnavailable?: boolean;
+  /** Whether the popover is disabled. */
+  disabled?: boolean;
 }
 
 export const DEFAULT_HIGHLIGHT_COLORS: ColorHighlightPopoverColor[] = [
@@ -108,6 +111,7 @@ export function ColorHighlightPopoverContent({
   editor: providedEditor,
   colors,
   onClose,
+  disabled = false,
 }: ColorHighlightPopoverContentProps) {
   const editor = useTiptapEditor(providedEditor);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -119,10 +123,10 @@ export function ColorHighlightPopoverContent({
   );
 
   const removeHighlight = React.useCallback(() => {
-    if (!editor) return;
+    if (!editor || disabled) return;
     editor.chain().focus().unsetMark("highlight").run();
     onClose?.();
-  }, [editor, onClose]);
+  }, [editor, onClose, disabled]);
 
   const menuItems = React.useMemo(
     () => [...highlightColors, { label: "Remove highlight", value: "none" }],
@@ -134,6 +138,7 @@ export function ColorHighlightPopoverContent({
     items: menuItems,
     orientation: "both",
     onSelect: (item) => {
+      if (disabled) return;
       if (item.value === "none") {
         removeHighlight();
       }
@@ -159,6 +164,7 @@ export function ColorHighlightPopoverContent({
             tabIndex={index === selectedIndex ? 0 : -1}
             data-highlighted={selectedIndex === index}
             onClick={onClose}
+            disabled={disabled}
           />
         ))}
       </div>
@@ -174,6 +180,7 @@ export function ColorHighlightPopoverContent({
           role="menuitem"
           data-style="ghost"
           data-highlighted={selectedIndex === highlightColors.length}
+          disabled={disabled}
         >
           <BanIcon className="tiptap-button-icon" />
         </Button>
@@ -186,6 +193,7 @@ export function ColorHighlightPopover({
   editor: providedEditor,
   colors,
   hideWhenUnavailable = false,
+  disabled: externalDisabled = false,
   ...props
 }: ColorHighlightPopoverProps) {
   const editor = useTiptapEditor(providedEditor);
@@ -219,6 +227,11 @@ export function ColorHighlightPopover({
         isDisabled = true;
       }
 
+      // Consider external disabled prop as well
+      if (externalDisabled) {
+        isDisabled = true;
+      }
+
       setIsDisabled(isDisabled);
     };
 
@@ -229,7 +242,7 @@ export function ColorHighlightPopover({
       editor.off("selectionUpdate", updateIsDisabled);
       editor.off("update", updateIsDisabled);
     };
-  }, [editor, markAvailable]);
+  }, [editor, markAvailable, externalDisabled]);
 
   const isActive = editor?.isActive("highlight") ?? false;
 
@@ -262,6 +275,7 @@ export function ColorHighlightPopover({
           editor={editor}
           colors={highlightColors}
           onClose={() => setIsOpen(false)}
+          disabled={isDisabled}
         />
       </PopoverContent>
     </Popover>

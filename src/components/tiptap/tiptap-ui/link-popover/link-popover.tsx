@@ -40,6 +40,7 @@ export interface LinkMainProps {
   setLink: () => void;
   removeLink: () => void;
   isActive: boolean;
+  disabled?: boolean;
 }
 
 export const useLinkHandler = (props: LinkHandlerProps) => {
@@ -138,14 +139,15 @@ export const LinkButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
 export const LinkContent: React.FC<{
   editor?: Editor | null;
-}> = ({ editor: providedEditor }) => {
+  disabled?: boolean;
+}> = ({ editor: providedEditor, disabled = false }) => {
   const editor = useTiptapEditor(providedEditor);
 
   const linkHandler = useLinkHandler({
     editor: editor,
   });
 
-  return <LinkMain {...linkHandler} />;
+  return <LinkMain {...linkHandler} disabled={disabled} />;
 };
 
 const LinkMain: React.FC<LinkMainProps> = ({
@@ -154,11 +156,12 @@ const LinkMain: React.FC<LinkMainProps> = ({
   setLink,
   removeLink,
   isActive,
+  disabled = false,
 }) => {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      setLink();
+      if (!disabled) setLink();
     }
   };
 
@@ -168,20 +171,21 @@ const LinkMain: React.FC<LinkMainProps> = ({
         type="url"
         placeholder="Paste a link..."
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={(e) => !disabled && setUrl(e.target.value)}
         onKeyDown={handleKeyDown}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
         className="tiptap-input tiptap-input-clamp"
+        disabled={disabled}
       />
 
       <div className="tiptap-button-group" data-orientation="horizontal">
         <Button
           type="button"
-          onClick={setLink}
+          onClick={() => !disabled && setLink()}
           title="Apply link"
-          disabled={!url && !isActive}
+          disabled={disabled || (!url && !isActive)}
           data-style="ghost"
         >
           <CornerDownLeftIcon className="tiptap-button-icon" />
@@ -193,9 +197,9 @@ const LinkMain: React.FC<LinkMainProps> = ({
       <div className="tiptap-button-group" data-orientation="horizontal">
         <Button
           type="button"
-          onClick={() => window.open(url, "_blank")}
+          onClick={() => !disabled && window.open(url, "_blank")}
           title="Open in new window"
-          disabled={!url && !isActive}
+          disabled={disabled || (!url && !isActive)}
           data-style="ghost"
         >
           <ExternalLinkIcon className="tiptap-button-icon" />
@@ -203,9 +207,9 @@ const LinkMain: React.FC<LinkMainProps> = ({
 
         <Button
           type="button"
-          onClick={removeLink}
+          onClick={() => !disabled && removeLink()}
           title="Remove link"
-          disabled={!url && !isActive}
+          disabled={disabled || (!url && !isActive)}
           data-style="ghost"
         >
           <TrashIcon className="tiptap-button-icon" />
@@ -234,6 +238,10 @@ export interface LinkPopoverProps extends Omit<ButtonProps, "type"> {
    * @default true
    */
   autoOpenOnLinkActive?: boolean;
+  /**
+   * Whether the popover is disabled.
+   */
+  disabled?: boolean;
 }
 
 export function LinkPopover({
@@ -241,6 +249,7 @@ export function LinkPopover({
   hideWhenUnavailable = false,
   onOpenChange,
   autoOpenOnLinkActive = true,
+  disabled: externalDisabled = false,
   ...props
 }: LinkPopoverProps) {
   const editor = useTiptapEditor(providedEditor);
@@ -264,8 +273,9 @@ export function LinkPopover({
   const isDisabled = React.useMemo(() => {
     if (!editor) return true;
     if (editor.isActive("codeBlock")) return true;
+    if (externalDisabled) return true;
     return !editor.can().setLink?.({ href: "" });
-  }, [editor]);
+  }, [editor, externalDisabled]);
 
   const canSetLink = React.useMemo(() => {
     if (!editor) return false;
@@ -316,7 +326,7 @@ export function LinkPopover({
       </PopoverTrigger>
 
       <PopoverContent>
-        <LinkMain {...linkHandler} />
+        <LinkMain {...linkHandler} disabled={isDisabled} />
       </PopoverContent>
     </Popover>
   );

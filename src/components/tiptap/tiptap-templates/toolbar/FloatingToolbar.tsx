@@ -15,13 +15,20 @@ interface FloatingToolbarProps {
   isCollaborative?: boolean;
 }
 
-export function FloatingToolbar({ editor }: FloatingToolbarProps) {
+export function FloatingToolbar({
+  editor,
+  connectionStatus = "connected",
+  isCollaborative = false
+}: FloatingToolbarProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
     "main",
   );
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Determine if toolbar should be disabled based on connection status
+  const isDisabled = isCollaborative && connectionStatus !== "connected";
 
   const [overlayHeight, setOverlayHeight] = useState(0);
 
@@ -73,12 +80,14 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
               onLinkClick={() => setMobileView("link")}
               isMobile={isMobile}
               editor={editor}
+              isDisabled={isDisabled}
             />
           ) : (
             <MobileToolbarContent
               type={mobileView === "highlighter" ? "highlighter" : "link"}
               onBack={() => setMobileView("main")}
               editor={editor}
+              isDisabled={isDisabled}
             />
           )}
         </Toolbar>
