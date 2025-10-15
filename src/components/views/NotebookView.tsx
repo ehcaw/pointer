@@ -23,6 +23,8 @@ export const NotebookView = () => {
             <FloatingToolbar
               editor={editor}
               editorContainerRef={editorContainerRef}
+              connectionStatus="connected"
+              isCollaborative={false}
             />
           )}
           <div className="bg-card dark:bg-card rounded-sm shadow-sm border border-border overflow-hidden">

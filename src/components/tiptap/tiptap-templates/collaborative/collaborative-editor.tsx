@@ -72,6 +72,7 @@ interface CollaborativeEditorProps {
     reconnectProvider?: () => void;
   } | null>;
   onEditorReady?: (editor: Editor) => void;
+  onConnectionStatusChange?: (status: "connecting" | "connected" | "disconnected") => void;
 }
 
 export function CollaborativeEditor({
@@ -79,6 +80,7 @@ export function CollaborativeEditor({
   content,
   editorRef,
   onEditorReady,
+  onConnectionStatusChange,
 }: CollaborativeEditorProps) {
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
@@ -168,17 +170,22 @@ export function CollaborativeEditor({
 
     // Add debugging events
     hocusPocusProviderRef.current.on("connect", () => {
-      setConnectionStatus("connected");
+      const status = "connected";
+      setConnectionStatus(status);
+      onConnectionStatusChange?.(status);
     });
 
     hocusPocusProviderRef.current.on("disconnect", () => {
-      setConnectionStatus("disconnected");
+      const status = "disconnected";
+      setConnectionStatus(status);
+      onConnectionStatusChange?.(status);
     });
 
     hocusPocusProviderRef.current.on(
       "status",
       (event: { status: "connecting" | "connected" | "disconnected" }) => {
         setConnectionStatus(event.status);
+        onConnectionStatusChange?.(event.status);
 
         // Auto-reconnect on connection failures
         if (event.status === "disconnected") {
@@ -431,6 +438,10 @@ export function CollaborativeEditor({
 
       // Lightweight onUpdate - only handles UI updates
       onUpdate: async ({ editor, transaction }) => {
+        // Prevent content updates when not connected
+        if (connectionStatus !== "connected") {
+          return;
+        }
         // Enhanced first update detection to prevent saving initial content load
         if (ignoreFirstUpdate.current) {
           ignoreFirstUpdate.current = false;
@@ -682,11 +693,13 @@ export function CollaborativeEditor({
   // Handle editor editability based on connection status
   useEffect(() => {
     if (editor) {
-      const isEditable = connectionStatus === "connected";
+      // Keep editor always editable so toolbar renders properly
+      // We'll handle the "disabled" state at the content level instead
+      const isEditable = true; // Always editable for toolbar rendering
       editor.setEditable(isEditable);
 
-      // Also disable slash command when not connected
-      if (!isEditable) {
+      // Only disable slash command when not connected
+      if (connectionStatus !== "connected") {
         setShowSlashCommand(false);
         setSlashCommandQuery("");
       }
@@ -765,12 +778,28 @@ export function CollaborativeEditor({
           <EditorContent
             editor={editor}
             role="presentation"
-            className={`simple-editor-content ${connectionStatus !== "connected" ? "editor-disabled" : ""}`}
-            style={{
-              opacity: connectionStatus !== "connected" ? 0.6 : 1,
-              pointerEvents: connectionStatus !== "connected" ? "none" : "auto",
-            }}
+            className={`simple-editor-content`}
           />
+          {/* Overlay to prevent interaction when not connected */}
+          {connectionStatus !== "connected" && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0, 0, 0, 0.05)",
+                cursor: "not-allowed",
+                zIndex: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "auto",
+              }}
+              title={`Editor is ${connectionStatus}. Please wait to connect before editing.`}
+            />
+          )}
           {showSlashCommand &&
             editor &&
             (() => {

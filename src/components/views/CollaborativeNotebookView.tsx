@@ -14,6 +14,9 @@ const CollaborativeNotebookView = memo(({}) => {
 
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
 
   const lastSavedTime = useMemo(() => {
     return currentNote
@@ -31,6 +34,8 @@ const CollaborativeNotebookView = memo(({}) => {
             <FloatingToolbar
               editor={editor}
               editorContainerRef={editorContainerRef}
+              connectionStatus={connectionStatus}
+              isCollaborative={true}
             />
           )}
           <div className="bg-card rounded-sm shadow-sm border border-border overflow-hidden">
@@ -51,6 +56,7 @@ const CollaborativeNotebookView = memo(({}) => {
                   content={noteContent}
                   editorRef={editorRef}
                   onEditorReady={setEditor}
+                  onConnectionStatusChange={setConnectionStatus}
                 />
               )}
             </div>

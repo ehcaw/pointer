@@ -14,14 +14,16 @@ export const MobileToolbarContent = ({
   type,
   onBack,
   editor,
+  isDisabled = false,
 }: {
   type: "highlighter" | "link";
   onBack: () => void;
   editor?: Editor;
+  isDisabled?: boolean;
 }) => (
   <>
     <ToolbarGroup>
-      <Button data-style="ghost" onClick={onBack}>
+      <Button data-style="ghost" onClick={onBack} disabled={isDisabled}>
         <ArrowLeftIcon className="tiptap-button-icon" />
         {type === "highlighter" ? (
           <HighlighterIcon className="tiptap-button-icon" />
@@ -34,9 +36,9 @@ export const MobileToolbarContent = ({
     <ToolbarSeparator />
 
     {type === "highlighter" ? (
-      <ColorHighlightPopoverContent editor={editor} />
+      <ColorHighlightPopoverContent editor={editor} disabled={isDisabled} />
     ) : (
-      <LinkContent />
+      <LinkContent disabled={isDisabled} />
     )}
   </>
 );

@@ -33,11 +33,13 @@ export const MainToolbarContent = ({
   onLinkClick,
   isMobile,
   editor,
+  isDisabled = false,
 }: {
   onHighlighterClick: () => void;
   onLinkClick: () => void;
   isMobile: boolean;
   editor?: Editor;
+  isDisabled?: boolean;
 }) => {
   const { isRecording, stopAndTranscribe, startRecording } =
     useVoiceRecorderStore();
@@ -76,52 +78,62 @@ export const MainToolbarContent = ({
       <Spacer />
 
       <ToolbarGroup>
-        <UndoRedoButton action="undo" />
-        <UndoRedoButton action="redo" />
+        <UndoRedoButton action="undo" disabled={isDisabled} />
+        <UndoRedoButton action="redo" disabled={isDisabled} />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <HeadingDropdownMenu levels={[1, 2, 3, 4]} />
-        <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} />
-        <BlockQuoteButton />
-        <CodeBlockButton />
+        <HeadingDropdownMenu levels={[1, 2, 3, 4]} disabled={isDisabled} />
+        <ListDropdownMenu
+          types={["bulletList", "orderedList", "taskList"]}
+          disabled={isDisabled}
+        />
+        <BlockQuoteButton disabled={isDisabled} />
+        <CodeBlockButton disabled={isDisabled} />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <MarkButton type="bold" />
-        <MarkButton type="italic" />
-        <MarkButton type="strike" />
-        <MarkButton type="code" />
-        <MarkButton type="underline" />
+        <MarkButton type="bold" disabled={isDisabled} />
+        <MarkButton type="italic" disabled={isDisabled} />
+        <MarkButton type="strike" disabled={isDisabled} />
+        <MarkButton type="code" disabled={isDisabled} />
+        <MarkButton type="underline" disabled={isDisabled} />
         {!isMobile ? (
-          <ColorHighlightPopover editor={editor} />
+          <ColorHighlightPopover editor={editor} disabled={isDisabled} />
         ) : (
-          <ColorHighlightPopoverButton onClick={onHighlighterClick} />
+          <ColorHighlightPopoverButton
+            onClick={onHighlighterClick}
+            disabled={isDisabled}
+          />
         )}
-        {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
+        {!isMobile ? (
+          <LinkPopover disabled={isDisabled} />
+        ) : (
+          <LinkButton onClick={onLinkClick} disabled={isDisabled} />
+        )}
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <ScriptDropdownMenu editor={editor} />
+        <ScriptDropdownMenu editor={editor} disabled={isDisabled} />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <TextAlignDropdownMenu editor={editor} />
+        <TextAlignDropdownMenu editor={editor} disabled={isDisabled} />
       </ToolbarGroup>
 
       <ToolbarSeparator />
 
       <ToolbarGroup>
-        <ImageUploadButton />
-        <TableContextMenu editor={editor} />
+        <ImageUploadButton disabled={isDisabled} />
+        <TableContextMenu editor={editor} disabled={isDisabled} />
       </ToolbarGroup>
 
       <Spacer />
@@ -129,7 +141,7 @@ export const MainToolbarContent = ({
       {isMobile && <ToolbarSeparator />}
 
       <ToolbarGroup>
-        <Button onClick={handleMicToggle}>
+        <Button onClick={handleMicToggle} disabled={isDisabled}>
           {isRecording ? (
             <Mic className="h-4 w-4" />
           ) : (
