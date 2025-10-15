@@ -15,11 +15,6 @@ import { Underline } from "@tiptap/extension-underline";
 import { Placeholder } from "@tiptap/extensions";
 import Emoji, { emojis } from "@tiptap/extension-emoji";
 import { TableKit } from "@tiptap/extension-table";
-import {
-  getHierarchicalIndexes,
-  TableOfContents,
-} from "@tiptap/extension-table-of-contents";
-import { MemorizedToC } from "../../tiptap-extension/table-of-contents";
 
 // --- Custom Extensions ---
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -164,9 +159,6 @@ export function SimpleEditor({
       }),
       TableKit.configure({
         table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
-      }),
-      TableOfContents.configure({
-        getIndex: getHierarchicalIndexes,
       }),
     ],
     content: initialContent,
