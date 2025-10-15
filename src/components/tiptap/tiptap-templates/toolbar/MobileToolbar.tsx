@@ -8,13 +8,16 @@ import { HighlighterIcon } from "@/components/tiptap/tiptap-icons/highlighter-ic
 import { LinkIcon } from "@/components/tiptap/tiptap-icons/link-icon";
 import { ColorHighlightPopoverContent } from "@/components/tiptap/tiptap-ui/color-highlight-popover";
 import { LinkContent } from "@/components/tiptap/tiptap-ui/link-popover";
+import { Editor } from "@tiptap/react";
 
 export const MobileToolbarContent = ({
   type,
   onBack,
+  editor,
 }: {
   type: "highlighter" | "link";
   onBack: () => void;
+  editor?: Editor;
 }) => (
   <>
     <ToolbarGroup>
@@ -31,7 +34,7 @@ export const MobileToolbarContent = ({
     <ToolbarSeparator />
 
     {type === "highlighter" ? (
-      <ColorHighlightPopoverContent />
+      <ColorHighlightPopoverContent editor={editor} />
     ) : (
       <LinkContent />
     )}

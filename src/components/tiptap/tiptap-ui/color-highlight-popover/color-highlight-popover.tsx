@@ -57,30 +57,32 @@ export interface ColorHighlightPopoverProps extends Omit<ButtonProps, "type"> {
 export const DEFAULT_HIGHLIGHT_COLORS: ColorHighlightPopoverColor[] = [
   {
     label: "Green",
-    value: "var(--tt-color-highlight-green)",
-    border: "var(--tt-color-highlight-green-contrast)",
+    value: "#22c55e",
+    border: "#16a34a",
   },
   {
     label: "Blue",
-    value: "var(--tt-color-highlight-blue)",
-    border: "var(--tt-color-highlight-blue-contrast)",
+    value: "#3b82f6",
+    border: "#2563eb",
   },
   {
     label: "Red",
-    value: "var(--tt-color-highlight-red)",
-    border: "var(--tt-color-highlight-red-contrast)",
+    value: "#ef4444",
+    border: "#dc2626",
   },
   {
     label: "Purple",
-    value: "var(--tt-color-highlight-purple)",
-    border: "var(--tt-color-highlight-purple-contrast)",
+    value: "#a855f7",
+    border: "#9333ea",
   },
   {
     label: "Yellow",
-    value: "var(--tt-color-highlight-yellow)",
-    border: "var(--tt-color-highlight-yellow-contrast)",
+    value: "#fbbf24",
+    border: "#f59e0b",
   },
 ];
+
+
 
 export const ColorHighlightPopoverButton = React.forwardRef<
   HTMLButtonElement,
@@ -106,11 +108,17 @@ ColorHighlightPopoverButton.displayName = "ColorHighlightPopoverButton";
 
 export function ColorHighlightPopoverContent({
   editor: providedEditor,
-  colors = DEFAULT_HIGHLIGHT_COLORS,
+  colors,
   onClose,
 }: ColorHighlightPopoverContentProps) {
   const editor = useTiptapEditor(providedEditor);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // Use dynamic colors if not provided
+  const highlightColors = React.useMemo(
+    () => colors || DEFAULT_HIGHLIGHT_COLORS,
+    [colors]
+  );
 
   const removeHighlight = React.useCallback(() => {
     if (!editor) return;
@@ -119,8 +127,8 @@ export function ColorHighlightPopoverContent({
   }, [editor, onClose]);
 
   const menuItems = React.useMemo(
-    () => [...colors, { label: "Remove highlight", value: "none" }],
-    [colors],
+    () => [...highlightColors, { label: "Remove highlight", value: "none" }],
+    [highlightColors],
   );
 
   const { selectedIndex } = useMenuNavigation({
@@ -144,7 +152,7 @@ export function ColorHighlightPopoverContent({
       tabIndex={0}
     >
       <div className="tiptap-button-group" data-orientation="horizontal">
-        {colors.map((color, index) => (
+        {highlightColors.map((color, index) => (
           <ColorHighlightButton
             key={color.value}
             editor={editor}
@@ -163,11 +171,11 @@ export function ColorHighlightPopoverContent({
         <Button
           onClick={removeHighlight}
           aria-label="Remove highlight"
-          tabIndex={selectedIndex === colors.length ? 0 : -1}
+          tabIndex={selectedIndex === highlightColors.length ? 0 : -1}
           type="button"
           role="menuitem"
           data-style="ghost"
-          data-highlighted={selectedIndex === colors.length}
+          data-highlighted={selectedIndex === highlightColors.length}
         >
           <BanIcon className="tiptap-button-icon" />
         </Button>
@@ -178,7 +186,7 @@ export function ColorHighlightPopoverContent({
 
 export function ColorHighlightPopover({
   editor: providedEditor,
-  colors = DEFAULT_HIGHLIGHT_COLORS,
+  colors,
   hideWhenUnavailable = false,
   ...props
 }: ColorHighlightPopoverProps) {
@@ -187,6 +195,12 @@ export function ColorHighlightPopover({
   const [isDisabled, setIsDisabled] = React.useState(false);
 
   const markAvailable = isMarkInSchema("highlight", editor);
+  
+  // Use dynamic colors if not provided
+  const highlightColors = React.useMemo(
+    () => colors || DEFAULT_HIGHLIGHT_COLORS,
+    [colors]
+  );
 
   React.useEffect(() => {
     if (!editor) return;
@@ -248,7 +262,7 @@ export function ColorHighlightPopover({
       <PopoverContent aria-label="Highlight colors">
         <ColorHighlightPopoverContent
           editor={editor}
-          colors={colors}
+          colors={highlightColors}
           onClose={() => setIsOpen(false)}
         />
       </PopoverContent>

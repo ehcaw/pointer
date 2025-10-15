@@ -4,7 +4,7 @@ import { Toolbar } from "@/components/tiptap/tiptap-ui-primitive/toolbar";
 import { MainToolbarContent } from "./MainToolbar";
 import { MobileToolbarContent } from "./MobileToolbar";
 import { useMobile } from "@/hooks/use-tiptap-mobile";
-import { useWindowSize } from "@/hooks/use-window-size";
+
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 import { HotkeysProvider } from "react-hotkeys-hook";
 
@@ -15,7 +15,6 @@ interface FloatingToolbarProps {
 
 export function FloatingToolbar({ editor }: FloatingToolbarProps) {
   const isMobile = useMobile();
-  const windowSize = useWindowSize();
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
     "main",
   );
@@ -29,7 +28,7 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
     }
   }, []);
 
-  const bodyRect = useCursorVisibility({
+  useCursorVisibility({
     editor,
     overlayHeight,
   });
@@ -55,9 +54,9 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
             left: isMobile ? "auto" : "0",
             right: isMobile ? "auto" : "0",
             transform: "none",
-            bottom: isMobile
-              ? `calc(100% - ${windowSize.height - bodyRect.y}px)`
-              : "auto",
+            // bottom: isMobile
+            //   ? `calc(100% - ${windowSize.height - bodyRect.y}px)`
+            //   : "auto",
             zIndex: 40,
             backgroundColor: "var(--background)",
             borderRadius: "8px",
@@ -76,6 +75,7 @@ export function FloatingToolbar({ editor }: FloatingToolbarProps) {
             <MobileToolbarContent
               type={mobileView === "highlighter" ? "highlighter" : "link"}
               onBack={() => setMobileView("main")}
+              editor={editor}
             />
           )}
         </Toolbar>
