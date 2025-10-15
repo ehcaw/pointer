@@ -24,53 +24,53 @@ import "@/components/tiptap/tiptap-ui/color-highlight-button/color-highlight-but
 export const HIGHLIGHT_COLORS = [
   {
     label: "Default background",
-    value: "var(--tt-bg-color)",
-    border: "var(--tt-bg-color-contrast)",
+    value: "#fbbf24",
+    border: "#f59e0b",
   },
   {
     label: "Gray background",
-    value: "var(--tt-color-highlight-gray)",
-    border: "var(--tt-color-highlight-gray-contrast)",
+    value: "rgb(120, 120, 120)",
+    border: "rgba(255, 255, 255, 0.3)",
   },
   {
     label: "Brown background",
-    value: "var(--tt-color-highlight-brown)",
-    border: "var(--tt-color-highlight-brown-contrast)",
+    value: "rgb(139, 69, 19)",
+    border: "rgba(205, 133, 63, 0.5)",
   },
   {
     label: "Orange background",
-    value: "var(--tt-color-highlight-orange)",
-    border: "var(--tt-color-highlight-orange-contrast)",
+    value: "rgb(255, 140, 0)",
+    border: "rgba(255, 165, 0, 0.6)",
   },
   {
     label: "Yellow background",
-    value: "var(--tt-color-highlight-yellow)",
-    border: "var(--tt-color-highlight-yellow-contrast)",
+    value: "#fbbf24",
+    border: "#f59e0b",
   },
   {
     label: "Green background",
-    value: "var(--tt-color-highlight-green)",
-    border: "var(--tt-color-highlight-green-contrast)",
+    value: "#22c55e",
+    border: "#16a34a",
   },
   {
     label: "Blue background",
-    value: "var(--tt-color-highlight-blue)",
-    border: "var(--tt-color-highlight-blue-contrast)",
+    value: "#3b82f6",
+    border: "#2563eb",
   },
   {
     label: "Purple background",
-    value: "var(--tt-color-highlight-purple)",
-    border: "var(--tt-color-highlight-purple-contrast)",
+    value: "#a855f7",
+    border: "#9333ea",
   },
   {
     label: "Pink background",
-    value: "var(--tt-color-highlight-pink)",
-    border: "var(--tt-color-highlight-pink-contrast)",
+    value: "rgb(236, 72, 153)",
+    border: "rgba(219, 39, 119, 0.7)",
   },
   {
     label: "Red background",
-    value: "var(--tt-color-highlight-red)",
-    border: "var(--tt-color-highlight-red-contrast)",
+    value: "#ef4444",
+    border: "#dc2626",
   },
 ];
 

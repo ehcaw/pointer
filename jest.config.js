@@ -4,6 +4,8 @@ module.exports = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^.+\\.scss$': 'identity-obj-proxy',
+    '^.+\\.css$': 'identity-obj-proxy',
   },
   testMatch: [
     '<rootDir>/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)'

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../styles/survey.css";
+@import "../styles/_variables.scss";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -1,10 +1,19 @@
 /* Text highlighting styles for light and dark modes */
 
-/* Light mode highlighting */
-.tiptap.ProseMirror mark,
-.tiptap.ProseMirror .highlight {
-  background-color: #fef08a !important; /* Yellow highlight */
-  color: #1f2937 !important; /* Dark text for contrast */
+/* Light mode highlighting - default fallback */
+.tiptap.ProseMirror mark:not([style*="background-color"]),
+.tiptap.ProseMirror .highlight:not([style*="background-color"]) {
+  background-color: #fef08a; /* Yellow highlight fallback */
+  color: #1f2937; /* Dark text for contrast */
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Allow TipTap to set colors via inline styles */
+.tiptap.ProseMirror mark[style*="background-color"],
+.tiptap.ProseMirror .highlight[style*="background-color"] {
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   box-decoration-break: clone;
@@ -17,13 +26,13 @@
   color: inherit;
 }
 
-/* Dark mode highlighting */
-html.dark .tiptap.ProseMirror mark,
-html.dark .tiptap.ProseMirror .highlight,
-.dark .tiptap.ProseMirror mark,
-.dark .tiptap.ProseMirror .highlight {
-  background-color: #fbbf24 !important; /* Amber highlight for dark mode */
-  color: #111827 !important; /* Very dark text for contrast */
+/* Dark mode highlighting - default fallback */
+html.dark .tiptap.ProseMirror mark:not([style*="background-color"]),
+html.dark .tiptap.ProseMirror .highlight:not([style*="background-color"]),
+.dark .tiptap.ProseMirror mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror .highlight:not([style*="background-color"]) {
+  background-color: #fbbf24; /* Amber highlight for dark mode fallback */
+  color: #111827; /* Very dark text for contrast */
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   box-decoration-break: clone;
@@ -37,66 +46,33 @@ html.dark .tiptap.ProseMirror ::selection,
   color: #ffffff !important;
 }
 
-/* Alternative highlight colors for variety */
-.tiptap.ProseMirror .highlight-blue {
-  background-color: #bfdbfe !important; /* Light blue */
-  color: #1e3a8a !important;
+/* Alternative highlight colors for variety - these are now handled by TipTap's inline styles */
+
+/* Ensure highlighting works with existing text styles - fallbacks only */
+html.dark .tiptap.ProseMirror h1 mark:not([style*="background-color"]),
+html.dark .tiptap.ProseMirror h2 mark:not([style*="background-color"]),
+html.dark .tiptap.ProseMirror h3 mark:not([style*="background-color"]),
+html.dark .tiptap.ProseMirror h4 mark:not([style*="background-color"]),
+html.dark .tiptap.ProseMirror p mark:not([style*="background-color"]),
+html.dark .tiptap.ProseMirror li mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror h1 mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror h2 mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror h3 mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror h4 mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror p mark:not([style*="background-color"]),
+.dark .tiptap.ProseMirror li mark:not([style*="background-color"]) {
+  background-color: #fbbf24;
+  color: #111827;
 }
 
-.tiptap.ProseMirror .highlight-green {
-  background-color: #bbf7d0 !important; /* Light green */
-  color: #14532d !important;
+/* Increase specificity to override existing styles - fallbacks only */
+html body .tiptap.ProseMirror mark:not([style*="background-color"]) {
+  background-color: #fef08a;
+  color: #1f2937;
 }
 
-.tiptap.ProseMirror .highlight-pink {
-  background-color: #fce7f3 !important; /* Light pink */
-  color: #831843 !important;
-}
-
-/* Dark mode alternative highlight colors */
-html.dark .tiptap.ProseMirror .highlight-blue,
-.dark .tiptap.ProseMirror .highlight-blue {
-  background-color: #3b82f6 !important; /* Blue for dark mode */
-  color: #ffffff !important;
-}
-
-html.dark .tiptap.ProseMirror .highlight-green,
-.dark .tiptap.ProseMirror .highlight-green {
-  background-color: #10b981 !important; /* Green for dark mode */
-  color: #ffffff !important;
-}
-
-html.dark .tiptap.ProseMirror .highlight-pink,
-.dark .tiptap.ProseMirror .highlight-pink {
-  background-color: #ec4899 !important; /* Pink for dark mode */
-  color: #ffffff !important;
-}
-
-/* Ensure highlighting works with existing text styles */
-html.dark .tiptap.ProseMirror h1 mark,
-html.dark .tiptap.ProseMirror h2 mark,
-html.dark .tiptap.ProseMirror h3 mark,
-html.dark .tiptap.ProseMirror h4 mark,
-html.dark .tiptap.ProseMirror p mark,
-html.dark .tiptap.ProseMirror li mark,
-.dark .tiptap.ProseMirror h1 mark,
-.dark .tiptap.ProseMirror h2 mark,
-.dark .tiptap.ProseMirror h3 mark,
-.dark .tiptap.ProseMirror h4 mark,
-.dark .tiptap.ProseMirror p mark,
-.dark .tiptap.ProseMirror li mark {
-  background-color: #fbbf24 !important;
-  color: #111827 !important;
-}
-
-/* Increase specificity to override existing styles */
-html body .tiptap.ProseMirror mark {
-  background-color: #fef08a !important;
-  color: #1f2937 !important;
-}
-
-html body.dark .tiptap.ProseMirror mark,
-html.dark body .tiptap.ProseMirror mark {
-  background-color: #fbbf24 !important;
-  color: #111827 !important;
+html body.dark .tiptap.ProseMirror mark:not([style*="background-color"]),
+html.dark body .tiptap.ProseMirror mark:not([style*="background-color"]) {
+  background-color: #fbbf24;
+  color: #111827;
 }

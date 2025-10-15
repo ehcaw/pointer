@@ -98,7 +98,7 @@ export const MainToolbarContent = ({
         <MarkButton type="code" />
         <MarkButton type="underline" />
         {!isMobile ? (
-          <ColorHighlightPopover />
+          <ColorHighlightPopover editor={editor} />
         ) : (
           <ColorHighlightPopoverButton onClick={onHighlighterClick} />
         )}
