@@ -11,6 +11,10 @@ import Image from "next/image";
 
 function PreviewContent({ slug }: { slug: string }) {
   const note = useQuery(api.notes.getPublicNote, { pointer_id: slug });
+  const content = useQuery(
+    api.notesContent.getNoteContentById,
+    note ? { noteId: note._id.toString() } : "skip",
+  );
 
   if (note === undefined) {
     return (
@@ -40,10 +44,10 @@ function PreviewContent({ slug }: { slug: string }) {
     );
   }
 
-  const noteContent = note.content?.tiptap
-    ? typeof note.content?.tiptap === "string"
-      ? JSON.parse(note.content?.tiptap || "")
-      : note.content?.tiptap
+  const noteContent = content
+    ? typeof content?.tiptap === "string"
+      ? JSON.parse(content?.tiptap || "")
+      : content?.tiptap
     : {
         type: "doc",
         content: [
