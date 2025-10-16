@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "pointer",
-  description: "take notes",
+  description: "do your best thinking here",
 };
 
 export default function RootLayout({
