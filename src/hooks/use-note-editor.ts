@@ -112,6 +112,26 @@ export function useNoteEditor() {
     setCurrentView("note");
     setCurrentNote(newNote);
 
+    // After creating the note optimistically, sync it to get the _id
+    try {
+      await saveCurrentNote();
+
+      // Fetch the newly created note from DB to get the _id
+      const createdNote = await convex.query(api.notes.readNoteFromDb, {
+        pointer_id: id,
+      });
+
+      if (createdNote) {
+        // Update the store with the note that now has the _id
+        updateNoteInCollections(createdNote as FileNode);
+        addUserNote(createdNote as FileNode);
+        clearUnsavedNote(id);
+        dbSavedNotes.set(id, createdNote as FileNode);
+      }
+    } catch (error) {
+      console.error("Error syncing new note to database:", error);
+    }
+
     return newNote;
   };
 

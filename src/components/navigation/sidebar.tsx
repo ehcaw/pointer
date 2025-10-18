@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useNotesStore, useRecentNotes } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
-import { Node } from "@/types/note";
+import { Node, FileNode } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -47,6 +47,8 @@ import SupportModal from "./SupportModal";
 
 import { DisplaySurveyType } from "posthog-js";
 import { usePostHog } from "posthog-js/react";
+import { TreeViewComponent } from "../sidebar/Treeview";
+import { CreatePopover } from "./CreatePopover";
 
 // Memoized note item component to prevent unnecessary re-renders
 const NoteItem = React.memo(
@@ -172,9 +174,10 @@ export default function AppSidebar() {
     async (note: Node) => {
       if (
         currentNote &&
+        currentNote.type == "file" &&
         dbSavedNotes.get(currentNote.pointer_id) != undefined &&
         currentNote?.content?.text !=
-          dbSavedNotes.get(currentNote.pointer_id)!.content?.text
+          (dbSavedNotes.get(currentNote.pointer_id)! as FileNode).content?.text
       ) {
         saveCurrentNote();
       }
@@ -473,6 +476,24 @@ export default function AppSidebar() {
           </SidebarGroup>
         )}*/}
 
+        {/* All Notes Tree View */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center justify-between">
+            All Notes
+            <CreatePopover onCreateNote={handleCreateNote} />
+          </SidebarGroupLabel>
+          {/*<SidebarGroupAction
+            onClick={handleCreateNote}
+            className="rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">Add Note</span>
+          </SidebarGroupAction>*/}
+          <SidebarGroupContent className="-mx-4 pr-4">
+            <TreeViewComponent nodes={userNotes} />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* Recent Notes */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
@@ -520,31 +541,6 @@ export default function AppSidebar() {
                       note={note}
                       isActive={isActive}
                       onNoteClick={handleNoteClick}
-                    />
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* All Notes (collapsed by default) */}
-        {userNotes.length > 5 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-muted-foreground font-medium">
-              All Notes ({userNotes.length})
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {userNotes.slice(5).map((note) => {
-                  const isActive = currentNote?.pointer_id === note.pointer_id;
-                  return (
-                    <NoteItem
-                      key={String(note.pointer_id)}
-                      note={note}
-                      isActive={isActive}
-                      onNoteClick={handleNoteClick}
-                      onDeleteClick={handleOpenDeleteDialog}
                     />
                   );
                 })}
