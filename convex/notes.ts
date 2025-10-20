@@ -1,5 +1,5 @@
 import { action, mutation, query } from "./_generated/server";
-import { NoteContent } from "@/types/note";
+import { Node, NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -42,10 +42,12 @@ export const createNoteInDb = mutation({
     name: v.string(),
     tenantId: v.string(),
     type: v.union(v.literal("file"), v.literal("folder")),
-    content: v.optional(v.object({
-      text: v.string(),
-      tiptap: v.string(),
-    })),
+    content: v.optional(
+      v.object({
+        text: v.string(),
+        tiptap: v.string(),
+      }),
+    ),
     pointer_id: v.string(), // Add pointer_id for client-side reference
     createdAt: v.string(),
     updatedAt: v.string(),
@@ -573,17 +575,21 @@ export const createFolderInDb = mutation({
     name: v.string(),
     tenantId: v.string(),
     pointer_id: v.string(),
-    parent_id: v.optional(v.id("notes")),
+    parent_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = new Date().toISOString();
+
+    const parent_id =
+      (args.parent_id && ctx.db.normalizeId("notes", args.parent_id)) ||
+      undefined;
 
     const folderId = await ctx.db.insert("notes", {
       name: args.name,
       tenantId: args.tenantId,
       type: "folder",
       pointer_id: args.pointer_id,
-      parent_id: args.parent_id,
+      parent_id: parent_id,
       createdAt: now,
       updatedAt: now,
       lastAccessed: now,
@@ -598,7 +604,7 @@ export const createFolderInDb = mutation({
 export const moveNode = mutation({
   args: {
     pointer_id: v.string(),
-    new_parent_id: v.optional(v.id("notes")),
+    new_parent_id: v.optional(v.string()),
     user_id: v.string(),
   },
   handler: async (ctx, args) => {
@@ -615,20 +621,24 @@ export const moveNode = mutation({
       throw new Error("Unauthorized: You don't own this note");
     }
 
+    const new_parent_id =
+      (args.new_parent_id && ctx.db.normalizeId("notes", args.new_parent_id)) ||
+      undefined;
+
     // Prevent circular reference
     if (args.new_parent_id) {
-      let currentId: Id<"notes"> | undefined = args.new_parent_id;
+      let currentId: Id<"notes"> | undefined = new_parent_id;
       while (currentId) {
         if (currentId === note._id) {
           throw new Error("Cannot move a folder into its own descendant");
         }
-        const parent = await ctx.db.get(currentId) as any;
+        const parent = (await ctx.db.get(currentId)) as any;
         currentId = parent?.parent_id;
       }
     }
 
     await ctx.db.patch(note._id, {
-      parent_id: args.new_parent_id,
+      parent_id: new_parent_id,
       updatedAt: new Date().toISOString(),
     });
 
@@ -724,7 +734,9 @@ export const getTreeStructure = query({
       .collect();
 
     // Build tree structure
-    const notesById = new Map(allNotes.map(note => [note._id, { ...note, children: [] as any[] }]));
+    const notesById = new Map(
+      allNotes.map((note) => [note._id, { ...note, children: [] as any[] }]),
+    );
     const rootNodes: any[] = [];
 
     for (const note of allNotes) {

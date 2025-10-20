@@ -56,7 +56,7 @@ export function useFolderOperations() {
         name,
         tenantId: userId,
         pointer_id,
-        parent_id: parentId ? findNoteDbId(parentId) : undefined,
+        parent_id: (parentId && findNoteDbId(parentId)) || undefined,
       });
 
       // Fetch the newly created folder from DB to get the _id
@@ -216,7 +216,7 @@ export function useFolderOperations() {
       };
 
       const parentNode = findParent(treeStructure, overId);
-      newParentId = parentNode?.pointer_id || null;
+      newParentId = parentNode?.pointer_id || undefined;
     }
 
     // Sync to database

@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback } from "react";
 import {
-  Plus,
   Home,
   FileText,
   GitGraph,
@@ -17,7 +16,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
@@ -36,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useNotesStore, useRecentNotes } from "@/lib/stores/notes-store";
+import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { Node, FileNode } from "@/types/note";
 import { useNoteEditor } from "@/hooks/use-note-editor";
@@ -138,7 +136,6 @@ export default function AppSidebar() {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
 
   // Use optimized selectors
-  const recentNotes = useRecentNotes();
 
   const {
     userNotes,
@@ -191,14 +188,6 @@ export default function AppSidebar() {
       setCurrentNote,
       setCurrentView,
     ],
-  );
-
-  const handleOpenDeleteDialog = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, note: Node) => {
-      e.stopPropagation();
-      setNoteToDelete(note);
-    },
-    [],
   );
 
   const confirmDelete = useCallback(async () => {
@@ -442,40 +431,6 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Unsaved Changes */}
-        {/*{unsavedNotesCount > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-accent-foreground dark:text-accent-foreground font-medium flex items-center gap-2">
-              <Clock className="h-3 w-3" />
-              Unsaved Changes
-              <Badge
-                variant="secondary"
-                className="ml-auto bg-accent/20 dark:bg-accent/20 text-accent-foreground dark:text-accent-foreground"
-              >
-                {unsavedNotesCount}
-              </Badge>
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {unsavedNotesArray.map((note) => (
-                  <SidebarMenuItem key={String(note.pointer_id)}>
-                    <SidebarMenuButton
-                      onClick={() => handleNoteClick(note)}
-                      className="rounded-lg hover:bg-accent hover:text-foreground"
-                    >
-                      <div className="flex h-6 w-6 items-center justify-center rounded bg-accent/20 dark:bg-accent/20">
-                        <FileText className="h-3 w-3 text-accent-foreground" />
-                      </div>
-                      <span className="truncate">{note.name}</span>
-                      <div className="ml-auto h-2 w-2 rounded-full bg-accent" />
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}*/}
-
         {/* All Notes Tree View */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center justify-between">
@@ -491,36 +446,6 @@ export default function AppSidebar() {
           </SidebarGroupAction>*/}
           <SidebarGroupContent className="-mx-4 pr-4">
             <TreeViewComponent nodes={userNotes} />
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Recent Notes */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground font-medium flex items-center gap-2">
-            Recent Notes
-          </SidebarGroupLabel>
-          <SidebarGroupAction
-            onClick={handleCreateNote}
-            className="rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">Add Note</span>
-          </SidebarGroupAction>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {recentNotes.map((note) => {
-                const isActive = currentNote?.pointer_id === note.pointer_id;
-                return (
-                  <NoteItem
-                    key={String(note.pointer_id)}
-                    note={note}
-                    isActive={isActive}
-                    onNoteClick={handleNoteClick}
-                    onDeleteClick={handleOpenDeleteDialog}
-                  />
-                );
-              })}
-            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 

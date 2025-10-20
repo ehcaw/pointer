@@ -52,6 +52,7 @@ import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { useUser } from "@clerk/nextjs";
 import StatusBadge from "../toolbar/WebsocketStatusBadge";
 import { generateUserColor } from "@/lib/utils/tiptapUtils";
+import { isFile } from "@/types/note";
 
 import {
   getSlashCommandPosition,
@@ -72,7 +73,9 @@ interface CollaborativeEditorProps {
     reconnectProvider?: () => void;
   } | null>;
   onEditorReady?: (editor: Editor) => void;
-  onConnectionStatusChange?: (status: "connecting" | "connected" | "disconnected") => void;
+  onConnectionStatusChange?: (
+    status: "connecting" | "connected" | "disconnected",
+  ) => void;
 }
 
 export function CollaborativeEditor({
@@ -576,20 +579,25 @@ export function CollaborativeEditor({
         return;
       }
 
-      if (hasSignificantContent || currentEditorText.trim() === "") {
+      if (
+        hasSignificantContent ||
+        (currentEditorText.trim() === "" && isFile(currentNote))
+      ) {
         lastContentRef.current = currentContentHash;
 
-        // Update content immediately in memory (fast)
-        if (!currentNote.content) {
-          currentNote.content = {};
-        }
-        currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-        currentNote.content.text = currentEditorText;
-        currentNote.updatedAt = new Date().toISOString();
+        // Update content immediately in memory (fast) - only for FileNode
+        if (isFile(currentNote)) {
+          if (!currentNote.content) {
+            currentNote.content = {};
+          }
+          currentNote.content.tiptap = ensureJSONString(currentEditorJson);
+          currentNote.content.text = currentEditorText;
+          currentNote.updatedAt = new Date().toISOString();
 
-        // Mark as unsaved only if the change is not remote and not during initial loading
-        if (!isRemoteChange.current) {
-          markNoteAsUnsaved(currentNote);
+          // Mark as unsaved only if the change is not remote and not during initial loading
+          if (!isRemoteChange.current) {
+            markNoteAsUnsaved(currentNote);
+          }
         }
 
         // Setup auto-save timer

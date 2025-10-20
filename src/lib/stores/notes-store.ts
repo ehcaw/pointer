@@ -717,31 +717,53 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
       // Now insert the node at the new position
       const insertNode = (items: TreeNode[]): TreeNode[] => {
-        return items.map((item) => {
+        const result: TreeNode[] = [];
+        
+        for (const item of items) {
           if (item.pointer_id === overId) {
             if (context?.dropTarget === "folder" && item.type === "folder") {
               // Insert as child of folder
-              return {
+              result.push({
                 ...item,
-                children: [...(item.children || []), { ...movedNode, parent_id: overId }],
-              };
+                children: [...(item.children || []), { ...movedNode, parent_id: overId } as TreeNode],
+              });
             } else {
               // Insert as sibling
               const index = items.findIndex((i) => i.pointer_id === overId);
               const insertIndex = context?.dropPosition === "sibling" ? index + 1 : index;
-              const newItems = [...items];
-              newItems.splice(insertIndex, 0, { ...movedNode, parent_id: item.parent_id });
-              return newItems;
+              
+              // Insert items before the insertion point
+              for (let i = 0; i < insertIndex; i++) {
+                if (items[i].pointer_id !== overId) {
+                  result.push(items[i]);
+                }
+              }
+              
+              // Insert the moved node
+              result.push({ ...movedNode, parent_id: item.parent_id } as TreeNode);
+              
+              // Insert remaining items after the insertion point
+              for (let i = insertIndex; i < items.length; i++) {
+                if (items[i].pointer_id !== overId) {
+                  result.push(items[i]);
+                }
+              }
+              
+              return result;
+            }
+          } else {
+            if (item.children) {
+              result.push({
+                ...item,
+                children: insertNode(item.children),
+              });
+            } else {
+              result.push(item);
             }
           }
-          if (item.children) {
-            return {
-              ...item,
-              children: insertNode(item.children),
-            };
-          }
-          return item;
-        });
+        }
+        
+        return result;
       };
 
       return insertNode(itemsWithoutMoved);

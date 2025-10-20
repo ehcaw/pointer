@@ -1,4 +1,4 @@
-import { TreeView, TreeDataItem } from "../tree-view";
+import { TreeView, TreeDataItem } from "../ui/tree-view";
 import { Node } from "@/types/note";
 import { buildTreeStructure } from "@/lib/tree-utils";
 import { useMemo, useState, useCallback } from "react";
@@ -7,10 +7,12 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
 import { useNoteEditor } from "@/hooks/use-note-editor";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
   const { moveNode, deleteFolder } = useFolderOperations();
   const { moveNodeInTree, setCurrentNote } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
   const { deleteNote } = useNoteEditor();
 
@@ -64,6 +66,7 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     const selectedNode = userNotes.find((note) => note._id === item.id);
     if (selectedNode && !item.droppable) {
       // Only set current note for files (non-droppable), not folders
+      setCurrentView("note");
       setCurrentNote(selectedNode);
     }
   };

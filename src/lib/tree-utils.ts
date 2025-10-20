@@ -1,4 +1,4 @@
-import { TreeDataItem } from "@/components/tree-view";
+import { TreeDataItem } from "@/components/ui/tree-view";
 import { Node, isFolder } from "@/types/note";
 import { isFile } from "@/types/note";
 
@@ -42,7 +42,9 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
   function nodeToTreeItem(node: Node): TreeDataItem {
     // Only use _id for TreeView ID - nodes without _id won't be included in tree
     if (!node._id) {
-      throw new Error(`Node ${node.name} does not have _id, cannot include in tree structure`);
+      throw new Error(
+        `Node ${node.name} does not have _id, cannot include in tree structure`,
+      );
     }
 
     const treeItem: TreeDataItem = {
@@ -96,9 +98,9 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
       try {
         return nodeToTreeItem(rootNode);
       } catch (error) {
-        console.warn(error.message);
+        console.warn(error instanceof Error ? error.message : String(error));
         return null;
       }
     })
-    .filter(Boolean); // Remove null entries
+    .filter((item): item is TreeDataItem => item !== null); // Remove null entries
 }

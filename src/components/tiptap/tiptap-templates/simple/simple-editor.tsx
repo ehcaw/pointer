@@ -47,6 +47,7 @@ import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { isFile } from "@/types/note";
 
 interface SimpleEditorProps {
   content: string | Record<string, unknown> | null | undefined;
@@ -243,7 +244,7 @@ export function SimpleEditor({
     const currentContentHash = JSON.stringify(currentEditorJson);
 
     // Only update if content actually changed
-    if (currentContentHash !== lastContentRef.current) {
+    if (currentContentHash !== lastContentRef.current && isFile(currentNote)) {
       lastContentRef.current = currentContentHash;
 
       // Update content immediately in memory (fast)
