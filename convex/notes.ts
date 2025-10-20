@@ -627,13 +627,26 @@ export const moveNode = mutation({
 
     // Prevent circular reference
     if (args.new_parent_id) {
-      let currentId: Id<"notes"> | undefined = new_parent_id;
-      while (currentId) {
-        if (currentId === note._id) {
-          throw new Error("Cannot move a folder into its own descendant");
+      // Check if new_parent_id is a descendant of the node being moved
+      const checkDescendants = async (nodeId: Id<"notes">): Promise<boolean> => {
+        const children = await ctx.db
+          .query("notes")
+          .withIndex("by_parent", (q) => q.eq("parent_id", nodeId))
+          .collect();
+
+        for (const child of children) {
+          if (child._id === new_parent_id) {
+            return true;
+          }
+          if (child.type === "folder" && await checkDescendants(child._id)) {
+            return true;
+          }
         }
-        const parent = (await ctx.db.get(currentId)) as any;
-        currentId = parent?.parent_id;
+        return false;
+      };
+
+      if (await checkDescendants(note._id)) {
+        throw new Error("Cannot move a folder into its own descendant");
       }
     }
 

@@ -146,7 +146,7 @@ export function useFolderOperations() {
     return findInTree(treeStructure);
   };
 
-  const handleDragEndWithSync = (
+  const handleDragEndWithSync = async (
     active: { id: string },
     over: { id: string } | null,
     context?: {
@@ -156,12 +156,8 @@ export function useFolderOperations() {
   ) => {
     if (!over) return;
 
-    // First, handle the local drag operation
-    handleDragEnd(active, over, context);
-
-    // Then sync to database
-    const activeId = active.id;
-    const overId = over.id;
+    // Find current state before making changes for rollback
+    const originalTree = JSON.parse(JSON.stringify(treeStructure));
 
     // Find the over node to determine new parent
     const findNode = (
@@ -185,13 +181,13 @@ export function useFolderOperations() {
       return null;
     };
 
-    const overNode = findNode(treeStructure, overId);
+    const overNode = findNode(treeStructure, over.id);
     let newParentId = null;
 
     // Determine new parent based on drop context
     if (context?.dropTarget === "folder" && overNode?.type === "folder") {
       // Dropping INTO a folder - the folder becomes the parent
-      newParentId = overId;
+      newParentId = over.id;
     } else {
       // Dropping as sibling - find the parent of the target node
       const findParent = (
@@ -215,15 +211,21 @@ export function useFolderOperations() {
         return null;
       };
 
-      const parentNode = findParent(treeStructure, overId);
+      const parentNode = findParent(treeStructure, over.id);
       newParentId = parentNode?.pointer_id || undefined;
     }
 
-    // Sync to database
-    moveNode(activeId, newParentId).catch((error) => {
+    // Sync to database first, then update local state
+    try {
+      await moveNode(active.id, newParentId);
+      // Only update local state if backend sync succeeds
+      handleDragEnd(active, over, context);
+    } catch (error) {
       console.error("Failed to sync drag operation to database:", error);
-      // TODO: Could implement rollback logic here if needed
-    });
+      // Rollback to original state
+      useNotesStore.getState().setTreeStructure(originalTree);
+      throw error;
+    }
   };
 
   return {
