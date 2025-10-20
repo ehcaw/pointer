@@ -76,7 +76,7 @@ interface NotesStore {
     context?: {
       dropTarget: "folder" | "between";
       dropPosition: "child" | "sibling";
-    }
+    },
   ) => void;
   moveNodeInTree: (nodeId: string, newParentId?: string) => void;
 }
@@ -609,14 +609,27 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Add to userNotes
     const userNotes = [...state.userNotes];
-    if (!userNotes.some((n) => n.pointer_id.toString() === folder.pointer_id.toString())) {
+    if (
+      !userNotes.some(
+        (n) => n.pointer_id.toString() === folder.pointer_id.toString(),
+      )
+    ) {
       userNotes.push(folder);
     }
 
     // Add to tree structure
     const treeStructure = [...state.treeStructure];
-    if (!treeStructure.some((n) => n.pointer_id.toString() === folder.pointer_id.toString())) {
-      treeStructure.push(folder as TreeNode);
+    const treeNode: TreeNode = {
+      ...folder,
+      type: folder.type,
+      children: isFolder(folder) ? [] : undefined,
+    };
+    if (
+      !treeStructure.some(
+        (n) => n.pointer_id.toString() === folder.pointer_id.toString(),
+      )
+    ) {
+      treeStructure.push(treeNode);
     }
 
     set({ userNotes, treeStructure });
@@ -626,11 +639,13 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const state = get();
 
     // Remove from all collections recursively
-    const removeFromCollections = (items: (Node | TreeNode)[]): (Node | TreeNode)[] => {
+    const removeFromCollections = (
+      items: (Node | TreeNode)[],
+    ): (Node | TreeNode)[] => {
       return items
         .filter((item) => item.pointer_id.toString() !== folderId)
         .map((item) => {
-          if ('children' in item && item.children) {
+          if ("children" in item && item.children) {
             return {
               ...item,
               children: removeFromCollections(item.children),
@@ -641,9 +656,11 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     };
 
     const userNotes = removeFromCollections(state.userNotes);
-    const treeStructure = removeFromCollections(state.treeStructure) as TreeNode[];
+    const treeStructure = removeFromCollections(
+      state.treeStructure,
+    ) as TreeNode[];
     const openUserNotes = state.openUserNotes.filter(
-      (n) => n.pointer_id.toString() !== folderId
+      (n) => n.pointer_id.toString() !== folderId,
     );
 
     // Update current note if needed
@@ -657,7 +674,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     unsavedNotes.delete(folderId);
 
     const newUnsavedNotes = state.newUnsavedNotes.filter(
-      (n) => n.pointer_id.toString() !== folderId
+      (n) => n.pointer_id.toString() !== folderId,
     );
 
     set({
@@ -676,7 +693,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     context?: {
       dropTarget: "folder" | "between";
       dropPosition: "child" | "sibling";
-    }
+    },
   ) => {
     const state = get();
 
@@ -693,7 +710,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       context?: {
         dropTarget: "folder" | "between";
         dropPosition: "child" | "sibling";
-      }
+      },
     ): TreeNode[] => {
       let movedNode: TreeNode | null = null;
 
@@ -718,37 +735,44 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       // Now insert the node at the new position
       const insertNode = (items: TreeNode[]): TreeNode[] => {
         const result: TreeNode[] = [];
-        
+
         for (const item of items) {
           if (item.pointer_id === overId) {
             if (context?.dropTarget === "folder" && item.type === "folder") {
               // Insert as child of folder
               result.push({
                 ...item,
-                children: [...(item.children || []), { ...movedNode, parent_id: overId } as TreeNode],
+                children: [
+                  ...(item.children || []),
+                  { ...movedNode, parent_id: overId } as TreeNode,
+                ],
               });
             } else {
               // Insert as sibling
               const index = items.findIndex((i) => i.pointer_id === overId);
-              const insertIndex = context?.dropPosition === "sibling" ? index + 1 : index;
-              
+              const insertIndex =
+                context?.dropPosition === "sibling" ? index + 1 : index;
+
               // Insert items before the insertion point
               for (let i = 0; i < insertIndex; i++) {
                 if (items[i].pointer_id !== overId) {
                   result.push(items[i]);
                 }
               }
-              
+
               // Insert the moved node
-              result.push({ ...movedNode, parent_id: item.parent_id } as TreeNode);
-              
+              result.push({
+                ...movedNode,
+                parent_id: item.parent_id,
+              } as TreeNode);
+
               // Insert remaining items after the insertion point
               for (let i = insertIndex; i < items.length; i++) {
                 if (items[i].pointer_id !== overId) {
                   result.push(items[i]);
                 }
               }
-              
+
               return result;
             }
           } else {
@@ -762,7 +786,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
             }
           }
         }
-        
+
         return result;
       };
 
@@ -774,7 +798,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       state.treeStructure,
       activeId,
       overId,
-      context
+      context,
     );
 
     // Update userNotes flat list
@@ -800,7 +824,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const state = get();
 
     // Find the node to move
-    const nodeToMove = state.userNotes.find(n => n.pointer_id === nodeId);
+    const nodeToMove = state.userNotes.find((n) => n.pointer_id === nodeId);
     if (!nodeToMove) {
       console.error(`Node with pointer_id ${nodeId} not found`);
       return;
@@ -810,12 +834,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const updatedNode = { ...nodeToMove, parent_id: newParentId };
 
     // Update userNotes array
-    const updatedUserNotes = state.userNotes.map(n =>
-      n.pointer_id === nodeId ? updatedNode : n
+    const updatedUserNotes = state.userNotes.map((n) =>
+      n.pointer_id === nodeId ? updatedNode : n,
     );
 
     // Update tree structure
-    const updatedTreeStructure = state.treeStructure.map(node => {
+    const updatedTreeStructure = state.treeStructure.map((node) => {
       if (node.pointer_id === nodeId) {
         return { ...node, parent_id: newParentId };
       }
@@ -823,8 +847,8 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     });
 
     // Update open notes if the node is open
-    const updatedOpenNotes = state.openUserNotes.map(n =>
-      n.pointer_id === nodeId ? updatedNode : n
+    const updatedOpenNotes = state.openUserNotes.map((n) =>
+      n.pointer_id === nodeId ? updatedNode : n,
     );
 
     // Update current note if it's the one being moved
@@ -889,7 +913,7 @@ export const useTreeStructure = () => {
     const folderChildrenMap = new Map<string, Node[]>();
 
     // Initialize maps
-    userNotes.forEach(note => {
+    userNotes.forEach((note) => {
       nodeMap.set(note._id || note.pointer_id, note);
 
       // Initialize children array for folders
@@ -899,7 +923,7 @@ export const useTreeStructure = () => {
     });
 
     // Populate folder children relationships
-    userNotes.forEach(note => {
+    userNotes.forEach((note) => {
       if (note.parent_id) {
         const parentId = note.parent_id;
         const existingChildren = folderChildrenMap.get(parentId) || [];
@@ -945,7 +969,7 @@ export const useTreeStructure = () => {
               // Then sort by name
               return a.name.localeCompare(b.name);
             })
-            .map(child => nodeToTreeNode(child));
+            .map((child) => nodeToTreeNode(child));
         }
       }
 
@@ -953,7 +977,7 @@ export const useTreeStructure = () => {
     };
 
     // Find root nodes (nodes without parent_id)
-    const rootNodes = userNotes.filter(note => !note.parent_id);
+    const rootNodes = userNotes.filter((note) => !note.parent_id);
 
     // Build tree structure from root nodes
     return rootNodes
@@ -964,6 +988,6 @@ export const useTreeStructure = () => {
         // Then sort by name
         return a.name.localeCompare(b.name);
       })
-      .map(rootNode => nodeToTreeNode(rootNode));
+      .map((rootNode) => nodeToTreeNode(rootNode));
   }, [userNotes]);
 };

@@ -60,9 +60,9 @@ export function useNoteEditor() {
     try {
       const notes = await convex.query(api.notes.readNotesFromDb, {});
       // Convert database notes to proper Node type by ensuring type is set
-      const typedNotes: Node[] = notes.map(note => ({
+      const typedNotes: Node[] = notes.map((note) => ({
         ...note,
-        type: note.type || "file" as const,
+        type: note.type || ("file" as const),
       }));
       const treeStructure = typedNotes;
       setUserNotes(typedNotes);
@@ -120,7 +120,7 @@ export function useNoteEditor() {
 
     // After creating the note optimistically, sync it to get the _id
     try {
-      await saveCurrentNote();
+      await saveNote(newNote);
 
       // Fetch the newly created note from DB to get the _id
       const createdNote = await convex.query(api.notes.readNoteFromDb, {
@@ -215,9 +215,9 @@ export function useNoteEditor() {
       );
 
       // Convert database notes to proper Node type by ensuring type is set
-      const typedNotes: Node[] = updatedNotes.map(note => ({
+      const typedNotes: Node[] = updatedNotes.map((note) => ({
         ...note,
-        type: note.type || "file" as const,
+        type: note.type || ("file" as const),
       }));
       // Remove from all collections in store
       // removeNoteFromCollections(noteId);

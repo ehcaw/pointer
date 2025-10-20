@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useFolderOperations } from "@/hooks/use-folder-operations";
+import { toast } from "sonner";
 
 interface CreatePopoverProps {
   onCreateNote: () => void;
@@ -56,6 +57,7 @@ export function CreatePopover({
       setIsCreateDialogOpen(false);
     } catch (error) {
       console.error("Failed to create folder:", error);
+      toast.error("Failed to create folder. Please try again.");
     } finally {
       setIsCreating(false);
     }
