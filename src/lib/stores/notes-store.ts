@@ -821,10 +821,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   moveNodeInTree: (nodeId: string, newParentId?: string) => {
     const state = get();
 
-    // Find the node to move
-    const nodeToMove = state.userNotes.find((n) => n.pointer_id === nodeId);
+    // Find the node to move using _id
+    const nodeToMove = state.userNotes.find(
+      (n) => n._id === nodeId || n.pointer_id === nodeId,
+    );
     if (!nodeToMove) {
-      console.error(`Node with pointer_id ${nodeId} not found`);
+      console.error(`Node with _id ${nodeId} not found`);
       return;
     }
 
@@ -833,12 +835,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update userNotes array
     const updatedUserNotes = state.userNotes.map((n) =>
-      n.pointer_id === nodeId ? updatedNode : n,
+      n._id === nodeId ? updatedNode : n,
     );
 
     // Update tree structure
     const updatedTreeStructure = state.treeStructure.map((node) => {
-      if (node.pointer_id === nodeId) {
+      if (node._id === nodeId) {
         return { ...node, parent_id: newParentId };
       }
       return node;
@@ -846,12 +848,12 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update open notes if the node is open
     const updatedOpenNotes = state.openUserNotes.map((n) =>
-      n.pointer_id === nodeId ? updatedNode : n,
+      n._id === nodeId ? updatedNode : n,
     );
 
     // Update current note if it's the one being moved
     let updatedCurrentNote = state.currentNote;
-    if (state.currentNote && state.currentNote.pointer_id === nodeId) {
+    if (state.currentNote && state.currentNote._id === nodeId) {
       updatedCurrentNote = updatedNode;
     }
 
