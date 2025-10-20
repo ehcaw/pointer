@@ -6,11 +6,13 @@ import { useFolderOperations } from "@/hooks/use-folder-operations";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
+import { useNoteEditor } from "@/hooks/use-note-editor";
 
 export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
   const { moveNode, deleteFolder } = useFolderOperations();
-  const { moveNodeInTree, setCurrentNote, deleteNote } = useNotesStore();
+  const { moveNodeInTree, setCurrentNote } = useNotesStore();
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
+  const { deleteNote } = useNoteEditor();
 
   // Get the latest userNotes from store (includes optimistic updates)
   const userNotes = useNotesStore((state) => state.userNotes);
@@ -26,8 +28,8 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
 
     // Add delete actions to each tree item
     const addDeleteActions = (items: TreeDataItem[]): TreeDataItem[] => {
-      return items.map(item => {
-        const node = userNotes.find(n => n._id === item.id);
+      return items.map((item) => {
+        const node = userNotes.find((n) => n._id === item.id);
         if (!node) return item;
 
         const deleteButton = (
@@ -45,7 +47,7 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
         const itemWithActions: TreeDataItem = {
           ...item,
           actions: deleteButton,
-          children: item.children ? addDeleteActions(item.children) : undefined
+          children: item.children ? addDeleteActions(item.children) : undefined,
         };
 
         return itemWithActions;
@@ -56,11 +58,11 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     return treeWithActions;
   }, [userNotes, handleDeleteClick]); // Depend on userNotes which includes optimistic updates
 
-  const handleSelectChange = (treeItem: TreeDataItem) => {
-    if (!treeItem) return;
+  const handleSelectChange = (item: TreeDataItem | undefined) => {
+    if (!item) return;
 
-    const selectedNode = userNotes.find(note => note._id === treeItem.id);
-    if (selectedNode && !treeItem.droppable) {
+    const selectedNode = userNotes.find((note) => note._id === item.id);
+    if (selectedNode && !item.droppable) {
       // Only set current note for files (non-droppable), not folders
       setCurrentNote(selectedNode);
     }
@@ -86,12 +88,12 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     setNodeToDelete(null);
   }, []);
 
-  const handleDocumentDrag = async (sourceItem: TreeDataItem, targetItem: TreeDataItem) => {
-
+  const handleDocumentDrag = async (
+    sourceItem: TreeDataItem,
+    targetItem: TreeDataItem,
+  ) => {
     // Find the actual source node from our original nodes array
-    const sourceNode = nodes.find(
-      (n) => n._id === sourceItem.id,
-    );
+    const sourceNode = nodes.find((n) => n._id === sourceItem.id);
 
     if (!sourceNode) {
       console.error("Could not find source node");
@@ -113,9 +115,7 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     }
 
     // Find the actual target node for normal folder drops
-    const targetNode = nodes.find(
-      (n) => n._id === targetItem.id,
-    );
+    const targetNode = nodes.find((n) => n._id === targetItem.id);
 
     if (!targetNode) {
       console.error("Could not find target node");
@@ -169,8 +169,10 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
               Are you absolutely sure?
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              This action cannot be undone. This will permanently delete the {nodeToDelete.type} titled &quot;{nodeToDelete.name}&quot;.
-              {nodeToDelete.type === "folder" && " All contents within this folder will also be deleted."}
+              This action cannot be undone. This will permanently delete the{" "}
+              {nodeToDelete.type} titled &quot;{nodeToDelete.name}&quot;.
+              {nodeToDelete.type === "folder" &&
+                " All contents within this folder will also be deleted."}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleDeleteCancel}>
