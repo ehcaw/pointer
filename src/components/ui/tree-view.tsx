@@ -97,10 +97,10 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
         setDraggedItem(null);
       };
 
-      document.addEventListener('dragend', handleDragEnd);
+      document.addEventListener("dragend", handleDragEnd);
 
       return () => {
-        document.removeEventListener('dragend', handleDragEnd);
+        document.removeEventListener("dragend", handleDragEnd);
       };
     }, []);
 
@@ -183,27 +183,30 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
         </div>
 
         {/* Enhanced root drop zone */}
-        <div
-          className={cn(
-            "w-full h-[48px] rounded-lg transition-all duration-200 flex items-center justify-center text-sm text-muted-foreground px-2 mb-2",
-            "-mx-4", // Match parent container's exact margins
-            // Only show border when dragging
-            draggedItem && [
-              "border-2 border-dashed",
-              isDragOverRoot
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border/30 hover:border-border/50"
-            ],
-          )}
-          onDragOver={handleRootDragOver}
-          onDragLeave={handleRootDragLeave}
-          onDrop={handleRootDrop}
-        >
-          {isDragOverRoot && (
-            <div className="w-full text-center">
-              <span className="select-none inline-block">Drop here to move to root</span>
-            </div>
-          )}
+        <div className="px-2 pb-2">
+          <div
+            className={cn(
+              "w-full h-[48px] rounded-lg transition-all duration-200 flex items-center justify-center text-sm text-muted-foreground",
+              // Only show border when dragging
+              draggedItem && [
+                "border-2 border-dashed",
+                isDragOverRoot
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border/30 hover:border-border/50",
+              ],
+            )}
+            onDragOver={handleRootDragOver}
+            onDragLeave={handleRootDragLeave}
+            onDrop={handleRootDrop}
+          >
+            {isDragOverRoot && (
+              <div className="w-full text-center">
+                <span className="select-none inline-block">
+                  Drop here to move to root
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
