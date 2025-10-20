@@ -1,5 +1,5 @@
 import { action, mutation, query } from "./_generated/server";
-import { NoteContent } from "@/types/note";
+import { Node, NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -41,16 +41,20 @@ export const createNoteInDb = mutation({
   args: {
     name: v.string(),
     tenantId: v.string(),
-    content: v.object({
-      text: v.string(),
-      tiptap: v.string(),
-    }),
+    type: v.union(v.literal("file"), v.literal("folder")),
+    content: v.optional(
+      v.object({
+        text: v.string(),
+        tiptap: v.string(),
+      }),
+    ),
     pointer_id: v.string(), // Add pointer_id for client-side reference
     createdAt: v.string(),
     updatedAt: v.string(),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
     collaborative: v.boolean(),
+    parent_id: v.optional(v.id("notes")),
   },
   handler: async (ctx, args) => {
     // Store the pointer_id along with other fields
@@ -65,19 +69,24 @@ export const createNoteInDb = mutation({
     const noteId = await ctx.db.insert("notes", {
       name: args.name,
       tenantId: args.tenantId,
+      type: args.type,
       pointer_id: args.pointer_id,
       lastAccessed: args.lastAccessed || new Date().toISOString(),
       lastEdited: args.lastEdited || new Date().toISOString(),
       createdAt: args.createdAt,
       updatedAt: args.updatedAt,
       collaborative: args.collaborative || false,
+      parent_id: args.parent_id,
     });
 
-    await ctx.db.insert("notesContent", {
-      noteId: noteId,
-      content: args.content,
-      tenantId: args.tenantId,
-    });
+    // Only create content entry for files, not folders
+    if (args.type === "file" && args.content) {
+      await ctx.db.insert("notesContent", {
+        noteId: noteId,
+        content: args.content,
+        tenantId: args.tenantId,
+      });
+    }
 
     return noteId;
   },
@@ -91,7 +100,7 @@ export const updateNoteInDb = mutation({
 
     // Fields that are required for creation but optional for updates
     tenantId: v.optional(v.string()),
-    type: v.optional(v.string()), // "file" or "folder"
+    type: v.optional(v.union(v.literal("file"), v.literal("folder"))),
 
     // Optional fields for both operations
     content: v.optional(v.object({ tiptap: v.any(), text: v.string() })),
@@ -556,5 +565,204 @@ export const getSharedDocumentsByUserId = query({
     // 4. Filter out any null results (if a document was deleted)
     // and return the documents
     return documents.filter((doc) => doc !== null);
+  },
+});
+
+// Folder-specific operations
+
+export const createFolderInDb = mutation({
+  args: {
+    name: v.string(),
+    tenantId: v.string(),
+    pointer_id: v.string(),
+    parent_id: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = new Date().toISOString();
+
+    const parent_id =
+      (args.parent_id && ctx.db.normalizeId("notes", args.parent_id)) ||
+      undefined;
+
+    const folderId = await ctx.db.insert("notes", {
+      name: args.name,
+      tenantId: args.tenantId,
+      type: "folder",
+      pointer_id: args.pointer_id,
+      parent_id: parent_id,
+      createdAt: now,
+      updatedAt: now,
+      lastAccessed: now,
+      lastEdited: now,
+      collaborative: false,
+    });
+
+    return folderId;
+  },
+});
+
+export const moveNode = mutation({
+  args: {
+    pointer_id: v.string(),
+    new_parent_id: v.optional(v.string()),
+    user_id: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const note = await ctx.db
+      .query("notes")
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
+      .first();
+
+    if (!note) {
+      throw new Error(`Note with pointer_id ${args.pointer_id} not found`);
+    }
+
+    if (note.tenantId !== args.user_id) {
+      throw new Error("Unauthorized: You don't own this note");
+    }
+
+    const new_parent_id =
+      (args.new_parent_id && ctx.db.normalizeId("notes", args.new_parent_id)) ||
+      undefined;
+
+    // Prevent circular reference
+    if (args.new_parent_id) {
+      // Check if new_parent_id is a descendant of the node being moved
+      const checkDescendants = async (nodeId: Id<"notes">): Promise<boolean> => {
+        const children = await ctx.db
+          .query("notes")
+          .withIndex("by_parent", (q) => q.eq("parent_id", nodeId))
+          .collect();
+
+        for (const child of children) {
+          if (child._id === new_parent_id) {
+            return true;
+          }
+          if (child.type === "folder" && await checkDescendants(child._id)) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      if (await checkDescendants(note._id)) {
+        throw new Error("Cannot move a folder into its own descendant");
+      }
+    }
+
+    await ctx.db.patch(note._id, {
+      parent_id: new_parent_id,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return { success: true };
+  },
+});
+
+export const deleteFolder = mutation({
+  args: {
+    pointer_id: v.string(),
+    user_id: v.string(),
+    cascade: v.boolean(), // Whether to delete all children
+  },
+  handler: async (ctx, args) => {
+    const note = await ctx.db
+      .query("notes")
+      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", args.pointer_id))
+      .first();
+
+    if (!note) {
+      throw new Error(`Folder with pointer_id ${args.pointer_id} not found`);
+    }
+
+    if (note.tenantId !== args.user_id) {
+      throw new Error("Unauthorized: You don't own this folder");
+    }
+
+    if (note.type !== "folder") {
+      throw new Error("Can only delete folders with this mutation");
+    }
+
+    const deleteRecursively = async (folderId: Id<"notes">) => {
+      // Find all children
+      const children = await ctx.db
+        .query("notes")
+        .withIndex("by_parent", (q) => q.eq("parent_id", folderId))
+        .collect();
+
+      // Delete all children recursively
+      for (const child of children) {
+        if (child.type === "folder") {
+          await deleteRecursively(child._id);
+        } else {
+          await deleteNoteAndContent(child._id);
+        }
+      }
+
+      // Delete the folder itself
+      await ctx.db.delete(folderId);
+    };
+
+    const deleteNoteAndContent = async (noteId: Id<"notes">) => {
+      // Delete content
+      const content = await ctx.db
+        .query("notesContent")
+        .withIndex("by_noteid", (q) => q.eq("noteId", noteId))
+        .first();
+      if (content) {
+        await ctx.db.delete(content._id);
+      }
+
+      // Delete the note
+      await ctx.db.delete(noteId);
+    };
+
+    if (args.cascade) {
+      await deleteRecursively(note._id);
+    } else {
+      // Only delete if empty
+      const children = await ctx.db
+        .query("notes")
+        .withIndex("by_parent", (q) => q.eq("parent_id", note._id))
+        .collect();
+
+      if (children.length > 0) {
+        throw new Error("Cannot delete non-empty folder without cascade");
+      }
+
+      await ctx.db.delete(note._id);
+    }
+
+    return { success: true };
+  },
+});
+
+export const getTreeStructure = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // Get all notes for the user
+    const allNotes = await ctx.db
+      .query("notes")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", args.userId))
+      .collect();
+
+    // Build tree structure
+    const notesById = new Map(
+      allNotes.map((note) => [note._id, { ...note, children: [] as any[] }]),
+    );
+    const rootNodes: any[] = [];
+
+    for (const note of allNotes) {
+      if (note.parent_id) {
+        const parent = notesById.get(note.parent_id);
+        if (parent) {
+          parent.children.push(note);
+        }
+      } else {
+        rootNodes.push(note);
+      }
+    }
+
+    return rootNodes;
   },
 });

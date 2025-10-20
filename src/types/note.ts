@@ -31,9 +31,15 @@ export interface BaseNode {
 }
 
 /**
+ * Discriminated union type for node types.
+ */
+export type NodeType = "file" | "folder";
+
+/**
  * A file node (holds JSON content).
  */
 export interface FileNode extends BaseNode {
+  type: "file";
   /**
    * JSON object representing the file's contents.
    * For TipTap notes, this will contain the editor's JSON structure.
@@ -49,6 +55,25 @@ export interface FileNode extends BaseNode {
      */
     text?: string;
   };
+  /**
+   * Optional parent folder ID for hierarchical organization
+   */
+  parent_id?: string;
+}
+
+/**
+ * A folder node (contains other nodes).
+ */
+export interface FolderNode extends BaseNode {
+  type: "folder";
+  /**
+   * Optional parent folder ID for hierarchical organization
+   */
+  parent_id?: string;
+  /**
+   * Whether the folder is expanded in the UI
+   */
+  isExpanded?: boolean;
 }
 
 export interface NoteContent {
@@ -59,7 +84,55 @@ export interface NoteContent {
 /**
  * Discriminated union: either a folder or a file.
  */
-export type Node = FileNode;
+export type Node = FileNode | FolderNode;
+
+/**
+ * Tree node structure with children for UI rendering
+ */
+export interface TreeNode {
+  // Base Node properties
+  _id?: string;
+  pointer_id: string;
+  tenantId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  lastAccessed?: string;
+  lastEdited?: string;
+  collaborative: boolean;
+
+  // Node type discriminator
+  type: "file" | "folder";
+
+  // File-specific properties
+  content?: {
+    tiptap?: string;
+    text?: string;
+  };
+
+  // Folder-specific properties
+  isExpanded?: boolean;
+
+  // Hierarchy
+  parent_id?: string;
+
+  // Tree structure
+  children?: TreeNode[];
+}
+
+/**
+ * Helper function to check if a node is a folder
+ */
+export function isFolder(node: Node): node is FolderNode {
+  return node.type === "folder";
+}
+
+/**
+ * Helper function to check if a node is a file
+ */
+export function isFile(node: Node): node is FileNode {
+  return node.type === "file";
+}
 
 // Graph Stuff
 export type GraphBaseNode = {

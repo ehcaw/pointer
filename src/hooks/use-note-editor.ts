@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useConvex } from "convex/react";
 import { useNotesStore } from "@/lib/stores/notes-store";
-import { FileNode, Node } from "@/types/note";
+import { FileNode, Node, isFile } from "@/types/note";
 import { api } from "../../convex/_generated/api";
 import { ensureJSONString } from "@/lib/utils";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
@@ -59,8 +59,13 @@ export function useNoteEditor() {
     setIsLoading(true);
     try {
       const notes = await convex.query(api.notes.readNotesFromDb, {});
-      const treeStructure = notes;
-      setUserNotes(notes);
+      // Convert database notes to proper Node type by ensuring type is set
+      const typedNotes: Node[] = notes.map((note) => ({
+        ...note,
+        type: note.type || ("file" as const),
+      }));
+      const treeStructure = typedNotes;
+      setUserNotes(typedNotes);
       setTreeStructure(treeStructure);
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -103,6 +108,7 @@ export function useNoteEditor() {
         text: "",
       },
       collaborative: false,
+      type: "file",
     };
 
     // Add to store as unsaved
@@ -111,6 +117,25 @@ export function useNoteEditor() {
     addUserNote(newNote);
     setCurrentView("note");
     setCurrentNote(newNote);
+
+    // After creating the note optimistically, sync it to get the _id
+    try {
+      await saveNote(newNote);
+
+      // Fetch the newly created note from DB to get the _id
+      const createdNote = await convex.query(api.notes.readNoteFromDb, {
+        pointer_id: id,
+      });
+
+      if (createdNote) {
+        // Update the store with the note that now has the _id
+        updateNoteInCollections(createdNote as FileNode);
+        clearUnsavedNote(id);
+        dbSavedNotes.set(id, createdNote as FileNode);
+      }
+    } catch (error) {
+      console.error("Error syncing new note to database:", error);
+    }
 
     return newNote;
   };
@@ -188,10 +213,15 @@ export function useNoteEditor() {
         },
       );
 
+      // Convert database notes to proper Node type by ensuring type is set
+      const typedNotes: Node[] = updatedNotes.map((note) => ({
+        ...note,
+        type: note.type || ("file" as const),
+      }));
       // Remove from all collections in store
       // removeNoteFromCollections(noteId);
-      setUserNotes(updatedNotes);
-      setTreeStructure(updatedNotes);
+      setUserNotes(typedNotes);
+      setTreeStructure(typedNotes);
 
       return true;
     } catch (error) {
@@ -233,7 +263,7 @@ export function useNoteEditor() {
 
   // Load initial note content when currentNote changes
   useEffect(() => {
-    if (currentNote && currentNote.content?.tiptap) {
+    if (currentNote && isFile(currentNote) && currentNote.content?.tiptap) {
       lastContentRef.current = {
         tiptap: ensureJSONString(currentNote.content.tiptap),
         text: currentNote.content.text,

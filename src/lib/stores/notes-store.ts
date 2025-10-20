@@ -1,13 +1,14 @@
 import { create } from "zustand";
-import type { Node } from "@/types/note";
+import type { Node, TreeNode } from "@/types/note";
 import { usePreferencesStore } from "./preferences-store";
 import { useMemo } from "react";
+import { isFolder } from "@/types/note";
 
 interface NotesStore {
   // Core note collections
   userNotes: Node[];
   sharedNotes: Node[];
-  treeStructure: Node[];
+  treeStructure: TreeNode[];
 
   // UI state
   openUserNotes: Node[];
@@ -55,6 +56,7 @@ interface NotesStore {
   // State synchronization helpers
   updateNoteInCollections: (note: Node) => void;
   removeNoteFromCollections: (noteId: string) => void;
+  updateUserNote: (note: Node) => void;
 
   // Content cache management
   getCachedContent: (noteId: string) => string | undefined;
@@ -64,6 +66,19 @@ interface NotesStore {
     noteId: string,
     fetcher: (noteId: string) => Promise<string>,
   ) => Promise<string>;
+
+  // Folder operations
+  addFolderToStore: (folder: Node) => void;
+  removeFolderFromStore: (folderId: string) => void;
+  handleDragEnd: (
+    active: { id: string },
+    over: { id: string } | null,
+    context?: {
+      dropTarget: "folder" | "between";
+      dropPosition: "child" | "sibling";
+    },
+  ) => void;
+  moveNodeInTree: (nodeId: string, newParentId?: string) => void;
 }
 
 export const useNotesStore = create<NotesStore>((set, get) => ({
@@ -394,6 +409,17 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     });
   },
 
+  updateUserNote: (note: Node) => {
+    const state = get();
+
+    // Update in userNotes
+    const userNotes = state.userNotes.map((n) =>
+      n.pointer_id.toString() === note.pointer_id.toString() ? note : n,
+    );
+
+    set({ userNotes });
+  },
+
   removeNoteFromCollections: (noteId: string) => {
     const state = get();
 
@@ -576,6 +602,270 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     return fetchPromise;
   },
+
+  // Folder operations
+  addFolderToStore: (folder: Node) => {
+    const state = get();
+
+    // Add to userNotes
+    const userNotes = [...state.userNotes];
+    if (
+      !userNotes.some(
+        (n) => n.pointer_id.toString() === folder.pointer_id.toString(),
+      )
+    ) {
+      userNotes.push(folder);
+    }
+
+    // Add to tree structure
+    const treeStructure = [...state.treeStructure];
+    const treeNode: TreeNode = {
+      ...folder,
+      type: folder.type,
+      children: isFolder(folder) ? [] : undefined,
+    };
+    if (
+      !treeStructure.some(
+        (n) => n.pointer_id.toString() === folder.pointer_id.toString(),
+      )
+    ) {
+      treeStructure.push(treeNode);
+    }
+
+    set({ userNotes, treeStructure });
+  },
+
+  removeFolderFromStore: (folderId: string) => {
+    const state = get();
+
+    // Remove from all collections recursively
+    const removeFromCollections = (
+      items: (Node | TreeNode)[],
+    ): (Node | TreeNode)[] => {
+      return items
+        .filter((item) => item.pointer_id.toString() !== folderId)
+        .map((item) => {
+          if ("children" in item && item.children) {
+            return {
+              ...item,
+              children: removeFromCollections(item.children),
+            };
+          }
+          return item;
+        });
+    };
+
+    const userNotes = removeFromCollections(state.userNotes);
+    const treeStructure = removeFromCollections(
+      state.treeStructure,
+    ) as TreeNode[];
+    const openUserNotes = state.openUserNotes.filter(
+      (n) => n.pointer_id.toString() !== folderId,
+    );
+
+    // Update current note if needed
+    let currentNote = state.currentNote;
+    if (currentNote && currentNote.pointer_id.toString() === folderId) {
+      currentNote = openUserNotes.length > 0 ? openUserNotes[0] : null;
+    }
+
+    // Remove from unsaved changes
+    const unsavedNotes = new Map(state.unsavedNotes);
+    unsavedNotes.delete(folderId);
+
+    const newUnsavedNotes = state.newUnsavedNotes.filter(
+      (n) => n.pointer_id.toString() !== folderId,
+    );
+
+    set({
+      userNotes: userNotes as Node[],
+      treeStructure,
+      openUserNotes,
+      currentNote,
+      unsavedNotes,
+      newUnsavedNotes,
+    });
+  },
+
+  handleDragEnd: (
+    active: { id: string },
+    over: { id: string } | null,
+    context?: {
+      dropTarget: "folder" | "between";
+      dropPosition: "child" | "sibling";
+    },
+  ) => {
+    const state = get();
+
+    if (!over || active.id === over.id) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    // Helper function to recursively find and move nodes
+    const moveNodeInTree = (
+      items: TreeNode[],
+      activeId: string,
+      overId: string,
+      context?: {
+        dropTarget: "folder" | "between";
+        dropPosition: "child" | "sibling";
+      },
+    ): TreeNode[] => {
+      let movedNode: TreeNode | null = null;
+
+      // First, extract the node to be moved
+      const extractNode = (items: TreeNode[]): TreeNode[] => {
+        return items.filter((item) => {
+          if (item.pointer_id === activeId) {
+            movedNode = item;
+            return false;
+          }
+          if (item.children) {
+            item.children = extractNode(item.children);
+          }
+          return true;
+        });
+      };
+
+      const itemsWithoutMoved = extractNode(items);
+
+      if (!movedNode) return items;
+
+      // Now insert the node at the new position
+      const insertNode = (items: TreeNode[]): TreeNode[] => {
+        const result: TreeNode[] = [];
+
+        for (const item of items) {
+          if (item.pointer_id === overId) {
+            if (context?.dropTarget === "folder" && item.type === "folder") {
+              // Insert as child of folder
+              result.push({
+                ...item,
+                children: [
+                  ...(item.children || []),
+                  { ...movedNode, parent_id: overId } as TreeNode,
+                ],
+              });
+            } else {
+              // Insert as sibling
+              const index = items.findIndex((i) => i.pointer_id === overId);
+              const insertIndex =
+                context?.dropPosition === "sibling" ? index + 1 : index;
+
+              // Insert items before the insertion point
+              for (let i = 0; i < insertIndex; i++) {
+                // if (items[i].pointer_id !== overId) {
+                // result.push(items[i]);
+                result.push(items[i]);
+              }
+
+              // Insert the moved node
+              result.push({
+                ...movedNode,
+                parent_id: item.parent_id,
+              } as TreeNode);
+
+              // Insert remaining items after the insertion point
+              for (let i = insertIndex; i < items.length; i++) {
+                result.push(items[i]);
+              }
+
+              return result;
+            }
+          } else {
+            if (item.children) {
+              result.push({
+                ...item,
+                children: insertNode(item.children),
+              });
+            } else {
+              result.push(item);
+            }
+          }
+        }
+
+        return result;
+      };
+
+      return insertNode(itemsWithoutMoved);
+    };
+
+    // Update tree structure
+    const newTreeStructure = moveNodeInTree(
+      state.treeStructure,
+      activeId,
+      overId,
+      context,
+    );
+
+    // Update userNotes flat list
+    const flattenTree = (items: TreeNode[]): Node[] => {
+      return items.reduce((acc: Node[], item) => {
+        acc.push(item as Node);
+        if (item.children) {
+          acc.push(...flattenTree(item.children));
+        }
+        return acc;
+      }, []);
+    };
+
+    const newUserNotes = flattenTree(newTreeStructure);
+
+    set({
+      treeStructure: newTreeStructure,
+      userNotes: newUserNotes,
+    });
+  },
+
+  moveNodeInTree: (nodeId: string, newParentId?: string) => {
+    const state = get();
+
+    // Find the node to move using _id
+    const nodeToMove = state.userNotes.find(
+      (n) => n._id === nodeId || n.pointer_id === nodeId,
+    );
+    if (!nodeToMove) {
+      console.error(`Node with _id ${nodeId} not found`);
+      return;
+    }
+
+    // Update the node's parent_id
+    const updatedNode = { ...nodeToMove, parent_id: newParentId };
+
+    // Update userNotes array
+    const updatedUserNotes = state.userNotes.map((n) =>
+      n._id === nodeId ? updatedNode : n,
+    );
+
+    // Update tree structure
+    const updatedTreeStructure = state.treeStructure.map((node) => {
+      if (node._id === nodeId) {
+        return { ...node, parent_id: newParentId };
+      }
+      return node;
+    });
+
+    // Update open notes if the node is open
+    const updatedOpenNotes = state.openUserNotes.map((n) =>
+      n._id === nodeId ? updatedNode : n,
+    );
+
+    // Update current note if it's the one being moved
+    let updatedCurrentNote = state.currentNote;
+    if (state.currentNote && state.currentNote._id === nodeId) {
+      updatedCurrentNote = updatedNode;
+    }
+
+    set({
+      userNotes: updatedUserNotes,
+      treeStructure: updatedTreeStructure,
+      openUserNotes: updatedOpenNotes,
+      currentNote: updatedCurrentNote,
+    });
+
+    console.log(`Moved node ${nodeId} to parent ${newParentId}`);
+  },
 }));
 
 // Optimized selectors for performance
@@ -606,4 +896,98 @@ export const useUnsavedNotesCount = () => {
   return useMemo(() => {
     return unsavedNotes.size;
   }, [unsavedNotes]);
+};
+
+/**
+ * Computed tree structure from userNotes
+ * Builds hierarchical tree from flat notes array
+ */
+export const useTreeStructure = () => {
+  const userNotes = useNotesStore((state) => state.userNotes);
+
+  return useMemo(() => {
+    // Create a map for quick lookup of nodes by ID
+    const nodeMap = new Map<string, Node>();
+
+    // Create a map for tracking folder children
+    const folderChildrenMap = new Map<string, Node[]>();
+
+    // Initialize maps
+    userNotes.forEach((note) => {
+      nodeMap.set(note._id || note.pointer_id, note);
+
+      // Initialize children array for folders
+      if (isFolder(note)) {
+        folderChildrenMap.set(note._id || note.pointer_id, []);
+      }
+    });
+
+    // Populate folder children relationships
+    userNotes.forEach((note) => {
+      if (note.parent_id) {
+        const parentId = note.parent_id;
+        const existingChildren = folderChildrenMap.get(parentId) || [];
+        folderChildrenMap.set(parentId, [...existingChildren, note]);
+      }
+    });
+
+    // Recursive function to convert Node to TreeNode
+    const nodeToTreeNode = (node: Node): TreeNode => {
+      const nodeId = node._id || node.pointer_id;
+      const treeNode: TreeNode = {
+        ...node,
+        _id: node._id,
+        pointer_id: node.pointer_id,
+        tenantId: node.tenantId,
+        name: node.name,
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
+        lastAccessed: node.lastAccessed,
+        lastEdited: node.lastEdited,
+        collaborative: node.collaborative,
+        type: node.type,
+        parent_id: node.parent_id,
+      };
+
+      // Add file-specific properties
+      if (node.type === "file" && "content" in node) {
+        treeNode.content = node.content;
+      }
+
+      // Add folder-specific properties
+      if (isFolder(node)) {
+        treeNode.isExpanded = node.isExpanded;
+
+        // Add children if this is a folder
+        const children = folderChildrenMap.get(nodeId) || [];
+        if (children.length > 0) {
+          treeNode.children = children
+            .sort((a, b) => {
+              // Sort folders first, then files
+              if (isFolder(a) && !isFolder(b)) return -1;
+              if (!isFolder(a) && isFolder(b)) return 1;
+              // Then sort by name
+              return a.name.localeCompare(b.name);
+            })
+            .map((child) => nodeToTreeNode(child));
+        }
+      }
+
+      return treeNode;
+    };
+
+    // Find root nodes (nodes without parent_id)
+    const rootNodes = userNotes.filter((note) => !note.parent_id);
+
+    // Build tree structure from root nodes
+    return rootNodes
+      .sort((a, b) => {
+        // Sort folders first, then files
+        if (isFolder(a) && !isFolder(b)) return -1;
+        if (!isFolder(a) && isFolder(b)) return 1;
+        // Then sort by name
+        return a.name.localeCompare(b.name);
+      })
+      .map((rootNode) => nodeToTreeNode(rootNode));
+  }, [userNotes]);
 };

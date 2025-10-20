@@ -16,11 +16,15 @@ export default defineSchema({
     quibble_id: v.optional(v.string()),
     pointer_id: v.string(),
     tenantId: v.string(),
+    type: v.optional(v.union(v.literal("file"), v.literal("folder"))),
     updatedAt: v.string(),
     collaborative: v.boolean(),
+    parent_id: v.optional(v.id("notes")),
   })
     .index("by_pointer_id", ["pointer_id"])
-    .index("by_tenant", ["tenantId"]),
+    .index("by_tenant", ["tenantId"])
+    .index("by_parent", ["parent_id"])
+    .index("by_type_parent", ["type", "parent_id"]),
   notesCopy: defineTable({
     content: v.optional(
       v.object({

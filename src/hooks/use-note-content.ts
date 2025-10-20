@@ -4,6 +4,7 @@ import { createDataFetchers } from "@/lib/utils/dataFetchers";
 import { useNotesStore, useRecentNotes } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { useNoteEditor } from "./use-note-editor";
+import { isFile } from "@/types/note";
 
 export const useNoteContent = () => {
   const { currentNote } = useNoteEditor();
@@ -11,7 +12,7 @@ export const useNoteContent = () => {
   const { currentView } = usePreferencesStore();
 
   const [noteContent, setNoteContent] = useState(
-    currentNote?.content?.tiptap || "",
+    (currentNote && isFile(currentNote) && currentNote?.content?.tiptap) || "",
   );
   const [isLoadingContent, setIsLoadingContent] = useState(false);
 
@@ -41,7 +42,7 @@ export const useNoteContent = () => {
 
         // Update the note in store if found
         const noteInStore = useNotesStore.getState().findNoteById(noteId);
-        if (noteInStore) {
+        if (noteInStore && isFile(noteInStore)) {
           updateNoteInCollections({
             ...noteInStore,
             content: parsed,
@@ -75,10 +76,12 @@ export const useNoteContent = () => {
     currentNoteIdRef.current = noteId;
 
     // Load content if not available or if tiptap content is missing
-    if (!currentNote?.content?.tiptap) {
+    if (currentNote && isFile(currentNote) && !currentNote?.content?.tiptap) {
       loadNoteContent(noteId);
     } else {
-      setNoteContent(currentNote.content.tiptap || "");
+      setNoteContent(
+        (isFile(currentNote) && currentNote?.content?.tiptap) || "",
+      );
     }
   }, [
     currentNote,
