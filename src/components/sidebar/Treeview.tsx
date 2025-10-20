@@ -103,9 +103,23 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
       return;
     }
 
-    // Check if target is the root drop zone
+    // Check if target is the virtual root folder
+    if (targetItem.id === "virtual-root") {
+      // Move to root level (parent_id = undefined)
+      moveNodeInTree(sourceNode.pointer_id, undefined);
+
+      // Also update backend (undefined means no parent)
+      try {
+        await moveNode(sourceNode.pointer_id, undefined);
+      } catch (error) {
+        console.error("Failed to move item to root level:", error);
+      }
+      return;
+    }
+
+    // Check if target is the old root drop zone (for backwards compatibility)
     if (targetItem.id === "" && targetItem.name === "parent_div") {
-      // Move to root level
+      // Move to root level (parent_id = undefined)
       moveNodeInTree(sourceNode.pointer_id, undefined);
 
       // Also update backend (undefined means no parent)
@@ -160,11 +174,14 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
 
   return (
     <>
-      <TreeView
-        data={treeData}
-        onDocumentDrag={handleDocumentDrag}
-        onSelectChange={handleSelectChange}
-      />
+      <div className="h-full">
+        <TreeView
+          data={treeData}
+          onDocumentDrag={handleDocumentDrag}
+          onSelectChange={handleSelectChange}
+          className="h-full"
+        />
+      </div>
       {nodeToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background border rounded-lg p-6 max-w-md mx-4">

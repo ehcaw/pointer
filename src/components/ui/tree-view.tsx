@@ -91,6 +91,19 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
       [draggedItem, onDocumentDrag],
     );
 
+    // Global drag end handler to clear draggedItem when drag ends anywhere
+    React.useEffect(() => {
+      const handleDragEnd = () => {
+        setDraggedItem(null);
+      };
+
+      document.addEventListener('dragend', handleDragEnd);
+
+      return () => {
+        document.removeEventListener('dragend', handleDragEnd);
+      };
+    }, []);
+
     const expandedItemIds = React.useMemo(() => {
       if (!initialSelectedItemId) {
         return [] as string[];
@@ -121,28 +134,77 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
       return ids;
     }, [data, expandAll, initialSelectedItemId]);
 
+    // Check if we have virtual root structure
+    const hasVirtualRoot =
+      Array.isArray(data) &&
+      data.length === 1 &&
+      data[0]?.id === "virtual-root";
+    const [isDragOverRoot, setIsDragOverRoot] = React.useState(false);
+
+    const handleRootDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      if (draggedItem) {
+        setIsDragOverRoot(true);
+      }
+    };
+
+    const handleRootDragLeave = () => {
+      setIsDragOverRoot(false);
+    };
+
+    const handleRootDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOverRoot(false);
+
+      // Drop onto virtual root if we have one, otherwise use old behavior
+      if (hasVirtualRoot) {
+        handleDrop({ id: "virtual-root", name: "Root" });
+      } else {
+        handleDrop({ id: "", name: "parent_div" });
+      }
+    };
+
     return (
-      <div className={cn("overflow-hidden relative p-2", className)}>
-        <TreeItem
-          data={data}
-          ref={ref}
-          selectedItemId={selectedItemId}
-          handleSelectChange={handleSelectChange}
-          expandedItemIds={expandedItemIds}
-          defaultLeafIcon={defaultLeafIcon}
-          defaultNodeIcon={defaultNodeIcon}
-          handleDragStart={handleDragStart}
-          handleDrop={handleDrop}
-          draggedItem={draggedItem}
-          {...props}
-        />
+      <div className={cn("flex flex-col h-full", className)}>
+        <div className="flex-1 overflow-hidden p-2">
+          <TreeItem
+            data={data}
+            ref={ref}
+            selectedItemId={selectedItemId}
+            handleSelectChange={handleSelectChange}
+            expandedItemIds={expandedItemIds}
+            defaultLeafIcon={defaultLeafIcon}
+            defaultNodeIcon={defaultNodeIcon}
+            handleDragStart={handleDragStart}
+            handleDrop={handleDrop}
+            draggedItem={draggedItem}
+            {...props}
+          />
+        </div>
+
+        {/* Enhanced root drop zone */}
         <div
-          className="w-full h-[48px]"
-          onDrop={(e) => {
-            handleDrop({ id: "", name: "parent_div" });
-            console.error(e);
-          }}
-        ></div>
+          className={cn(
+            "w-full h-[48px] rounded-lg transition-all duration-200 flex items-center justify-center text-sm text-muted-foreground px-2 mb-2",
+            "-mx-4", // Match parent container's exact margins
+            // Only show border when dragging
+            draggedItem && [
+              "border-2 border-dashed",
+              isDragOverRoot
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border/30 hover:border-border/50"
+            ],
+          )}
+          onDragOver={handleRootDragOver}
+          onDragLeave={handleRootDragLeave}
+          onDrop={handleRootDrop}
+        >
+          {isDragOverRoot && (
+            <div className="w-full text-center">
+              <span className="select-none inline-block">Drop here to move to root</span>
+            </div>
+          )}
+        </div>
       </div>
     );
   },
@@ -180,10 +242,16 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
     if (!(data instanceof Array)) {
       data = [data];
     }
+
+    // Check if we have a single virtual root folder and render its children directly
+    const isVirtualRootStructure =
+      data.length === 1 && data[0]?.id === "virtual-root" && data[0]?.children;
+    const itemsToRender = isVirtualRootStructure ? data[0].children! : data;
+
     return (
       <div ref={ref} role="tree" className={className} {...props}>
         <ul>
-          {data.map((item) => (
+          {itemsToRender.map((item) => (
             <li key={item.id}>
               {item.children ? (
                 <TreeNode
@@ -238,8 +306,9 @@ const TreeNode = ({
   handleDrop?: (item: TreeDataItem) => void;
   draggedItem: TreeDataItem | null;
 }) => {
+  const isVirtualRoot = item.id === "virtual-root";
   const [value, setValue] = React.useState(
-    expandedItemIds.includes(item.id) ? [item.id] : [],
+    isVirtualRoot || expandedItemIds.includes(item.id) ? [item.id] : [],
   );
   const [isDragOver, setIsDragOver] = React.useState(false);
 
@@ -283,7 +352,11 @@ const TreeNode = ({
               (!item.children || value.includes(item.id)) &&
               selectedTreeVariants(),
             isDragOver && dragOverVariants(),
+            // Special styling for virtual root folder
+            isVirtualRoot &&
+              "font-semibold text-primary/80 border-b border-border/50",
           )}
+          showChevron={!isVirtualRoot}
           onClick={() => {
             handleSelectChange(item);
             item.onClick?.();
@@ -303,7 +376,14 @@ const TreeNode = ({
             isOpen={value.includes(item.id)}
             default={defaultNodeIcon}
           />
-          <span className="text-sm truncate">{item.name}</span>
+          <span
+            className={cn(
+              "text-sm truncate",
+              isVirtualRoot && "font-semibold text-primary/80",
+            )}
+          >
+            {item.name}
+          </span>
           <TreeActions isSelected={selectedItemId === item.id}>
             {item.actions}
           </TreeActions>
@@ -426,8 +506,10 @@ TreeLeaf.displayName = "TreeLeaf";
 
 const AccordionTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & {
+    showChevron?: boolean;
+  }
+>(({ className, children, showChevron = true, ...props }, ref) => (
   <AccordionPrimitive.Header>
     <AccordionPrimitive.Trigger
       ref={ref}
@@ -437,7 +519,9 @@ const AccordionTrigger = React.forwardRef<
       )}
       {...props}
     >
-      <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 text-accent/50 mr-1" />
+      {showChevron && (
+        <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 text-accent/50 mr-1" />
+      )}
       {children}
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>

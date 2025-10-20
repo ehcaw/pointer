@@ -444,8 +444,10 @@ export default function AppSidebar() {
             <Plus className="h-4 w-4" />
             <span className="sr-only">Add Note</span>
           </SidebarGroupAction>*/}
-          <SidebarGroupContent className="-mx-4 pr-4">
-            <TreeViewComponent nodes={userNotes} />
+          <SidebarGroupContent className="-mx-4 pr-4 flex flex-col h-full">
+            <div className="flex-1 overflow-hidden">
+              <TreeViewComponent nodes={userNotes} />
+            </div>
           </SidebarGroupContent>
         </SidebarGroup>
 

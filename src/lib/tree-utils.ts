@@ -7,7 +7,7 @@ import { isFile } from "@/types/note";
  * compatible with TreeView component.
  *
  * @param notes - Flat array of nodes (files and folders)
- * @returns Hierarchical array of TreeDataItem objects
+ * @returns Hierarchical array of TreeDataItem objects wrapped in a virtual root folder
  */
 export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
   // Create a map for quick lookup of nodes by ID
@@ -86,7 +86,7 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
   const rootNodes = notes.filter((note) => !note.parent_id && note._id);
 
   // Build tree structure from root nodes
-  return rootNodes
+  const rootItems = rootNodes
     .sort((a, b) => {
       // Sort folders first, then files
       if (isFolder(a) && !isFolder(b)) return -1;
@@ -103,4 +103,15 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
       }
     })
     .filter((item): item is TreeDataItem => item !== null); // Remove null entries
+
+  // Create virtual root folder
+  const virtualRoot: TreeDataItem = {
+    id: "virtual-root",
+    name: "Root",
+    droppable: true,
+    draggable: false, // Root folder cannot be dragged
+    children: rootItems,
+  };
+
+  return [virtualRoot];
 }
