@@ -5,6 +5,7 @@ import { useConvex } from "convex/react";
 
 import { FolderNode, TreeNode } from "@/types/note";
 import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 export function useFolderOperations() {
   const {
@@ -13,6 +14,7 @@ export function useFolderOperations() {
     handleDragEnd,
     treeStructure,
     updateUserNote,
+    moveNodeInTree,
   } = useNotesStore();
 
   const { user } = useUser();
@@ -113,6 +115,19 @@ export function useFolderOperations() {
       return;
     }
 
+    // Capture the complete original state before any changes
+    const originalUserNotes = JSON.parse(JSON.stringify(useNotesStore.getState().userNotes));
+    const originalTreeStructure = JSON.parse(JSON.stringify(useNotesStore.getState().treeStructure));
+    const originalOpenNotes = JSON.parse(JSON.stringify(useNotesStore.getState().openUserNotes));
+    const originalCurrentNote = useNotesStore.getState().currentNote ?
+      JSON.parse(JSON.stringify(useNotesStore.getState().currentNote)) : null;
+
+    // Determine the new parent ID for optimistic update (use pointer_id logic)
+    const newParentId = newParentDbId ? findPointerIdFromDbId(newParentDbId) || undefined : undefined;
+
+    // Apply optimistic update immediately
+    moveNodeInTree(nodeId, newParentId);
+
     try {
       console.log("Moving node:", nodeId, "to parent DB ID:", newParentDbId);
 
@@ -123,7 +138,17 @@ export function useFolderOperations() {
       });
       console.log("Item moved successfully");
     } catch (error) {
-      console.error("Error moving node:", error);
+      toast.error("Error moving file/folder");
+
+      // Rollback to the complete original state using atomic update
+      useNotesStore.setState({
+        userNotes: originalUserNotes,
+        treeStructure: originalTreeStructure,
+        openUserNotes: originalOpenNotes,
+        currentNote: originalCurrentNote,
+      });
+
+      console.log("Rolled back to original state due to error");
       throw error;
     }
   };
@@ -146,6 +171,24 @@ export function useFolderOperations() {
     return findInTree(treeStructure);
   };
 
+  // Helper function to find pointer_id from database ID
+  const findPointerIdFromDbId = (dbId: string): string | null => {
+    const findInTree = (nodes: TreeNode[]): string | null => {
+      for (const node of nodes) {
+        const nodeWithId = node as { pointer_id: string; _id?: string };
+        if (nodeWithId._id === dbId) {
+          return nodeWithId.pointer_id || null;
+        }
+        if (node.children) {
+          const found = findInTree(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findInTree(treeStructure);
+  };
+
   const handleDragEndWithSync = async (
     active: { id: string },
     over: { id: string } | null,
@@ -157,7 +200,11 @@ export function useFolderOperations() {
     if (!over) return;
 
     // Find current state before making changes for rollback
-    const originalTree = JSON.parse(JSON.stringify(treeStructure));
+    const originalTree = JSON.parse(JSON.stringify(useNotesStore.getState().treeStructure));
+    const originalUserNotes = JSON.parse(JSON.stringify(useNotesStore.getState().userNotes));
+    const originalOpenNotes = JSON.parse(JSON.stringify(useNotesStore.getState().openUserNotes));
+    const originalCurrentNote = useNotesStore.getState().currentNote ?
+      JSON.parse(JSON.stringify(useNotesStore.getState().currentNote)) : null;
 
     // Find the over node to determine new parent
     const findNode = (
@@ -217,13 +264,23 @@ export function useFolderOperations() {
 
     // Sync to database first, then update local state
     try {
-      await moveNode(active.id, newParentId);
+      await moveNode(
+        active.id,
+        newParentId ? findNoteDbId(newParentId) || undefined : undefined,
+      );
       // Only update local state if backend sync succeeds
       handleDragEnd(active, over, context);
     } catch (error) {
       console.error("Failed to sync drag operation to database:", error);
-      // Rollback to original state
-      useNotesStore.getState().setTreeStructure(originalTree);
+
+      // Rollback to original state using atomic update
+      useNotesStore.setState({
+        userNotes: originalUserNotes,
+        treeStructure: originalTree,
+        openUserNotes: originalOpenNotes,
+        currentNote: originalCurrentNote,
+      });
+
       throw error;
     }
   };

@@ -755,9 +755,9 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
               // Insert items before the insertion point
               for (let i = 0; i < insertIndex; i++) {
-                if (items[i].pointer_id !== overId) {
-                  result.push(items[i]);
-                }
+                // if (items[i].pointer_id !== overId) {
+                // result.push(items[i]);
+                result.push(items[i]);
               }
 
               // Insert the moved node
@@ -768,9 +768,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
               // Insert remaining items after the insertion point
               for (let i = insertIndex; i < items.length; i++) {
-                if (items[i].pointer_id !== overId) {
-                  result.push(items[i]);
-                }
+                result.push(items[i]);
               }
 
               return result;

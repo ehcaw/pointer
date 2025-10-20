@@ -183,7 +183,7 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
         </div>
 
         {/* Enhanced root drop zone */}
-        <div className="px-2 pb-2">
+        <div className="pl-8 pb-2">
           <div
             className={cn(
               "w-full h-[48px] rounded-lg transition-all duration-200 flex items-center justify-center text-sm text-muted-foreground",

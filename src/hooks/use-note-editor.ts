@@ -130,7 +130,6 @@ export function useNoteEditor() {
       if (createdNote) {
         // Update the store with the note that now has the _id
         updateNoteInCollections(createdNote as FileNode);
-        addUserNote(createdNote as FileNode);
         clearUnsavedNote(id);
         dbSavedNotes.set(id, createdNote as FileNode);
       }

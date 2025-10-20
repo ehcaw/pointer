@@ -11,7 +11,7 @@ import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
   const { moveNode, deleteFolder } = useFolderOperations();
-  const { moveNodeInTree, setCurrentNote } = useNotesStore();
+  const { setCurrentNote } = useNotesStore();
   const { setCurrentView } = usePreferencesStore();
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
   const { deleteNote } = useNoteEditor();
@@ -103,72 +103,43 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
       return;
     }
 
+    // Determine the new parent ID for backend
+    let newParentDbId = undefined;
+
     // Check if target is the virtual root folder
     if (targetItem.id === "virtual-root") {
       // Move to root level (parent_id = undefined)
-      moveNodeInTree(sourceNode.pointer_id, undefined);
-
-      // Also update backend (undefined means no parent)
-      try {
-        await moveNode(sourceNode.pointer_id, undefined);
-      } catch (error) {
-        console.error("Failed to move item to root level:", error);
-      }
-      return;
+      newParentDbId = undefined;
     }
-
     // Check if target is the old root drop zone (for backwards compatibility)
-    if (targetItem.id === "" && targetItem.name === "parent_div") {
+    else if (targetItem.id === "" && targetItem.name === "parent_div") {
       // Move to root level (parent_id = undefined)
-      moveNodeInTree(sourceNode.pointer_id, undefined);
+      newParentDbId = undefined;
+    }
+    else {
+      // Find the actual target node for normal folder drops
+      const targetNode = nodes.find((n) => n._id === targetItem.id);
 
-      // Also update backend (undefined means no parent)
-      try {
-        await moveNode(sourceNode.pointer_id, undefined);
-      } catch (error) {
-        console.error("Failed to move item to root level:", error);
+      if (!targetNode) {
+        console.error("Could not find target node");
+        return;
       }
-      return;
+
+      if (targetNode.type === "folder") {
+        // Dropping INTO a folder - use the folder's database ID
+        newParentDbId = targetNode._id;
+      } else {
+        // Dropping as a sibling - use the target's parent (already a DB ID)
+        newParentDbId = targetNode.parent_id;
+      }
     }
 
-    // Find the actual target node for normal folder drops
-    const targetNode = nodes.find((n) => n._id === targetItem.id);
-
-    if (!targetNode) {
-      console.error("Could not find target node");
-      return;
-    }
-
-    // Determine the new parent ID for optimistic update (use _id)
-    let newParentId = undefined;
-    if (targetNode.type === "folder") {
-      // Dropping INTO a folder - use the folder's _id
-      newParentId = targetNode._id;
-    } else {
-      // Dropping as a sibling - use the target's parent
-      newParentId = targetNode.parent_id;
-    }
-
-    // Determine the new parent database ID for backend
-    let newParentDbId = undefined;
-    if (targetNode.type === "folder") {
-      // Dropping INTO a folder - use the folder's database ID
-      newParentDbId = targetNode._id;
-    } else {
-      // Dropping as a sibling - use the target's parent (already a DB ID)
-      newParentDbId = targetNode.parent_id;
-    }
-
-    // 1. Optimistic update - update local state immediately
-    moveNodeInTree(sourceNode.pointer_id, newParentId);
-
-    // 2. Persist to backend in background
+    // Perform the move operation (optimistic update + backend sync)
     try {
       await moveNode(sourceNode.pointer_id, newParentDbId);
     } catch (error) {
-      console.error("Failed to sync move operation to backend:", error);
-      // TODO: Implement rollback logic if needed
-      // For now, the optimistic update stays even if backend fails
+      console.error("Failed to move item:", error);
+      // The moveNode function handles optimistic update and rollback automatically
     }
   };
 
