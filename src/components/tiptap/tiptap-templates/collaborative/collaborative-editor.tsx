@@ -429,9 +429,6 @@ export function CollaborativeEditor({
               },
             },
           }),
-          TableRow,
-          TableHeader,
-          TableCell,
         ];
 
         // Only add collaboration extensions if provider exists
