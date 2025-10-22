@@ -1,3 +1,4 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
@@ -21,8 +22,8 @@ import TableCell from "@tiptap/extension-table-cell";
 
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
+import useYProvider from "y-partykit/react";
 import * as Y from "yjs";
-import { HocuspocusProvider } from "@hocuspocus/provider";
 
 // --- Custom Extensions ---
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
@@ -56,7 +57,6 @@ import { isFile } from "@/types/note";
 
 import {
   getSlashCommandPosition,
-  createHocusPocusProvider,
   isEmptyContent,
 } from "@/lib/utils/tiptapUtils";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -136,112 +136,100 @@ export function CollaborativeEditor({
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_SAVE_INTERVAL = 2500;
 
-  // Y.js document and provider recreation when id changes
-  const yDocRef = useRef<Y.Doc | null>(null);
-  const hocusPocusProviderRef = useRef<HocuspocusProvider | null>(null);
+  // PartyKit provider using useYProvider hook
+  // Let useYProvider create and manage the Y.js document automatically
+  const provider = useYProvider({
+    host:
+      process.env.NODE_ENV == "development"
+        ? "localhost:1999"
+        : "https://pointer-collaboration.ehcaw.partykit.dev",
+    room: `document-${id}`,
+    // Remove doc parameter - let useYProvider create the Y.Doc automatically
+  });
+
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "disconnected"
   >("connecting");
-  const reconnectionAttemptRef = useRef(0);
-  const MAX_RECONNECTION_ATTEMPTS = 5;
 
-  // Recreate Y.js document and provider when id changes
+  // Monitor connection status from PartyKit provider
   useEffect(() => {
-    // Cleanup previous provider and document
-    if (hocusPocusProviderRef.current) {
-      try {
-        hocusPocusProviderRef.current.destroy();
-      } catch (error) {
-        console.error("Error destroying previous provider:", error);
-        hocusPocusProviderRef.current = null;
-      }
-    }
+    if (provider) {
+      // Start with connecting status
+      setConnectionStatus("connecting");
+      onConnectionStatusChange?.("connecting");
 
-    if (yDocRef.current) {
-      yDocRef.current.destroy();
-      yDocRef.current = null;
-    }
+      // Listen for connection events - PartyKit uses different event names
+      const handleConnect = () => {
+        setConnectionStatus("connected");
+        onConnectionStatusChange?.("connected");
+      };
 
-    // Create new document and provider for the new id
-    yDocRef.current = new Y.Doc();
+      const handleDisconnect = () => {
+        setConnectionStatus("disconnected");
+        onConnectionStatusChange?.("disconnected");
+      };
 
-    hocusPocusProviderRef.current = createHocusPocusProvider(
-      process.env.NEXT_PUBLIC_HOCUSPOCUS_URL!,
-      id,
-      yDocRef.current,
-    );
+      // Subscribe to provider events - PartyKit uses specific event names
+      if (provider.on) {
+        // Y.js/WebRTC provider events
+        provider.on("connect", handleConnect);
+        provider.on("disconnect", handleDisconnect);
 
-    // Add debugging events
-    hocusPocusProviderRef.current.on("connect", () => {
-      const status = "connected";
-      setConnectionStatus(status);
-      onConnectionStatusChange?.(status);
-    });
-
-    hocusPocusProviderRef.current.on("disconnect", () => {
-      const status = "disconnected";
-      setConnectionStatus(status);
-      onConnectionStatusChange?.(status);
-    });
-
-    hocusPocusProviderRef.current.on(
-      "status",
-      (event: { status: "connecting" | "connected" | "disconnected" }) => {
-        setConnectionStatus(event.status);
-        onConnectionStatusChange?.(event.status);
-
-        // Auto-reconnect on connection failures
-        if (event.status === "disconnected") {
-          // Attempt to reconnect after a delay
-          if (reconnectionAttemptRef.current < MAX_RECONNECTION_ATTEMPTS) {
-            reconnectionAttemptRef.current += 1;
-            setTimeout(() => {
-              if (hocusPocusProviderRef.current) {
-                try {
-                  hocusPocusProviderRef.current.connect();
-                } catch (error) {
-                  console.error("Reconnection failed:", error);
-                }
-              }
-            }, 3000); // 3 second delay
+        // Additional Y.js events
+        provider.on("sync", () => {
+          // When sync fires, it usually means connection is working
+          if (connectionStatus === "connecting") {
+            handleConnect();
           }
-        }
+        });
 
-        if (event.status == "connected") {
-          reconnectionAttemptRef.current = 0;
-        }
-      },
-    );
+        // Listen for error events
+        provider.on("connection-error", (error: { message?: string }) => {
+          console.error(
+            error?.message || "PartyKit: Connection error occurred",
+          );
+          handleDisconnect();
+        });
+      }
 
-    // CRITICAL: Reset all state when switching documents to prevent data mixing
+      // Check initial connection state - if provider has url, assume connecting/connected
+      if (provider.url) {
+        // Give it a moment to establish connection, then check
+        setTimeout(() => {
+          // Check if we can determine connection status from provider state
+          if (provider._observers?.size > 0) {
+            handleConnect();
+          }
+        }, 1000);
+      }
+
+      return () => {
+        // Cleanup event listeners
+        if (provider && provider.off) {
+          provider.off("connect", handleConnect);
+          provider.off("disconnect", handleDisconnect);
+          // provider.off("sync", () => {});
+          // provider.off("synced", () => {});
+          provider.off("connection-error", () => {});
+        }
+      };
+    }
+  }, [provider, onConnectionStatusChange, connectionStatus]);
+
+  // Reset state when id changes to prevent data mixing
+  useEffect(() => {
     setIsInitialContentLoaded(false);
     ignoreFirstUpdate.current = true;
     lastContentRef.current = "";
-
-    return () => {
-      // Cleanup on unmount or id change
-      if (hocusPocusProviderRef.current) {
-        try {
-          hocusPocusProviderRef.current.destroy();
-        } catch (error) {
-          console.error("Error cleaning up provider:", error);
-        }
-        hocusPocusProviderRef.current = null;
-      }
-      if (yDocRef.current) {
-        yDocRef.current.destroy();
-        yDocRef.current = null;
-      }
-    };
-  }, [id]); // Recreate when id changes
-
-  const provider = hocusPocusProviderRef.current;
+  }, [id]);
 
   // Graceful disconnect function
   const disconnectProvider = useCallback(() => {
     if (provider) {
       try {
-        provider.disconnect();
+        if (provider.disconnect) {
+          provider.disconnect();
+        }
         setConnectionStatus("disconnected");
       } catch (error) {
         console.error("Error disconnecting provider:", error);
@@ -254,7 +242,9 @@ export function CollaborativeEditor({
     if (provider) {
       try {
         setConnectionStatus("connecting");
-        provider.connect();
+        if (provider.connect) {
+          provider.connect();
+        }
         // Note: The actual state change to 'connected' will happen in the 'connect' event handler
       } catch (error) {
         console.error("Error reconnecting provider:", error);
@@ -265,15 +255,14 @@ export function CollaborativeEditor({
 
   // Force cleanup function for permanent component removal
   const forceCleanupProvider = useCallback(() => {
-    if (hocusPocusProviderRef.current) {
+    if (provider && provider.destroy) {
       try {
-        hocusPocusProviderRef.current.destroy();
-        hocusPocusProviderRef.current = null;
+        provider.destroy();
       } catch (error) {
         console.error("Error cleaning up provider:", error);
       }
     }
-  }, []);
+  }, [provider]);
 
   // Parse content appropriately based on input type with validation
   const initialContent = useMemo(() => {
@@ -334,37 +323,62 @@ export function CollaborativeEditor({
         disableCollaboration();
       },
       onCreate: ({ editor: currentEditor }) => {
-        // CRITICAL: Clear any existing content first to prevent data mixing
-        currentEditor.commands.setContent("");
+        // Don't clear content immediately - wait for Y.js sync to determine what to do
 
-        // Set content immediately for instant display only if we have valid content
-        if (initialContent && !isEmptyContent(initialContent)) {
-          currentEditor.commands.setContent(initialContent);
-          setIsInitialContentLoaded(true);
-        } else {
-          // If no content, mark as loaded immediately
-          setIsInitialContentLoaded(true);
-        }
-
-        // Listen for sync event to handle remote updates (only if provider exists)
-        if (provider) {
+        // Listen for sync event to handle initial content loading
+        if (provider && provider.on) {
           provider.on("synced", () => {
-            const yXmlFragment =
-              provider.document.getXmlFragment("prosemirror");
+            // Try to access the Y.js document through different possible properties
+            let yDoc: Y.Doc | null = null;
+            if ((provider as any).document) {
+              yDoc = (provider as any).document;
+            } else if ((provider as any).ydoc) {
+              yDoc = (provider as any).ydoc;
+            }
+            if (yDoc) {
+              const yXmlFragment = yDoc.getXmlFragment("prosemirror");
 
-            // Only set content if the fragment is empty and we have initial content
-            // This means we're the first to connect and should load the content
-            if (
-              yXmlFragment.length === 0 &&
-              initialContent &&
-              !isEmptyContent(initialContent)
-            ) {
-              currentEditor.commands.setContent(initialContent);
+              // Check if Y.js already has content from other clients
+              const hasYjsContent = yXmlFragment.length > 0;
+
+              if (hasYjsContent) {
+                // Let Y.js content populate naturally - don't interfere
+                setIsInitialContentLoaded(true);
+              } else if (initialContent && !isEmptyContent(initialContent)) {
+                // Y.js is empty and we have initial content - we're the first client
+                // Clear any editor content first, then set our content
+                currentEditor.commands.setContent("");
+                currentEditor.commands.setContent(initialContent);
+                setIsInitialContentLoaded(true);
+              } else {
+                console.log("PartyKit: No content available, starting empty");
+                // Start with empty editor
+                currentEditor.commands.setContent("");
+                setIsInitialContentLoaded(true);
+              }
+            } else {
+              console.log(
+                "PartyKit: No Y.js document found, using initial content",
+              );
+              // Fallback: use initial content if available
+              if (initialContent && !isEmptyContent(initialContent)) {
+                currentEditor.commands.setContent(initialContent);
+              } else {
+                currentEditor.commands.setContent("");
+              }
               setIsInitialContentLoaded(true);
             }
-
-            // If there's remote content, it will automatically be loaded by the collaboration extension
           });
+
+          // Also listen for 'sync' event as a fallback
+        } else {
+          // No provider available, use initial content directly
+          if (initialContent && !isEmptyContent(initialContent)) {
+            currentEditor.commands.setContent(initialContent);
+          } else {
+            currentEditor.commands.setContent("");
+          }
+          setIsInitialContentLoaded(true);
         }
       },
       immediatelyRender: true,
@@ -422,18 +436,30 @@ export function CollaborativeEditor({
 
         // Only add collaboration extensions if provider exists
         if (provider) {
-          baseExtensions.push(
-            Collaboration.configure({
-              document: provider.document,
-            }),
-            CollaborationCaret.configure({
-              provider: provider,
-              user: {
-                name: userInfo.name,
-                color: userInfo.color,
-              },
-            }),
-          );
+          // Try to get the Y.js document from provider
+          let yDoc: Y.Doc | null = null;
+          if ((provider as any).document) {
+            yDoc = (provider as any).document;
+          } else if ((provider as any).ydoc) {
+            yDoc = (provider as any).ydoc;
+          } else if ((provider as any).doc) {
+            yDoc = (provider as any).doc;
+          }
+
+          if (yDoc) {
+            baseExtensions.push(
+              Collaboration.configure({
+                document: yDoc,
+              }),
+              CollaborationCaret.configure({
+                provider: provider,
+                user: {
+                  name: userInfo.name,
+                  color: userInfo.color,
+                },
+              }),
+            );
+          }
         }
 
         return baseExtensions;
@@ -641,7 +667,7 @@ export function CollaborativeEditor({
 
   const slashCommandPosition = useMemo(() => {
     return getSlashCommandPosition(editor);
-  }, [editor, showSlashCommand]);
+  }, [editor]);
 
   // Handle enter key when slash command is open
   useEffect(() => {
@@ -779,7 +805,6 @@ export function CollaborativeEditor({
       <div style={{ position: "relative", height: "100%" }}>
         <StatusBadge
           connectionStatus={connectionStatus}
-          isInitialContentLoaded={isInitialContentLoaded}
           onReconnect={reconnectProvider}
         />
         <div className="content-wrapper">
