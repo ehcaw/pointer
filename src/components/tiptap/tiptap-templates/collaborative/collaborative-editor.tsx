@@ -3,7 +3,6 @@ import { EditorContent, EditorContext } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 
 import useYProvider from "y-partykit/react";
-import * as Y from "yjs";
 
 // --- Custom Hooks ---
 import { useCollaborativeEditor } from "../editors/editor";
@@ -22,12 +21,9 @@ import { SlashCommandPopup } from "@/components/tiptap/tiptap-ui/slash-command-p
 import "@/components/tiptap/tiptap-templates/editor.scss";
 import "@/components/tiptap/tiptap-templates/active-button.scss";
 
-import { useNotesStore } from "@/lib/stores/notes-store";
-import { useNoteEditor } from "@/hooks/use-note-editor";
 import { useUser } from "@clerk/nextjs";
 import StatusBadge from "../toolbar/WebsocketStatusBadge";
 import { generateUserColor } from "@/lib/utils/tiptapUtils";
-import { Id } from "../../../../../convex/_generated/dataModel";
 
 interface CollaborativeEditorProps {
   id: string;
@@ -104,10 +100,9 @@ export function CollaborativeEditor({
     setShowSlashCommand,
     slashCommandQuery,
     setSlashCommandQuery,
-    slashCommandPosition,
     connectionStatus,
     setConnectionStatus,
-    debouncedContentUpdate,
+    getSlashCommandPosition,
   } = useCollaborativeEditor({
     id,
     content,
@@ -118,9 +113,7 @@ export function CollaborativeEditor({
     onConnectionStatusChange,
   });
 
-  const currentNoteRef = useRef(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500;
 
   // Graceful disconnect function
   const disconnectProvider = useCallback(() => {
@@ -140,10 +133,13 @@ export function CollaborativeEditor({
   const reconnectProvider = useCallback(() => {
     if (provider) {
       try {
+        console.log("PartyKit: Manual reconnect requested");
         setConnectionStatus("connecting");
         if (provider.connect) {
           provider.connect();
         }
+        // Don't force content reload on reconnect - let Y.js handle sync
+        // The editor already has the Y.js document bound, it will sync automatically
         // Note: The actual state change to 'connected' will happen in the 'connect' event handler
       } catch (error) {
         console.error("Error reconnecting provider:", error);
@@ -249,29 +245,21 @@ export function CollaborativeEditor({
 
   // Handle page visibility changes to manage connection
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Page is hidden, consider disconnecting to save resources
-        disconnectProvider();
-      } else {
-        // Page is visible again, reconnect if needed
-        reconnectProvider();
-      }
-    };
+    // Don't manually disconnect/reconnect on visibility changes
+    // PartyKit/Y.js providers handle connection management automatically
+    // Manual disconnect/reconnect causes sync issues when switching tabs
 
     // Handle beforeunload to ensure clean disconnect
     const handleBeforeUnload = () => {
       disconnectProvider();
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [disconnectProvider, reconnectProvider]);
+  }, [disconnectProvider]);
 
   useEffect(() => {
     return () => {
@@ -318,12 +306,14 @@ export function CollaborativeEditor({
           {showSlashCommand &&
             editor &&
             (() => {
+              // Calculate position dynamically when showing the popup
+              const position = getSlashCommandPosition();
               return (
                 <div
                   style={{
                     position: "fixed",
-                    top: slashCommandPosition.top,
-                    left: slashCommandPosition.left,
+                    top: position.top,
+                    left: position.left,
                     zIndex: 1000, // High z-index to ensure it's above everything
                   }}
                 >
@@ -331,7 +321,7 @@ export function CollaborativeEditor({
                     editor={editor}
                     onClose={() => setShowSlashCommand(false)}
                     query={slashCommandQuery}
-                    shouldFlip={slashCommandPosition.shouldFlip}
+                    shouldFlip={position.shouldFlip}
                   />
                 </div>
               );

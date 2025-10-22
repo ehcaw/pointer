@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Editor, EditorContent, EditorContext } from "@tiptap/react";
 
 // --- Custom Hooks ---
@@ -20,9 +20,6 @@ import { SlashCommandPopup } from "@/components/tiptap/tiptap-ui/slash-command-p
 // --- Styles ---
 import "@/components/tiptap/tiptap-templates/editor.scss";
 import "@/components/tiptap/tiptap-templates/active-button.scss";
-
-import { useNotesStore } from "@/lib/stores/notes-store";
-import { Id } from "../../../../../convex/_generated/dataModel";
 
 interface SimpleEditorProps {
   content: string | Record<string, unknown> | null | undefined;
@@ -50,7 +47,6 @@ export function SimpleEditor({
     showSlashCommand,
     setShowSlashCommand,
     slashCommandQuery,
-    setSlashCommandQuery,
     mobileView,
     setMobileView,
     getSlashCommandPosition,

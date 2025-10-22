@@ -32,10 +32,7 @@ import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { isFile } from "@/types/note";
-import {
-  getSlashCommandPosition,
-  isEmptyContent,
-} from "@/lib/utils/tiptapUtils";
+import { isEmptyContent } from "@/lib/utils/tiptapUtils";
 
 export interface BaseEditorOptions {
   content: string | Record<string, unknown> | null | undefined;
@@ -63,6 +60,32 @@ export interface CollaborativeEditorOptions extends BaseEditorOptions {
   onConnectionStatusChange?: (
     status: "connecting" | "connected" | "disconnected",
   ) => void;
+}
+
+export interface CollaborativeEditorReturn {
+  editor: Editor | null;
+  showSlashCommand: boolean;
+  setShowSlashCommand: (show: boolean) => void;
+  slashCommandQuery: string;
+  setSlashCommandQuery: (query: string) => void;
+  slashCommandPosition: {
+    top: number;
+    left: number;
+    position: "fixed";
+    shouldFlip: boolean;
+  };
+  connectionStatus: "connecting" | "connected" | "disconnected";
+  setConnectionStatus: (
+    status: "connecting" | "connected" | "disconnected",
+  ) => void;
+  isInitialContentLoaded: boolean;
+  debouncedContentUpdate: () => void;
+  getSlashCommandPosition: () => {
+    top: number;
+    left: number;
+    position: "fixed";
+    shouldFlip: boolean;
+  };
 }
 
 export interface SimpleEditorOptions extends BaseEditorOptions {
@@ -195,13 +218,11 @@ const handleImageDeletion = async (
 export function useCollaborativeEditor({
   id,
   content,
-  editorRef,
-  onEditorReady,
   provider,
   userInfo,
   onConnectionStatusChange,
   immediatelyRender = true,
-}: CollaborativeEditorOptions) {
+}: CollaborativeEditorOptions): CollaborativeEditorReturn {
   const [showSlashCommand, setShowSlashCommand] = useState(false);
   const [slashCommandQuery, setSlashCommandQuery] = useState("");
   const [connectionStatus, setConnectionStatus] = useState<
@@ -211,8 +232,7 @@ export function useCollaborativeEditor({
   const ignoreFirstUpdate = useRef(true);
 
   // Get currentNote and state setters from the notes store
-  const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
-    useNotesStore();
+  const { currentNote, markNoteAsUnsaved, removeUnsavedNote } = useNotesStore();
   const currentNoteRef = useRef(currentNote);
 
   const { HandleImageDelete } = useTiptapImage();
@@ -272,6 +292,8 @@ export function useCollaborativeEditor({
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialContentLoaded, setIsInitialContentLoaded] = useState(false);
 
+  const hasInitialSyncRef = useRef(false);
+
   const editor = useEditor(
     {
       enableContentCheck: true,
@@ -282,6 +304,17 @@ export function useCollaborativeEditor({
         // Collaborative content loading logic
         if (provider && provider.on) {
           provider.on("synced", () => {
+            // Only handle initial sync, not reconnection syncs
+            if (hasInitialSyncRef.current) {
+              // Already synced, this is a reconnection - let Y.js handle it naturally
+              console.log(
+                "PartyKit: Reconnection sync detected, letting Y.js handle it",
+              );
+              return;
+            }
+
+            hasInitialSyncRef.current = true;
+
             // Try to access the Y.js document through different possible properties
             let yDoc: any = null;
             if (provider.document) {
@@ -297,11 +330,13 @@ export function useCollaborativeEditor({
 
               if (hasYjsContent) {
                 // Let Y.js content populate naturally - don't interfere
+                console.log(
+                  "PartyKit: Y.js has content, letting it sync naturally",
+                );
                 setIsInitialContentLoaded(true);
               } else if (initialContent && !isEmptyContent(initialContent)) {
                 // Y.js is empty and we have initial content - we're the first client
-                // Clear any editor content first, then set our content
-                currentEditor.commands.setContent("");
+                console.log("PartyKit: First client, setting initial content");
                 currentEditor.commands.setContent(initialContent);
                 setIsInitialContentLoaded(true);
               } else {
@@ -548,13 +583,33 @@ export function useCollaborativeEditor({
 
       // Listen for connection events - PartyKit uses different event names
       const handleConnect = () => {
+        console.log("PartyKit: Connection established");
         setConnectionStatus("connected");
         onConnectionStatusChange?.("connected");
       };
 
       const handleDisconnect = () => {
+        console.log("PartyKit: Connection lost");
         setConnectionStatus("disconnected");
         onConnectionStatusChange?.("disconnected");
+      };
+
+      const handleSync = (isSynced: boolean) => {
+        console.log("PartyKit: Sync event", isSynced);
+        // When sync fires with true, it means we're properly synced
+        if (isSynced) {
+          setConnectionStatus("connected");
+          onConnectionStatusChange?.("connected");
+        }
+      };
+
+      const handleStatus = (event: { status: string }) => {
+        console.log("PartyKit: Status change", event.status);
+        if (event.status === "connected") {
+          handleConnect();
+        } else if (event.status === "disconnected") {
+          handleDisconnect();
+        }
       };
 
       // Subscribe to provider events - PartyKit uses specific event names
@@ -562,11 +617,13 @@ export function useCollaborativeEditor({
         // Y.js/WebRTC provider events
         provider.on("connect", handleConnect);
         provider.on("disconnect", handleDisconnect);
+        provider.on("sync", handleSync);
+        provider.on("status", handleStatus);
 
-        // Additional Y.js events
-        provider.on("sync", () => {
-          // When sync fires, it usually means connection is working
-          if (connectionStatus === "connecting") {
+        // Additional synced event for when document is fully synced
+        provider.on("synced", () => {
+          console.log("PartyKit: Document synced");
+          if (connectionStatus !== "connected") {
             handleConnect();
           }
         });
@@ -596,23 +653,79 @@ export function useCollaborativeEditor({
         if (provider && provider.off) {
           provider.off("connect", handleConnect);
           provider.off("disconnect", handleDisconnect);
+          provider.off("sync", handleSync);
+          provider.off("synced", () => {});
+          provider.off("status", handleStatus);
           provider.off("connection-error", () => {});
         }
       };
     }
-  }, [provider, onConnectionStatusChange, connectionStatus]);
+  }, [provider, onConnectionStatusChange]);
 
   // Reset state when id changes to prevent data mixing
   useEffect(() => {
     setIsInitialContentLoaded(false);
     ignoreFirstUpdate.current = true;
     lastContentRef.current = "";
+    hasInitialSyncRef.current = false;
   }, [id]);
 
-  // Slash command position calculation
+  // Calculate position for slash command popup - position relative to viewport with awareness
+  const getSlashCommandPositionDynamic = () => {
+    if (!editor)
+      return { top: 0, left: 0, position: "fixed" as const, shouldFlip: false };
+
+    const { selection } = editor.state;
+    const { $from } = selection;
+    const coords = editor.view.coordsAtPos($from.pos);
+
+    // Estimate popup height (rough estimate based on typical content)
+    const estimatedPopupHeight = 300;
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - coords.bottom;
+    const spaceAbove = coords.top;
+
+    let topPosition;
+    let shouldFlip = false;
+
+    // Decide whether to show above or below
+    if (
+      spaceBelow < estimatedPopupHeight &&
+      spaceAbove > estimatedPopupHeight
+    ) {
+      // Not enough space below, but enough space above - show above
+      topPosition = coords.top - estimatedPopupHeight - 4;
+      shouldFlip = true;
+    } else if (
+      spaceBelow < estimatedPopupHeight &&
+      spaceAbove <= estimatedPopupHeight
+    ) {
+      // Not enough space in either direction - show in the larger space
+      if (spaceBelow > spaceAbove) {
+        // More space below, show below even if it might be cut off
+        topPosition = coords.bottom + 4;
+      } else {
+        // More space above, show above even if it might be cut off
+        topPosition = Math.max(4, coords.top - estimatedPopupHeight - 4);
+        shouldFlip = true;
+      }
+    } else {
+      // Enough space below, show below (default behavior)
+      topPosition = coords.bottom + 4;
+    }
+
+    return {
+      top: topPosition,
+      left: coords.left,
+      position: "fixed" as const,
+      shouldFlip,
+    };
+  };
+
+  // Calculate slash command position dynamically
   const slashCommandPosition = useMemo(() => {
-    return getSlashCommandPosition(editor);
-  }, [editor]);
+    return getSlashCommandPositionDynamic();
+  }, [editor, showSlashCommand]); // Also recalculate when slash command is shown
 
   return {
     editor,
@@ -625,15 +738,13 @@ export function useCollaborativeEditor({
     setConnectionStatus,
     isInitialContentLoaded,
     debouncedContentUpdate,
+    getSlashCommandPosition: getSlashCommandPositionDynamic,
   };
 }
 
 // Hook for simple editor
 export function useSimpleEditor({
   content,
-  editorRef,
-  onEditorReady,
-  isMobile = false,
   immediatelyRender = false,
 }: SimpleEditorOptions) {
   const [showSlashCommand, setShowSlashCommand] = useState(false);
@@ -643,8 +754,7 @@ export function useSimpleEditor({
   );
 
   // Get currentNote and state setters from the notes store
-  const { currentNote, markNoteAsUnsaved, removeUnsavedNote, dbSavedNotes } =
-    useNotesStore();
+  const { currentNote, markNoteAsUnsaved, removeUnsavedNote } = useNotesStore();
   const currentNoteRef = useRef(currentNote);
 
   const { HandleImageDelete } = useTiptapImage();
