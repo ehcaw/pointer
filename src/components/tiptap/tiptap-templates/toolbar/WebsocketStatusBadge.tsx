@@ -3,11 +3,9 @@ import { memo } from "react";
 const StatusBadge = memo(
   ({
     connectionStatus,
-    isInitialContentLoaded,
     onReconnect,
   }: {
     connectionStatus: "connecting" | "connected" | "disconnected";
-    isInitialContentLoaded: boolean;
     onReconnect: () => void;
   }) => {
     const getStatusConfig = () => {
@@ -17,7 +15,7 @@ const StatusBadge = memo(
             color: "#10b981",
             bgColor: "#10b98120",
             text: "Connected",
-            subtitle: isInitialContentLoaded ? "Synced" : "Loading...",
+            subtitle: "Synced",
             isClickable: false,
             showPulse: false,
           };
@@ -37,6 +35,16 @@ const StatusBadge = memo(
             text: "Disconnected",
             subtitle: "Connection lost",
             isClickable: true,
+            showPulse: false,
+          };
+        default:
+          // Fallback configuration
+          return {
+            color: "#6b7280",
+            bgColor: "#6b728020",
+            text: "Unknown",
+            subtitle: "Status unknown",
+            isClickable: false,
             showPulse: false,
           };
       }
