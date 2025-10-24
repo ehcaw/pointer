@@ -240,48 +240,62 @@ export default function CollaborationModal({
       user &&
       user.emailAddresses.length > 0
     ) {
-      const users = localCollaborators
-        .filter((collaborator) => collaborator.id !== "unknown")
-        .map((collaborator) => ({
-          userEmail: collaborator.email,
-          userId: collaborator.id,
-        }));
-      if (isCollaborationEnabled !== currentNote.collaborative) {
-        await convex.mutation(api.notes.toggleCollaboration, {
-          docId: currentNote._id,
-          collaborative: isCollaborationEnabled,
-        });
-        currentNote.collaborative = isCollaborationEnabled;
-      }
+      try {
+        // Step 1: Toggle collaboration first if changed
+        if (isCollaborationEnabled !== currentNote.collaborative) {
+          await convex.mutation(api.notes.toggleCollaboration, {
+            docId: currentNote._id,
+            collaborative: isCollaborationEnabled,
+          });
+          currentNote.collaborative = isCollaborationEnabled;
+        }
 
-      await convex.mutation(api.notes.shareNote, {
-        dId: currentNote._id,
-        users: users,
-        ownerEmail: user.emailAddresses[0]?.emailAddress || "",
-        ownerId: user.id,
-      });
-
-      const removedUsers = localCollaborators.filter(
-        (collaborator) => collaborator.markedForDeletion,
-      );
-      if (removedUsers.length > 0) {
-        await Promise.allSettled(
-          removedUsers.map((collaborator) =>
-            convex.mutation(api.notes.unshareNote, {
+        // Step 2: Only proceed with sharing operations if collaboration is enabled
+        if (isCollaborationEnabled) {
+          const users = localCollaborators
+            .filter((collaborator) => collaborator.id !== "unknown")
+            .map((collaborator) => ({
               userEmail: collaborator.email,
-              ownerEmail: user.emailAddresses[0]?.emailAddress || "",
-              dId: currentNote._id || "",
-            }),
-          ),
-        );
-      }
+              userId: collaborator.id,
+            }));
 
-      // Remove deleted collaborators and mark remaining ones as saved
-      setLocalCollaborators((prev) =>
-        prev
-          .filter((c) => !c.markedForDeletion)
-          .map((c) => ({ ...c, isSaved: true })),
-      );
+          // Add new collaborators
+          if (users.length > 0) {
+            await convex.mutation(api.notes.shareNote, {
+              dId: currentNote._id,
+              users: users,
+              ownerEmail: user.emailAddresses[0]?.emailAddress || "",
+              ownerId: user.id,
+            });
+          }
+
+          // Remove marked collaborators
+          const removedUsers = localCollaborators.filter(
+            (collaborator) => collaborator.markedForDeletion,
+          );
+          if (removedUsers.length > 0) {
+            await Promise.allSettled(
+              removedUsers.map((collaborator) =>
+                convex.mutation(api.notes.unshareNote, {
+                  userEmail: collaborator.email,
+                  ownerEmail: user.emailAddresses[0]?.emailAddress || "",
+                  dId: currentNote._id || "",
+                }),
+              ),
+            );
+          }
+        }
+
+        // Step 3: Update local state
+        setLocalCollaborators((prev) =>
+          prev
+            .filter((c) => !c.markedForDeletion)
+            .map((c) => ({ ...c, isSaved: true })),
+        );
+      } catch (error) {
+        console.error("Error saving collaboration settings:", error);
+        setError("Failed to save collaboration settings. Please try again.");
+      }
     }
   };
 
