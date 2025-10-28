@@ -69,7 +69,7 @@ export default function RootLayout({
               <ThemeProvider defaultTheme="system" storageKey="theme">
                 <ConvexClientProvider>
                   <CommandMenuProvider>{children}</CommandMenuProvider>
-                  <Toaster position="top-right" />
+                  <Toaster position="top-right" duration={2000} />
                 </ConvexClientProvider>
               </ThemeProvider>
             </PostHogContextProvider>
