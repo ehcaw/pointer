@@ -15,12 +15,15 @@ export default function CollaborativeNotePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const { currentNote, setCurrentNote, userNotes } = useNotesStore();
+  const { currentNote, setCurrentNote, userNotes, sharedNotes } =
+    useNotesStore();
   const { setCurrentView } = usePreferencesStore();
   const router = useRouter();
 
-  // Fetch the note by pointer_id (slug)
-  const note = userNotes.find((note) => note.pointer_id === slug);
+  // Fetch the note by pointer_id (slug) from both userNotes and sharedNotes
+  const note =
+    userNotes.find((note) => note.pointer_id === slug) ||
+    sharedNotes.find((note) => note.pointer_id === slug);
 
   // Use hooks for editor management
   const { editorRef } = useNoteEditor();
