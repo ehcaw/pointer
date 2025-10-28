@@ -211,6 +211,8 @@ export default function CollaborationModal({
     } catch (err) {
       console.error("Error adding collaborator:", err);
       setError("Failed to add collaborator. Please try again.");
+    } finally {
+      setIsAddingCollaborator(false);
     }
   };
 
