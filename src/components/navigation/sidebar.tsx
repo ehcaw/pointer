@@ -47,6 +47,7 @@ import { DisplaySurveyType } from "posthog-js";
 import { usePostHog } from "posthog-js/react";
 import { TreeViewComponent } from "../sidebar/Treeview";
 import { CreatePopover } from "./CreatePopover";
+import { useRouter } from "next/navigation";
 
 // Memoized note item component to prevent unnecessary re-renders
 const NoteItem = React.memo(
@@ -55,15 +56,25 @@ const NoteItem = React.memo(
     isActive,
     onNoteClick,
     onDeleteClick,
+    router,
   }: {
     note: Node;
     isActive: boolean;
     onNoteClick: (note: Node) => void;
     onDeleteClick: (e: React.MouseEvent<HTMLButtonElement>, note: Node) => void;
+    router: ReturnType<typeof useRouter>;
   }) => {
     const noteButton = (
       <SidebarMenuButton
         onClick={() => onNoteClick(note)}
+        onMouseEnter={() => {
+          // Prefetch the route on hover for faster navigation
+          if (note.collaborative) {
+            router.prefetch(`/main/collab/${note.pointer_id}`);
+          } else {
+            router.prefetch("/main");
+          }
+        }}
         data-active={isActive}
         className={cn(
           "rounded-lg transition-all w-full",
@@ -104,15 +115,25 @@ const SharedNoteItem = React.memo(
     note,
     isActive,
     onNoteClick,
+    router,
   }: {
     note: Node;
     isActive: boolean;
     onNoteClick: (note: Node) => void;
+    router: ReturnType<typeof useRouter>;
   }) => {
     return (
       <SidebarMenuItem key={String(note.pointer_id)}>
         <SidebarMenuButton
           onClick={() => onNoteClick(note)}
+          onMouseEnter={() => {
+            // Prefetch the route on hover for faster navigation
+            if (note.collaborative) {
+              router.prefetch(`/main/collab/${note.pointer_id}`);
+            } else {
+              router.prefetch("/main");
+            }
+          }}
           data-active={isActive}
           className={cn(
             "rounded-lg transition-all",
@@ -151,6 +172,7 @@ export default function AppSidebar() {
   const { currentView, setCurrentView } = usePreferencesStore();
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
 
+  const router = useRouter();
   const posthog = usePostHog();
 
   const handleCreateNote = async () => {
@@ -163,23 +185,36 @@ export default function AppSidebar() {
   const handleNavClick = useCallback(
     (view: "home" | "graph" | "whiteboard" | "note" | "settings") => {
       setCurrentView(view);
+      router.push("/main");
     },
-    [setCurrentView],
+    [setCurrentView, router],
   );
 
   const handleNoteClick = useCallback(
     async (note: Node) => {
+      // Optimistic navigation - update UI immediately
+      setCurrentNote(note);
+
+      if (note.collaborative) {
+        router.push(`/main/collab/${note.pointer_id}`);
+      } else {
+        setCurrentView("note");
+        router.push("/main");
+      }
+
+      // Save asynchronously after navigation (non-blocking)
       if (
         currentNote &&
-        currentNote.type == "file" &&
-        dbSavedNotes.get(currentNote.pointer_id) != undefined &&
-        currentNote?.content?.text !=
+        currentNote.type === "file" &&
+        dbSavedNotes.get(currentNote.pointer_id) !== undefined &&
+        currentNote?.content?.text !==
           (dbSavedNotes.get(currentNote.pointer_id)! as FileNode).content?.text
       ) {
-        saveCurrentNote();
+        // Don't await - let it save in the background
+        saveCurrentNote().catch((error) => {
+          console.error("Failed to save note before navigation:", error);
+        });
       }
-      setCurrentNote(note);
-      setCurrentView("note");
     },
     [
       currentNote,
@@ -187,6 +222,7 @@ export default function AppSidebar() {
       saveCurrentNote,
       setCurrentNote,
       setCurrentView,
+      router,
     ],
   );
 
@@ -445,7 +481,7 @@ export default function AppSidebar() {
             <span className="sr-only">Add Note</span>
           </SidebarGroupAction>*/}
           <SidebarGroupContent className="-mx-4 pr-4 flex flex-col h-full">
-            <div className="flex-1 overflow-hidden">
+            <div className="tree">
               <TreeViewComponent nodes={userNotes} />
             </div>
           </SidebarGroupContent>
@@ -468,6 +504,7 @@ export default function AppSidebar() {
                       note={note}
                       isActive={isActive}
                       onNoteClick={handleNoteClick}
+                      router={router}
                     />
                   );
                 })}

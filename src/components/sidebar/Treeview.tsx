@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
+import { useRouter } from "next/navigation";
 
 export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
   const { moveNode, deleteFolder } = useFolderOperations();
@@ -15,6 +16,8 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
   const { setCurrentView } = usePreferencesStore();
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
   const { deleteNote } = useNoteEditor();
+
+  const router = useRouter();
 
   // Get the latest userNotes from store (includes optimistic updates)
   const userNotes = useNotesStore((state) => state.userNotes);
@@ -66,8 +69,15 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     const selectedNode = userNotes.find((note) => note._id === item.id);
     if (selectedNode && !item.droppable) {
       // Only set current note for files (non-droppable), not folders
-      setCurrentView("note");
+      // Optimistic update - set note first for immediate UI response
       setCurrentNote(selectedNode);
+
+      if (selectedNode.collaborative) {
+        router.push(`/main/collab/${selectedNode.pointer_id}`);
+      } else {
+        setCurrentView("note");
+        router.push("/main");
+      }
     }
   };
 
@@ -142,8 +152,7 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     else if (targetItem.id === "" && targetItem.name === "parent_div") {
       // Move to root level (parent_id = undefined)
       newParentDbId = undefined;
-    }
-    else {
+    } else {
       // Find the actual target node for normal folder drops
       const targetNode = nodes.find((n) => n._id === targetItem.id);
 
@@ -162,7 +171,10 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     }
 
     // 1. Save current state for potential rollback
-    const { userNotes: originalUserNotes, treeStructure: originalTreeStructure } = useNotesStore.getState();
+    const {
+      userNotes: originalUserNotes,
+      treeStructure: originalTreeStructure,
+    } = useNotesStore.getState();
 
     // 2. Optimistic update - update local state immediately using _id
     moveNodeInTree(sourceNodeId, newParentId);
