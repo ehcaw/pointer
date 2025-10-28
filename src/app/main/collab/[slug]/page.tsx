@@ -6,6 +6,8 @@ import NoteViewHeader from "@/components/views/headers/NoteViewHeader";
 import LoadingView from "@/components/views/LoadingView";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import CollaborativeNotebookView from "@/components/views/CollaborativeNotebookView";
+import { useRouter } from "next/navigation";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 export default function CollaborativeNotePage({
   params,
@@ -14,6 +16,8 @@ export default function CollaborativeNotePage({
 }) {
   const { slug } = use(params);
   const { currentNote, setCurrentNote, userNotes } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
+  const router = useRouter();
 
   // Fetch the note by pointer_id (slug)
   const note = userNotes.find((note) => note.pointer_id === slug);
@@ -25,8 +29,12 @@ export default function CollaborativeNotePage({
   useEffect(() => {
     if (note && note.pointer_id === slug) {
       setCurrentNote(note);
+    } else {
+      setCurrentNote(null);
+      setCurrentView("home");
+      router.push("/main");
     }
-  }, [note, slug, setCurrentNote]);
+  }, [note, slug, setCurrentNote, router, setCurrentView]);
 
   // Cleanup WebSocket connection on unmount
   useEffect(() => {
