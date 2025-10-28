@@ -55,7 +55,9 @@ export default function CollaborativeNotePage({
   return (
     <div className="flex flex-col h-full bg-background">
       <NoteViewHeader />
-      <CollaborativeNotebookView />
+      <div className="overflow-y-auto h-[calc(100vh-4rem)]">
+        <CollaborativeNotebookView />
+      </div>
     </div>
   );
 }
