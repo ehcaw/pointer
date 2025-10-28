@@ -47,6 +47,7 @@ import { DisplaySurveyType } from "posthog-js";
 import { usePostHog } from "posthog-js/react";
 import { TreeViewComponent } from "../sidebar/Treeview";
 import { CreatePopover } from "./CreatePopover";
+import { useRouter } from "next/navigation";
 
 // Memoized note item component to prevent unnecessary re-renders
 const NoteItem = React.memo(
@@ -151,6 +152,7 @@ export default function AppSidebar() {
   const { currentView, setCurrentView } = usePreferencesStore();
   const { createNewNote, saveCurrentNote, deleteNote } = useNoteEditor();
 
+  const router = useRouter();
   const posthog = usePostHog();
 
   const handleCreateNote = async () => {
@@ -163,8 +165,9 @@ export default function AppSidebar() {
   const handleNavClick = useCallback(
     (view: "home" | "graph" | "whiteboard" | "note" | "settings") => {
       setCurrentView(view);
+      router.push("/main");
     },
-    [setCurrentView],
+    [setCurrentView, router],
   );
 
   const handleNoteClick = useCallback(
@@ -178,8 +181,14 @@ export default function AppSidebar() {
       ) {
         saveCurrentNote();
       }
-      setCurrentNote(note);
-      setCurrentView("note");
+      if (note.collaborative) {
+        setCurrentNote(note);
+        router.push(`/main/collab/${note.pointer_id}`);
+      } else {
+        setCurrentNote(note);
+        setCurrentView("note");
+        router.push("/main");
+      }
     },
     [
       currentNote,
@@ -187,6 +196,7 @@ export default function AppSidebar() {
       saveCurrentNote,
       setCurrentNote,
       setCurrentView,
+      router,
     ],
   );
 
@@ -445,7 +455,7 @@ export default function AppSidebar() {
             <span className="sr-only">Add Note</span>
           </SidebarGroupAction>*/}
           <SidebarGroupContent className="-mx-4 pr-4 flex flex-col h-full">
-            <div className="flex-1 overflow-hidden">
+            <div className="tree">
               <TreeViewComponent nodes={userNotes} />
             </div>
           </SidebarGroupContent>

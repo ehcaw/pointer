@@ -10,9 +10,9 @@ export const createDataFetchers = (convex: ConvexReactClient) => ({
         userId,
       });
       // Transform data to ensure type field is required with default value
-      return notes.map(note => ({
+      return notes.map((note) => ({
         ...note,
-        type: note.type || "file" as const, // Default to "file" if type is undefined
+        type: note.type || ("file" as const), // Default to "file" if type is undefined
       }));
     } catch (error) {
       throw new Error(`Failed to fetch user notes: ${error}`);
@@ -28,9 +28,9 @@ export const createDataFetchers = (convex: ConvexReactClient) => ({
         },
       );
       // Transform data to ensure type field is required with default value
-      return sharedNotes.map(note => ({
+      return sharedNotes.map((note) => ({
         ...note,
-        type: note.type || "file" as const, // Default to "file" if type is undefined
+        type: note.type || ("file" as const), // Default to "file" if type is undefined
       }));
     } catch (error) {
       throw new Error(`Failed to fetch shared notes: ${error}`);
@@ -49,6 +49,18 @@ export const createDataFetchers = (convex: ConvexReactClient) => ({
       return collaborators;
     } catch (error) {
       throw new Error(`Failed to fetch user notes: ${error}`);
+    }
+  },
+
+  fetchNoteById: async (noteId: string) => {
+    try {
+      const { api } = await import("../../../convex/_generated/api");
+      const note = await convex.query(api.notes.readNoteFromDb, {
+        pointer_id: noteId,
+      });
+      return note;
+    } catch (error) {
+      throw new Error(`Failed to fetch note: ${error}`);
     }
   },
 

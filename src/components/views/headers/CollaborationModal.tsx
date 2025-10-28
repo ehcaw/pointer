@@ -24,6 +24,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 
 import useSWR from "swr";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
+import { toast } from "sonner";
 
 interface Collaborator {
   email: string;
@@ -292,6 +293,8 @@ export default function CollaborationModal({
             .filter((c) => !c.markedForDeletion)
             .map((c) => ({ ...c, isSaved: true })),
         );
+
+        toast("Collaboration settings saved");
       } catch (error) {
         console.error("Error saving collaboration settings:", error);
         setError("Failed to save collaboration settings. Please try again.");
