@@ -56,15 +56,25 @@ const NoteItem = React.memo(
     isActive,
     onNoteClick,
     onDeleteClick,
+    router,
   }: {
     note: Node;
     isActive: boolean;
     onNoteClick: (note: Node) => void;
     onDeleteClick: (e: React.MouseEvent<HTMLButtonElement>, note: Node) => void;
+    router: ReturnType<typeof useRouter>;
   }) => {
     const noteButton = (
       <SidebarMenuButton
         onClick={() => onNoteClick(note)}
+        onMouseEnter={() => {
+          // Prefetch the route on hover for faster navigation
+          if (note.collaborative) {
+            router.prefetch(`/main/collab/${note.pointer_id}`);
+          } else {
+            router.prefetch("/main");
+          }
+        }}
         data-active={isActive}
         className={cn(
           "rounded-lg transition-all w-full",
@@ -105,15 +115,25 @@ const SharedNoteItem = React.memo(
     note,
     isActive,
     onNoteClick,
+    router,
   }: {
     note: Node;
     isActive: boolean;
     onNoteClick: (note: Node) => void;
+    router: ReturnType<typeof useRouter>;
   }) => {
     return (
       <SidebarMenuItem key={String(note.pointer_id)}>
         <SidebarMenuButton
           onClick={() => onNoteClick(note)}
+          onMouseEnter={() => {
+            // Prefetch the route on hover for faster navigation
+            if (note.collaborative) {
+              router.prefetch(`/main/collab/${note.pointer_id}`);
+            } else {
+              router.prefetch("/main");
+            }
+          }}
           data-active={isActive}
           className={cn(
             "rounded-lg transition-all",
@@ -172,22 +192,28 @@ export default function AppSidebar() {
 
   const handleNoteClick = useCallback(
     async (note: Node) => {
-      if (
-        currentNote &&
-        currentNote.type == "file" &&
-        dbSavedNotes.get(currentNote.pointer_id) != undefined &&
-        currentNote?.content?.text !=
-          (dbSavedNotes.get(currentNote.pointer_id)! as FileNode).content?.text
-      ) {
-        saveCurrentNote();
-      }
+      // Optimistic navigation - update UI immediately
+      setCurrentNote(note);
+
       if (note.collaborative) {
-        setCurrentNote(note);
         router.push(`/main/collab/${note.pointer_id}`);
       } else {
-        setCurrentNote(note);
         setCurrentView("note");
         router.push("/main");
+      }
+
+      // Save asynchronously after navigation (non-blocking)
+      if (
+        currentNote &&
+        currentNote.type === "file" &&
+        dbSavedNotes.get(currentNote.pointer_id) !== undefined &&
+        currentNote?.content?.text !==
+          (dbSavedNotes.get(currentNote.pointer_id)! as FileNode).content?.text
+      ) {
+        // Don't await - let it save in the background
+        saveCurrentNote().catch((error) => {
+          console.error("Failed to save note before navigation:", error);
+        });
       }
     },
     [
@@ -478,6 +504,7 @@ export default function AppSidebar() {
                       note={note}
                       isActive={isActive}
                       onNoteClick={handleNoteClick}
+                      router={router}
                     />
                   );
                 })}

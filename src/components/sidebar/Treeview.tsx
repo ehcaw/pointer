@@ -69,13 +69,14 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     const selectedNode = userNotes.find((note) => note._id === item.id);
     if (selectedNode && !item.droppable) {
       // Only set current note for files (non-droppable), not folders
+      // Optimistic update - set note first for immediate UI response
+      setCurrentNote(selectedNode);
+
       if (selectedNode.collaborative) {
         router.push(`/main/collab/${selectedNode.pointer_id}`);
-        setCurrentNote(selectedNode);
       } else {
-        router.push("/main");
         setCurrentView("note");
-        setCurrentNote(selectedNode);
+        router.push("/main");
       }
     }
   };
