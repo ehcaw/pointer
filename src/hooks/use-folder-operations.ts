@@ -5,7 +5,7 @@ import { useConvex } from "convex/react";
 
 import { FolderNode, TreeNode } from "@/types/note";
 import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
+import { customErrorToast } from "@/components/ui/custom-toast";
 
 export function useFolderOperations() {
   const {
@@ -115,7 +115,7 @@ export function useFolderOperations() {
       });
       console.log("Item moved successfully");
     } catch (error) {
-      toast.error("Error moving file/folder");
+      customErrorToast("Error moving file/folder");
       // Rollback is handled by the caller (handleDocumentDrag, handleMoveRequest)
       throw error;
     }

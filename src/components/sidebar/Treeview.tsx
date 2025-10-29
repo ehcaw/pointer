@@ -22,7 +22,7 @@ import { Label } from "../ui/label";
 import { useConvex } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ensureJSONString } from "@/lib/utils";
-import { toast } from "sonner";
+import { customErrorToast, customSuccessToast } from "../ui/custom-toast";
 
 export const TreeViewComponent = () => {
   const { moveNode } = useFolderOperations();
@@ -220,10 +220,10 @@ export const TreeViewComponent = () => {
         updateUserNote(updatedNode);
 
         setNodeToRename(null);
-        toast.success(`Renamed to "${renameValue.trim()}"`);
+        customSuccessToast(`Renamed to "${renameValue.trim()}"`);
       } catch (error) {
         console.error("Failed to rename:", error);
-        toast.error("Failed to rename. Please try again.");
+        customErrorToast("Failed to rename. Please try again.");
       }
     },
     [nodeToRename, renameValue, convex, updateUserNote],
@@ -251,7 +251,7 @@ export const TreeViewComponent = () => {
           );
 
           if (!targetFolder) {
-            toast.error("Target folder not found");
+            customErrorToast("Target folder not found");
             return;
           }
 
@@ -260,7 +260,7 @@ export const TreeViewComponent = () => {
             sourceNode.type === "folder" &&
             isDescendant(targetFolderId, sourceNodeId)
           ) {
-            toast.error("Cannot move a folder into its own descendant");
+            customErrorToast("Cannot move a folder into its own descendant");
             return;
           }
 
@@ -280,10 +280,10 @@ export const TreeViewComponent = () => {
         // Persist to backend in background using pointer_id for database operations
         try {
           await moveNode(sourceNode.pointer_id, newParentDbId);
-          toast.success(`Moved "${sourceNode.name}" successfully`);
+          customSuccessToast(`Moved "${sourceNode.name}" successfully`);
         } catch (error) {
           console.error("Failed to sync move operation to backend:", error);
-          toast.error("Failed to move item");
+          customErrorToast("Failed to move item");
 
           // Rollback optimistic update on failure
           const { setUserNotes, setTreeStructure } = useNotesStore.getState();
@@ -292,7 +292,7 @@ export const TreeViewComponent = () => {
         }
       } catch (error) {
         console.error("Move operation failed:", error);
-        toast.error("Failed to move item");
+        customErrorToast("Failed to move item");
       }
     },
     [userNotes, isDescendant, moveNodeInTree, moveNode],

@@ -24,7 +24,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 
 import useSWR from "swr";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
-import { toast } from "sonner";
+import { customToast } from "@/components/ui/custom-toast";
 
 interface Collaborator {
   email: string;
@@ -309,7 +309,7 @@ export default function CollaborationModal({
         // Step 4: Revalidate SWR cache to ensure consistency
         await revalidateCollaborators();
 
-        toast("Collaboration settings saved");
+        customToast("Collaboration settings saved");
       } catch (error) {
         console.error("Error saving collaboration settings:", error);
         setError("Failed to save collaboration settings. Please try again.");

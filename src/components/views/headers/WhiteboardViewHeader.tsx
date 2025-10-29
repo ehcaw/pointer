@@ -10,7 +10,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 import { UserButton } from "@clerk/nextjs";
 
@@ -18,6 +17,10 @@ import { cn } from "@/lib/utils";
 import { FileText, Home, Share2, Clock } from "lucide-react";
 
 import { useWhiteboardStore } from "@/lib/stores/whiteboard-store";
+import {
+  customInfoToast,
+  customSuccessToast,
+} from "@/components/ui/custom-toast";
 
 export default function WhiteboardViewHeader() {
   const [title, setTitle] = useState("");
@@ -41,12 +44,12 @@ export default function WhiteboardViewHeader() {
 
     try {
       await navigator.clipboard.writeText(previewUrl);
-      toast.success("Preview link copied to clipboard!");
+      customSuccessToast("Preview link copied to clipboard!");
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
       // Fallback: open the preview in a new tab
       window.open(previewUrl, "_blank");
-      toast.info("Preview opened in new tab");
+      customInfoToast("Preview opened in new tab");
     }
   };
 

@@ -17,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { toast } from "sonner";
 import { useState, useCallback } from "react";
 import { Node } from "@/types/note";
 import { useFolderOperations } from "@/hooks/use-folder-operations";
@@ -28,6 +27,7 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { useRouter } from "next/navigation";
+import { customToast } from "../ui/custom-toast";
 
 interface TreeContextMenuProps {
   children: React.ReactNode;
@@ -81,7 +81,7 @@ const TreeContextMenu = ({
 
   const copyPreviewLink = () => {
     if (typeof window === "undefined") {
-      toast("Failed to copy preview link, please try again");
+      customToast("Failed to copy preview link, please try again");
       return;
     }
     return navigator.clipboard.writeText(
@@ -146,7 +146,7 @@ const TreeContextMenu = ({
       }
     } catch (error) {
       console.error("Failed to delete node:", error);
-      toast("Failed to delete node");
+      customToast("Failed to delete node");
       setNodeToDelete(null);
     }
   };
