@@ -7,6 +7,11 @@ export const customToast = (text: string) => {
       label: "Dismiss",
       onClick: () => {},
     },
+    actionButtonStyle: {
+      backgroundColor: "transparent",
+      color: "hsl(var(--muted-foreground))",
+      border: "1px solid hsl(var(--border))",
+    },
   });
 };
 
@@ -15,6 +20,11 @@ export const customErrorToast = (text: string) => {
     action: {
       label: "Dismiss",
       onClick: () => {},
+    },
+    actionButtonStyle: {
+      backgroundColor: "transparent",
+      color: "hsl(var(--muted-foreground))",
+      border: "1px solid hsl(var(--border))",
     },
   });
 };
@@ -25,6 +35,11 @@ export const customSuccessToast = (text: string) => {
       label: "Dismiss",
       onClick: () => {},
     },
+    actionButtonStyle: {
+      backgroundColor: "transparent",
+      color: "hsl(var(--muted-foreground))",
+      border: "1px solid hsl(var(--border))",
+    },
   });
 };
 
@@ -33,6 +48,11 @@ export const customInfoToast = (text: string) => {
     action: {
       label: "Dismiss",
       onClick: () => {},
+    },
+    actionButtonStyle: {
+      backgroundColor: "transparent",
+      color: "hsl(var(--muted-foreground))",
+      border: "1px solid hsl(var(--border))",
     },
   });
 };
