@@ -114,25 +114,28 @@ const TreeContextMenu = ({
   const confirmDelete = async () => {
     if (!nodeToDelete) return;
 
+    // Capture currentNote to avoid race condition during async operations
+    const noteAtDeletionTime = currentNote;
+
     // Check if we need to redirect BEFORE deletion
     const shouldRedirect =
       // Case 1: Deleting the currently open note (check both pointer_id and _id)
-      (currentNote &&
-        (currentNote.pointer_id === nodeToDelete.pointer_id ||
-          currentNote._id === nodeToDelete._id ||
-          currentNote.pointer_id === nodeToDelete._id ||
-          currentNote._id === nodeToDelete.pointer_id)) ||
+      (noteAtDeletionTime &&
+        (noteAtDeletionTime.pointer_id === nodeToDelete.pointer_id ||
+          noteAtDeletionTime._id === nodeToDelete._id ||
+          noteAtDeletionTime.pointer_id === nodeToDelete._id ||
+          noteAtDeletionTime._id === nodeToDelete.pointer_id)) ||
       // Case 2: Deleting a folder that contains the currently open note
       (nodeToDelete.type === "folder" &&
-        currentNote &&
+        noteAtDeletionTime &&
         isDescendant(
-          currentNote.pointer_id || currentNote._id || "",
+          noteAtDeletionTime.pointer_id || noteAtDeletionTime._id || "",
           nodeToDelete.pointer_id || nodeToDelete._id || "",
         ));
 
     try {
       if (nodeToDelete.type === "folder") {
-        await deleteFolder(nodeToDelete.pointer_id, true); // cascade = true to delete folder and contents
+        await deleteFolder(nodeToDelete.pointer_id, true, { skipConfirm: true }); // cascade = true, skip native confirm since AlertDialog handles it
       } else {
         await deleteNote(nodeToDelete.pointer_id || "", nodeToDelete.tenantId);
       }

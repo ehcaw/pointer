@@ -67,18 +67,25 @@ export function useFolderOperations() {
     }
   };
 
-  const deleteFolder = async (folderId: string, cascade = false) => {
+  const deleteFolder = async (
+    folderId: string,
+    cascade = false,
+    options?: { skipConfirm?: boolean }
+  ) => {
     if (!userId) {
       console.error("User not authenticated");
       return;
     }
 
-    const confirmMessage = cascade
-      ? "Are you sure you want to delete this folder and all its contents? This action cannot be undone."
-      : "Are you sure you want to delete this empty folder?";
+    // Only show native confirm if skipConfirm is not true
+    if (!options?.skipConfirm) {
+      const confirmMessage = cascade
+        ? "Are you sure you want to delete this folder and all its contents? This action cannot be undone."
+        : "Are you sure you want to delete this empty folder?";
 
-    if (!confirm(confirmMessage)) {
-      return;
+      if (!confirm(confirmMessage)) {
+        return;
+      }
     }
 
     try {

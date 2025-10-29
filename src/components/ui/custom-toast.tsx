@@ -7,10 +7,8 @@ export const customToast = (text: string) => {
       label: "Dismiss",
       onClick: () => {},
     },
-    actionButtonStyle: {
-      backgroundColor: "transparent",
-      color: "hsl(var(--muted-foreground))",
-      border: "1px solid hsl(var(--border))",
+    classNames: {
+      actionButton: "bg-transparent text-muted-foreground border border-border",
     },
   });
 };
@@ -21,10 +19,8 @@ export const customErrorToast = (text: string) => {
       label: "Dismiss",
       onClick: () => {},
     },
-    actionButtonStyle: {
-      backgroundColor: "transparent",
-      color: "hsl(var(--muted-foreground))",
-      border: "1px solid hsl(var(--border))",
+    classNames: {
+      actionButton: "bg-transparent text-muted-foreground border border-border",
     },
   });
 };
@@ -35,10 +31,8 @@ export const customSuccessToast = (text: string) => {
       label: "Dismiss",
       onClick: () => {},
     },
-    actionButtonStyle: {
-      backgroundColor: "transparent",
-      color: "hsl(var(--muted-foreground))",
-      border: "1px solid hsl(var(--border))",
+    classNames: {
+      actionButton: "bg-transparent text-muted-foreground border border-border",
     },
   });
 };
@@ -49,10 +43,8 @@ export const customInfoToast = (text: string) => {
       label: "Dismiss",
       onClick: () => {},
     },
-    actionButtonStyle: {
-      backgroundColor: "transparent",
-      color: "hsl(var(--muted-foreground))",
-      border: "1px solid hsl(var(--border))",
+    classNames: {
+      actionButton: "bg-transparent text-muted-foreground border border-border",
     },
   });
 };
