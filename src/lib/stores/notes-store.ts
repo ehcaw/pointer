@@ -833,27 +833,27 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     // Update the node's parent_id
     const updatedNode = { ...nodeToMove, parent_id: newParentId };
 
-    // Update userNotes array
+    // Update userNotes array - check both _id and pointer_id
     const updatedUserNotes = state.userNotes.map((n) =>
-      n._id === nodeId ? updatedNode : n,
+      (n._id === nodeId || n.pointer_id === nodeId) ? updatedNode : n,
     );
 
-    // Update tree structure
+    // Update tree structure - check both _id and pointer_id
     const updatedTreeStructure = state.treeStructure.map((node) => {
-      if (node._id === nodeId) {
+      if (node._id === nodeId || node.pointer_id === nodeId) {
         return { ...node, parent_id: newParentId };
       }
       return node;
     });
 
-    // Update open notes if the node is open
+    // Update open notes if the node is open - check both _id and pointer_id
     const updatedOpenNotes = state.openUserNotes.map((n) =>
-      n._id === nodeId ? updatedNode : n,
+      (n._id === nodeId || n.pointer_id === nodeId) ? updatedNode : n,
     );
 
-    // Update current note if it's the one being moved
+    // Update current note if it's the one being moved - check both _id and pointer_id
     let updatedCurrentNote = state.currentNote;
-    if (state.currentNote && state.currentNote._id === nodeId) {
+    if (state.currentNote && (state.currentNote._id === nodeId || state.currentNote.pointer_id === nodeId)) {
       updatedCurrentNote = updatedNode;
     }
 

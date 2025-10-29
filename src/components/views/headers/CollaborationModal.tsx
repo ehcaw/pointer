@@ -24,7 +24,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 
 import useSWR from "swr";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
-import { toast } from "sonner";
+import { customToast } from "@/components/ui/custom-toast";
 
 interface Collaborator {
   email: string;
@@ -83,7 +83,11 @@ export default function CollaborationModal({
     }
   }, [email]);
 
-  const { data: collaborators = [], isLoading } = useSWR(
+  const {
+    data: collaborators = [],
+    isLoading,
+    mutate: revalidateCollaborators,
+  } = useSWR(
     isOpen && currentNote?._id ? `collaborators-${currentNote._id}` : null,
     async () => {
       if (!currentNote?._id) return [];
@@ -255,18 +259,24 @@ export default function CollaborationModal({
 
         // Step 2: Only proceed with sharing operations if collaboration is enabled
         if (isCollaborationEnabled) {
-          const users = localCollaborators
-            .filter((collaborator) => collaborator.id !== "unknown")
+          // ONLY share with NEW collaborators (not already saved, not marked for deletion)
+          const newCollaborators = localCollaborators
+            .filter(
+              (collaborator) =>
+                !collaborator.isSaved &&
+                !collaborator.markedForDeletion &&
+                collaborator.id !== "unknown",
+            )
             .map((collaborator) => ({
               userEmail: collaborator.email,
               userId: collaborator.id,
             }));
 
           // Add new collaborators
-          if (users.length > 0) {
+          if (newCollaborators.length > 0) {
             await convex.mutation(api.notes.shareNote, {
               dId: currentNote._id,
-              users: users,
+              users: newCollaborators,
               ownerEmail: user.emailAddresses[0]?.emailAddress || "",
               ownerId: user.id,
             });
@@ -296,7 +306,10 @@ export default function CollaborationModal({
             .map((c) => ({ ...c, isSaved: true })),
         );
 
-        toast("Collaboration settings saved");
+        // Step 4: Revalidate SWR cache to ensure consistency
+        await revalidateCollaborators();
+
+        customToast("Collaboration settings saved");
       } catch (error) {
         console.error("Error saving collaboration settings:", error);
         setError("Failed to save collaboration settings. Please try again.");

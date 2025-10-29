@@ -3,7 +3,6 @@
 import React, { useState, useCallback } from "react";
 import {
   Home,
-  FileText,
   GitGraph,
   Trash,
   LineSquiggle,
@@ -83,8 +82,12 @@ const NoteItem = React.memo(
             : "hover:bg-muted/20 dark:hover:bg-muted/20 hover:text-foreground",
         )}
       >
-        <FileText className="h-4 w-4" />
-        <span>{note.name}</span>
+        <span className="flex-1">{note.name}</span>
+        {note.collaborative && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+            <Users className="h-3 w-3" />
+          </div>
+        )}
       </SidebarMenuButton>
     );
 
@@ -142,8 +145,12 @@ const SharedNoteItem = React.memo(
               : "hover:bg-accent hover:text-foreground",
           )}
         >
-          <FileText className="h-4 w-4" />
-          <span>{note.name}</span>
+          <span className="flex-1">{note.name}</span>
+          {note.collaborative && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+              <Users className="h-3 w-3" />
+            </div>
+          )}
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
@@ -159,7 +166,6 @@ export default function AppSidebar() {
   // Use optimized selectors
 
   const {
-    userNotes,
     sharedNotes,
     openUserNotes,
     setCurrentNote,
@@ -473,16 +479,9 @@ export default function AppSidebar() {
             All Notes
             <CreatePopover onCreateNote={handleCreateNote} />
           </SidebarGroupLabel>
-          {/*<SidebarGroupAction
-            onClick={handleCreateNote}
-            className="rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">Add Note</span>
-          </SidebarGroupAction>*/}
           <SidebarGroupContent className="-mx-4 pr-4 flex flex-col h-full">
             <div className="tree">
-              <TreeViewComponent nodes={userNotes} />
+              <TreeViewComponent />
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
