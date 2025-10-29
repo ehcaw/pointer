@@ -70,7 +70,7 @@ export function useFolderOperations() {
   const deleteFolder = async (
     folderId: string,
     cascade = false,
-    options?: { skipConfirm?: boolean }
+    options?: { skipConfirm?: boolean },
   ) => {
     if (!userId) {
       console.error("User not authenticated");
@@ -155,19 +155,17 @@ export function useFolderOperations() {
     },
   ) => {
     if (!over) return;
-
-    // Find current state before making changes for rollback
-    const originalTree = JSON.parse(
-      JSON.stringify(useNotesStore.getState().treeStructure),
+    const originalTree = structuredClone(
+      useNotesStore.getState().treeStructure,
     );
-    const originalUserNotes = JSON.parse(
-      JSON.stringify(useNotesStore.getState().userNotes),
+    const originalUserNotes = structuredClone(
+      useNotesStore.getState().userNotes,
     );
-    const originalOpenNotes = JSON.parse(
-      JSON.stringify(useNotesStore.getState().openUserNotes),
+    const originalOpenNotes = structuredClone(
+      useNotesStore.getState().openUserNotes,
     );
     const originalCurrentNote = useNotesStore.getState().currentNote
-      ? JSON.parse(JSON.stringify(useNotesStore.getState().currentNote))
+      ? structuredClone(useNotesStore.getState().currentNote)
       : null;
 
     // Find the over node to determine new parent

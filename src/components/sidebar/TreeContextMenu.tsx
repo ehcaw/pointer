@@ -27,7 +27,7 @@ import React from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { useRouter } from "next/navigation";
-import { customToast } from "../ui/custom-toast";
+import { customErrorToast, customToast } from "../ui/custom-toast";
 
 interface TreeContextMenuProps {
   children: React.ReactNode;
@@ -84,9 +84,10 @@ const TreeContextMenu = ({
       customToast("Failed to copy preview link, please try again");
       return;
     }
-    return navigator.clipboard.writeText(
-      `${window.location.origin}/preview/${item.pointer_id}`,
-    );
+    navigator.clipboard
+      .writeText(`${window.location.origin}/preview/${item.pointer_id}`)
+      .then(() => customToast("Preview link copied to clipboard"))
+      .catch(() => customToast("Failed to copy preview link"));
   };
 
   const handleDeleteClick = () => {
@@ -128,6 +129,8 @@ const TreeContextMenu = ({
       // Case 2: Deleting a folder that contains the currently open note
       (nodeToDelete.type === "folder" &&
         noteAtDeletionTime &&
+        (noteAtDeletionTime.pointer_id || noteAtDeletionTime._id) &&
+        (nodeToDelete.pointer_id || nodeToDelete._id) &&
         isDescendant(
           noteAtDeletionTime.pointer_id || noteAtDeletionTime._id || "",
           nodeToDelete.pointer_id || nodeToDelete._id || "",
@@ -135,9 +138,14 @@ const TreeContextMenu = ({
 
     try {
       if (nodeToDelete.type === "folder") {
-        await deleteFolder(nodeToDelete.pointer_id, true, { skipConfirm: true }); // cascade = true, skip native confirm since AlertDialog handles it
+        await deleteFolder(nodeToDelete.pointer_id, true, {
+          skipConfirm: true,
+        }); // cascade = true, skip native confirm since AlertDialog handles it
       } else {
-        await deleteNote(nodeToDelete.pointer_id || "", nodeToDelete.tenantId);
+        if (!nodeToDelete.pointer_id) {
+          throw new Error("Note pointer_id is required for deletion");
+        }
+        await deleteNote(nodeToDelete.pointer_id, nodeToDelete.tenantId);
       }
       setNodeToDelete(null);
 
@@ -149,7 +157,7 @@ const TreeContextMenu = ({
       }
     } catch (error) {
       console.error("Failed to delete node:", error);
-      customToast("Failed to delete node");
+      customErrorToast("Failed to delete node");
       setNodeToDelete(null);
     }
   };

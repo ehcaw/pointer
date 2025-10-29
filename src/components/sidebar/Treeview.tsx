@@ -419,7 +419,7 @@ export const TreeViewComponent = () => {
             <DialogHeader>
               <DialogTitle>Rename {nodeToRename.type}</DialogTitle>
               <DialogDescription>
-                Enter a new name for `&quot;`{nodeToRename.name}`&quot;`.
+                Enter a new name for &quot;{nodeToRename.name}&quot;.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleRenameSubmit}>
