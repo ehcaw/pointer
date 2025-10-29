@@ -166,9 +166,13 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
 
       // Drop onto virtual root if we have one, otherwise use old behavior
       if (hasVirtualRoot) {
-        handleDrop({ id: "virtual-root", name: "Root" });
+        handleDrop({
+          id: "virtual-root",
+          name: "Root",
+          pointer_id: "virtual-root",
+        });
       } else {
-        handleDrop({ id: "", name: "parent_div" });
+        handleDrop({ id: "", name: "parent_div", pointer_id: "" });
       }
     };
 

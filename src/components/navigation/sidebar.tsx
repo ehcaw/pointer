@@ -479,13 +479,6 @@ export default function AppSidebar() {
             All Notes
             <CreatePopover onCreateNote={handleCreateNote} />
           </SidebarGroupLabel>
-          {/*<SidebarGroupAction
-            onClick={handleCreateNote}
-            className="rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">Add Note</span>
-          </SidebarGroupAction>*/}
           <SidebarGroupContent className="-mx-4 pr-4 flex flex-col h-full">
             <div className="tree">
               <TreeViewComponent />

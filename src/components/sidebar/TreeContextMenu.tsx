@@ -18,12 +18,25 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Node } from "@/types/note";
 import { useFolderOperations } from "@/hooks/use-folder-operations";
 import { useNoteEditor } from "@/hooks/use-note-editor";
 import { Check, Home, FolderInput, Edit3, Eye, Trash2 } from "lucide-react";
 import { TreeDataItem } from "../ui/tree-view";
+import React from "react";
+import { useNotesStore } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
+import { useRouter } from "next/navigation";
+
+interface TreeContextMenuProps {
+  children: React.ReactNode;
+  item: TreeDataItem;
+  treeData: TreeDataItem[];
+  onRenameRequest: (node: Node) => void;
+  onMoveRequest: (sourceNode: Node, targetFolderId: string | null) => void;
+  getValidMoveTargets: (node: Node | null, treeData: TreeDataItem[]) => Node[];
+}
 
 const TreeContextMenu = ({
   children,
@@ -32,23 +45,39 @@ const TreeContextMenu = ({
   onRenameRequest,
   onMoveRequest,
   getValidMoveTargets,
-}: {
-  children: any;
-  item: any;
-  treeData: TreeDataItem[];
-  onRenameRequest: (node: Node) => void;
-  onMoveRequest: (sourceNode: Node, targetFolderId: string | null) => void;
-  getValidMoveTargets: (node: Node | null, treeData: TreeDataItem[]) => Node[];
-}) => {
+}: TreeContextMenuProps) => {
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
   const { deleteFolder } = useFolderOperations();
   const { deleteNote } = useNoteEditor();
+  const { currentNote, setCurrentNote, userNotes } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
+  const router = useRouter();
 
   // Get the current node from item
   const currentNode = item.data as Node | undefined;
 
   // Get valid move targets (filtered folders excluding cycles) in tree display order
   const validFolders = getValidMoveTargets(currentNode || null, treeData);
+
+  // Helper function to check if a node is a descendant of another node
+  const isDescendant = useCallback(
+    (nodeId: string, potentialAncestorId: string): boolean => {
+      const findNode = (nodes: Node[], id: string): Node | null => {
+        for (const node of nodes) {
+          if (node.pointer_id === id || node._id === id) return node;
+        }
+        return null;
+      };
+
+      let current = findNode(userNotes, nodeId);
+      while (current && current.parent_id) {
+        if (current.parent_id === potentialAncestorId) return true;
+        current = findNode(userNotes, current.parent_id);
+      }
+      return false;
+    },
+    [userNotes],
+  );
 
   const copyPreviewLink = () => {
     if (typeof window === "undefined") {
@@ -85,6 +114,22 @@ const TreeContextMenu = ({
   const confirmDelete = async () => {
     if (!nodeToDelete) return;
 
+    // Check if we need to redirect BEFORE deletion
+    const shouldRedirect =
+      // Case 1: Deleting the currently open note (check both pointer_id and _id)
+      (currentNote &&
+        (currentNote.pointer_id === nodeToDelete.pointer_id ||
+          currentNote._id === nodeToDelete._id ||
+          currentNote.pointer_id === nodeToDelete._id ||
+          currentNote._id === nodeToDelete.pointer_id)) ||
+      // Case 2: Deleting a folder that contains the currently open note
+      (nodeToDelete.type === "folder" &&
+        currentNote &&
+        isDescendant(
+          currentNote.pointer_id || currentNote._id || "",
+          nodeToDelete.pointer_id || nodeToDelete._id || "",
+        ));
+
     try {
       if (nodeToDelete.type === "folder") {
         await deleteFolder(nodeToDelete.pointer_id, true); // cascade = true to delete folder and contents
@@ -92,8 +137,16 @@ const TreeContextMenu = ({
         await deleteNote(nodeToDelete.pointer_id || "", nodeToDelete.tenantId);
       }
       setNodeToDelete(null);
+
+      // Redirect to home if we deleted the current note or its parent folder
+      if (shouldRedirect) {
+        setCurrentNote(null);
+        setCurrentView("home");
+        router.push("/main");
+      }
     } catch (error) {
       console.error("Failed to delete node:", error);
+      toast("Failed to delete node");
       setNodeToDelete(null);
     }
   };

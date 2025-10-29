@@ -27,7 +27,8 @@ import { toast } from "sonner";
 
 export const TreeViewComponent = () => {
   const { moveNode, deleteFolder } = useFolderOperations();
-  const { moveNodeInTree, setCurrentNote, updateUserNote } = useNotesStore();
+  const { moveNodeInTree, setCurrentNote, updateUserNote, currentNote } =
+    useNotesStore();
   const { setCurrentView } = usePreferencesStore();
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
   const [nodeToRename, setNodeToRename] = useState<Node | null>(null);
@@ -41,62 +42,78 @@ export const TreeViewComponent = () => {
   const userNotes = useNotesStore((state) => state.userNotes);
 
   // Helper function to check if a node is a descendant of another node
-  const isDescendant = useCallback((nodeId: string, potentialAncestorId: string): boolean => {
-    const findNode = (nodes: Node[], id: string): Node | null => {
-      for (const node of nodes) {
-        if (node.pointer_id === id || node._id === id) return node;
-      }
-      return null;
-    };
+  const isDescendant = useCallback(
+    (nodeId: string, potentialAncestorId: string): boolean => {
+      const findNode = (nodes: Node[], id: string): Node | null => {
+        for (const node of nodes) {
+          if (node.pointer_id === id || node._id === id) return node;
+        }
+        return null;
+      };
 
-    let current = findNode(userNotes, nodeId);
-    while (current && current.parent_id) {
-      if (current.parent_id === potentialAncestorId) return true;
-      current = findNode(userNotes, current.parent_id);
-    }
-    return false;
-  }, [userNotes]);
+      let current = findNode(userNotes, nodeId);
+      while (current && current.parent_id) {
+        if (current.parent_id === potentialAncestorId) return true;
+        current = findNode(userNotes, current.parent_id);
+      }
+      return false;
+    },
+    [userNotes],
+  );
 
   // Helper to extract folders in tree display order (depth-first traversal)
-  const extractFoldersInTreeOrder = useCallback((treeItems: TreeDataItem[]): Node[] => {
-    const folders: Node[] = [];
+  const extractFoldersInTreeOrder = useCallback(
+    (treeItems: TreeDataItem[]): Node[] => {
+      const folders: Node[] = [];
 
-    const traverse = (items: TreeDataItem[]) => {
-      for (const item of items) {
-        const node = item.data as Node | undefined;
-        if (node && node.type === "folder") {
-          folders.push(node);
+      const traverse = (items: TreeDataItem[]) => {
+        for (const item of items) {
+          const node = item.data as Node | undefined;
+          if (node && node.type === "folder") {
+            folders.push(node);
+          }
+          if (item.children) {
+            traverse(item.children);
+          }
         }
-        if (item.children) {
-          traverse(item.children);
-        }
-      }
-    };
+      };
 
-    traverse(treeItems);
-    return folders;
-  }, []);
+      traverse(treeItems);
+      return folders;
+    },
+    [],
+  );
 
   // Get valid move target folders (excluding the node itself and its descendants)
-  const getValidMoveTargets = useCallback((node: Node | null, treeItems: TreeDataItem[]): Node[] => {
-    if (!node) return [];
+  const getValidMoveTargets = useCallback(
+    (node: Node | null, treeItems: TreeDataItem[]): Node[] => {
+      if (!node) return [];
 
-    // Get all folders in tree display order
-    const foldersInOrder = extractFoldersInTreeOrder(treeItems);
+      // Get all folders in tree display order
+      const foldersInOrder = extractFoldersInTreeOrder(treeItems);
 
-    // Filter to get only valid targets
-    return foldersInOrder.filter((n) => {
-      // Can't move into itself
-      if (n.pointer_id === node.pointer_id || n._id === node._id) return false;
+      // Filter to get only valid targets
+      return foldersInOrder.filter((n) => {
+        // Can't move into itself
+        if (n.pointer_id === node.pointer_id || n._id === node._id)
+          return false;
 
-      // Can't move a folder into its own descendants (would create a cycle)
-      if (node.type === "folder" && isDescendant(n.pointer_id || n._id || "", node.pointer_id || node._id || "")) {
-        return false;
-      }
+        // Can't move a folder into its own descendants (would create a cycle)
+        if (
+          node.type === "folder" &&
+          isDescendant(
+            n.pointer_id || n._id || "",
+            node.pointer_id || node._id || "",
+          )
+        ) {
+          return false;
+        }
 
-      return true;
-    });
-  }, [isDescendant, extractFoldersInTreeOrder]);
+        return true;
+      });
+    },
+    [isDescendant, extractFoldersInTreeOrder],
+  );
 
   // Convert userNotes to TreeDataItem for TreeView component
   const treeData = useMemo(() => {
@@ -151,6 +168,32 @@ export const TreeViewComponent = () => {
   const confirmDelete = useCallback(async () => {
     if (!nodeToDelete) return;
 
+    console.log("=== DELETE DEBUG ===");
+    console.log("currentNote:", currentNote);
+    console.log("nodeToDelete:", nodeToDelete);
+    console.log("currentNote?.pointer_id:", currentNote?.pointer_id);
+    console.log("currentNote?._id:", currentNote?._id);
+    console.log("nodeToDelete.pointer_id:", nodeToDelete.pointer_id);
+    console.log("nodeToDelete._id:", nodeToDelete._id);
+
+    // Check if we need to redirect BEFORE deletion
+    const shouldRedirect =
+      // Case 1: Deleting the currently open note (check both pointer_id and _id)
+      (currentNote &&
+        (currentNote.pointer_id === nodeToDelete.pointer_id ||
+          currentNote._id === nodeToDelete._id ||
+          currentNote.pointer_id === nodeToDelete._id ||
+          currentNote._id === nodeToDelete.pointer_id)) ||
+      // Case 2: Deleting a folder that contains the currently open note
+      (nodeToDelete.type === "folder" &&
+        currentNote &&
+        isDescendant(
+          currentNote.pointer_id || currentNote._id || "",
+          nodeToDelete.pointer_id || nodeToDelete._id || "",
+        ));
+
+    console.log("shouldRedirect:", shouldRedirect);
+
     try {
       if (nodeToDelete.type === "folder") {
         await deleteFolder(nodeToDelete.pointer_id, true); // cascade = true to delete folder and contents
@@ -158,11 +201,28 @@ export const TreeViewComponent = () => {
         await deleteNote(nodeToDelete.pointer_id || "", nodeToDelete.tenantId);
       }
       setNodeToDelete(null);
+
+      // Redirect to home if we deleted the current note or its parent folder
+      if (shouldRedirect) {
+        console.log("SHOULD REDIRECT");
+        router.push("/main");
+        setCurrentView("home");
+      }
     } catch (error) {
       console.error("Failed to delete node:", error);
+      toast("Failed to delete node");
+    } finally {
       setNodeToDelete(null);
     }
-  }, [nodeToDelete, deleteFolder, deleteNote]);
+  }, [
+    nodeToDelete,
+    currentNote,
+    isDescendant,
+    deleteFolder,
+    deleteNote,
+    router,
+    setCurrentView,
+  ]);
 
   const handleDeleteCancel = useCallback(() => {
     setNodeToDelete(null);
@@ -173,124 +233,137 @@ export const TreeViewComponent = () => {
     setRenameValue(node.name);
   }, []);
 
-  const handleRenameSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRenameSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (!nodeToRename || !renameValue.trim()) return;
+      if (!nodeToRename || !renameValue.trim()) return;
 
-    try {
-      // Update the node with new name
-      const updatedNode = { ...nodeToRename, name: renameValue.trim(), updatedAt: new Date().toISOString() };
-
-      // Update in database
-      if (nodeToRename.type === "folder") {
-        // For folders, update using the updateNoteInDb mutation
-        await convex.mutation(api.notes.updateNoteInDb, {
-          pointer_id: nodeToRename.pointer_id,
-          name: updatedNode.name,
-          tenantId: nodeToRename.tenantId,
-          createdAt: String(nodeToRename.createdAt),
-          updatedAt: String(updatedNode.updatedAt),
-          lastAccessed: String(new Date()),
-          lastEdited: String(nodeToRename.lastEdited || new Date()),
-          content: { tiptap: "", text: "" },
-          collaborative: nodeToRename.collaborative,
-        });
-      } else {
-        // For files, include content
-        const fileNode = nodeToRename as FileNode;
-        const rawTiptapContent = fileNode.content?.tiptap || "";
-        const serializedTiptapContent = ensureJSONString(rawTiptapContent);
-
-        await convex.mutation(api.notes.updateNoteInDb, {
-          pointer_id: nodeToRename.pointer_id,
-          name: updatedNode.name,
-          tenantId: nodeToRename.tenantId,
-          createdAt: String(nodeToRename.createdAt),
-          updatedAt: String(updatedNode.updatedAt),
-          lastAccessed: String(new Date()),
-          lastEdited: String(nodeToRename.lastEdited || new Date()),
-          content: {
-            tiptap: serializedTiptapContent,
-            text: fileNode.content?.text || "",
-          },
-          collaborative: nodeToRename.collaborative,
-        });
-      }
-
-      // Update local state
-      updateUserNote(updatedNode);
-
-      setNodeToRename(null);
-      toast.success(`Renamed to "${renameValue.trim()}"`);
-    } catch (error) {
-      console.error("Failed to rename:", error);
-      toast.error("Failed to rename. Please try again.");
-    }
-  }, [nodeToRename, renameValue, convex, updateUserNote]);
-
-  const handleMoveRequest = useCallback(async (sourceNode: Node, targetFolderId: string | null) => {
-    try {
-      // Use the _id for optimistic updates (not pointer_id)
-      const sourceNodeId = sourceNode._id || sourceNode.pointer_id;
-
-      // Determine the new parent ID for optimistic update
-      let newParentId: string | undefined = undefined;
-      let newParentDbId: string | undefined = undefined;
-
-      if (targetFolderId === null) {
-        // Move to root
-        newParentId = undefined;
-        newParentDbId = undefined;
-      } else {
-        // Moving into a specific folder
-        // Find the target folder to get its _id
-        const targetFolder = userNotes.find(
-          (n) => n.pointer_id === targetFolderId || n._id === targetFolderId
-        );
-
-        if (!targetFolder) {
-          toast.error("Target folder not found");
-          return;
-        }
-
-        // Validate: prevent cycles
-        if (sourceNode.type === "folder" && isDescendant(targetFolderId, sourceNodeId)) {
-          toast.error("Cannot move a folder into its own descendant");
-          return;
-        }
-
-        newParentId = targetFolder._id || targetFolder.pointer_id;
-        newParentDbId = targetFolder._id;
-      }
-
-      // Save current state for potential rollback
-      const {
-        userNotes: originalUserNotes,
-        treeStructure: originalTreeStructure,
-      } = useNotesStore.getState();
-
-      // Optimistic update - update local state immediately using _id
-      moveNodeInTree(sourceNodeId, newParentId);
-
-      // Persist to backend in background using pointer_id for database operations
       try {
-        await moveNode(sourceNode.pointer_id, newParentDbId);
-        toast.success(`Moved "${sourceNode.name}" successfully`);
-      } catch (error) {
-        console.error("Failed to sync move operation to backend:", error);
-        toast.error("Failed to move item");
+        // Update the node with new name
+        const updatedNode = {
+          ...nodeToRename,
+          name: renameValue.trim(),
+          updatedAt: new Date().toISOString(),
+        };
 
-        // Rollback optimistic update on failure
-        const { setUserNotes, setTreeStructure } = useNotesStore.getState();
-        setUserNotes(originalUserNotes);
-        setTreeStructure(originalTreeStructure);
+        // Update in database
+        if (nodeToRename.type === "folder") {
+          // For folders, update using the updateNoteInDb mutation
+          await convex.mutation(api.notes.updateNoteInDb, {
+            pointer_id: nodeToRename.pointer_id,
+            name: updatedNode.name,
+            tenantId: nodeToRename.tenantId,
+            createdAt: String(nodeToRename.createdAt),
+            updatedAt: String(updatedNode.updatedAt),
+            lastAccessed: String(new Date()),
+            lastEdited: String(nodeToRename.lastEdited || new Date()),
+            content: { tiptap: "", text: "" },
+            collaborative: nodeToRename.collaborative,
+          });
+        } else {
+          // For files, include content
+          const fileNode = nodeToRename as FileNode;
+          const rawTiptapContent = fileNode.content?.tiptap || "";
+          const serializedTiptapContent = ensureJSONString(rawTiptapContent);
+
+          await convex.mutation(api.notes.updateNoteInDb, {
+            pointer_id: nodeToRename.pointer_id,
+            name: updatedNode.name,
+            tenantId: nodeToRename.tenantId,
+            createdAt: String(nodeToRename.createdAt),
+            updatedAt: String(updatedNode.updatedAt),
+            lastAccessed: String(new Date()),
+            lastEdited: String(nodeToRename.lastEdited || new Date()),
+            content: {
+              tiptap: serializedTiptapContent,
+              text: fileNode.content?.text || "",
+            },
+            collaborative: nodeToRename.collaborative,
+          });
+        }
+
+        // Update local state
+        updateUserNote(updatedNode);
+
+        setNodeToRename(null);
+        toast.success(`Renamed to "${renameValue.trim()}"`);
+      } catch (error) {
+        console.error("Failed to rename:", error);
+        toast.error("Failed to rename. Please try again.");
       }
-    } catch (error) {
-      console.error("Move operation failed:", error);
-      toast.error("Failed to move item");
-    }
-  }, [userNotes, isDescendant, moveNodeInTree, moveNode]);
+    },
+    [nodeToRename, renameValue, convex, updateUserNote],
+  );
+
+  const handleMoveRequest = useCallback(
+    async (sourceNode: Node, targetFolderId: string | null) => {
+      try {
+        // Use the _id for optimistic updates (not pointer_id)
+        const sourceNodeId = sourceNode._id || sourceNode.pointer_id;
+
+        // Determine the new parent ID for optimistic update
+        let newParentId: string | undefined = undefined;
+        let newParentDbId: string | undefined = undefined;
+
+        if (targetFolderId === null) {
+          // Move to root
+          newParentId = undefined;
+          newParentDbId = undefined;
+        } else {
+          // Moving into a specific folder
+          // Find the target folder to get its _id
+          const targetFolder = userNotes.find(
+            (n) => n.pointer_id === targetFolderId || n._id === targetFolderId,
+          );
+
+          if (!targetFolder) {
+            toast.error("Target folder not found");
+            return;
+          }
+
+          // Validate: prevent cycles
+          if (
+            sourceNode.type === "folder" &&
+            isDescendant(targetFolderId, sourceNodeId)
+          ) {
+            toast.error("Cannot move a folder into its own descendant");
+            return;
+          }
+
+          newParentId = targetFolder._id || targetFolder.pointer_id;
+          newParentDbId = targetFolder._id;
+        }
+
+        // Save current state for potential rollback
+        const {
+          userNotes: originalUserNotes,
+          treeStructure: originalTreeStructure,
+        } = useNotesStore.getState();
+
+        // Optimistic update - update local state immediately using _id
+        moveNodeInTree(sourceNodeId, newParentId);
+
+        // Persist to backend in background using pointer_id for database operations
+        try {
+          await moveNode(sourceNode.pointer_id, newParentDbId);
+          toast.success(`Moved "${sourceNode.name}" successfully`);
+        } catch (error) {
+          console.error("Failed to sync move operation to backend:", error);
+          toast.error("Failed to move item");
+
+          // Rollback optimistic update on failure
+          const { setUserNotes, setTreeStructure } = useNotesStore.getState();
+          setUserNotes(originalUserNotes);
+          setTreeStructure(originalTreeStructure);
+        }
+      } catch (error) {
+        console.error("Move operation failed:", error);
+        toast.error("Failed to move item");
+      }
+    },
+    [userNotes, isDescendant, moveNodeInTree, moveNode],
+  );
 
   const handleDocumentDrag = async (
     sourceItem: TreeDataItem,
@@ -403,29 +476,6 @@ export const TreeViewComponent = () => {
           )}
         />
       </div>
-      {nodeToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-2">
-              Are you absolutely sure?
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              This action cannot be undone. This will permanently delete the{" "}
-              {nodeToDelete.type} titled &quot;{nodeToDelete.name}&quot;.
-              {nodeToDelete.type === "folder" &&
-                " All contents within this folder will also be deleted."}
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleDeleteCancel}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={confirmDelete}>
-                Continue
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
       {nodeToRename && (
         <Dialog
           open={!!nodeToRename}
@@ -435,7 +485,7 @@ export const TreeViewComponent = () => {
             <DialogHeader>
               <DialogTitle>Rename {nodeToRename.type}</DialogTitle>
               <DialogDescription>
-                Enter a new name for "{nodeToRename.name}".
+                Enter a new name for `&quot;`{nodeToRename.name}`&quot;`.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleRenameSubmit}>

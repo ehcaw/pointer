@@ -14,7 +14,6 @@ export function useFolderOperations() {
     handleDragEnd,
     treeStructure,
     updateUserNote,
-    moveNodeInTree,
   } = useNotesStore();
 
   const { user } = useUser();
@@ -33,27 +32,9 @@ export function useFolderOperations() {
     }
 
     const pointer_id = `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date().toISOString();
-
-    // Create optimistic folder object
-    const newFolder: FolderNode = {
-      type: "folder",
-      pointer_id,
-      tenantId: userId,
-      name,
-      createdAt: now,
-      updatedAt: now,
-      lastAccessed: now,
-      lastEdited: now,
-      collaborative: false,
-      parent_id: parentId,
-      isExpanded: false,
-    };
-
-    // Optimistically add to store
-    addFolderToStore(newFolder);
 
     try {
+      // Create folder in database first
       await createFolderMutation({
         name,
         tenantId: userId,
@@ -67,15 +48,21 @@ export function useFolderOperations() {
       });
 
       if (createdFolder) {
-        // Update the store with the folder that now has the _id
-        updateUserNote(createdFolder as FolderNode);
+        // Ensure type is set (database might return it without type)
+        const typedFolder: FolderNode = {
+          ...createdFolder,
+          type: createdFolder.type || ("folder" as const),
+        } as FolderNode;
+
+        // Add to store with the _id (tree needs _id to make it draggable)
+        addFolderToStore(typedFolder);
+        // Also update in case addFolderToStore doesn't cover all collections
+        updateUserNote(typedFolder);
       }
 
       console.log("Folder created successfully");
     } catch (error) {
       console.error("Error creating folder:", error);
-      // Rollback on error
-      removeFolderFromStore(pointer_id);
       throw error;
     }
   };
@@ -115,18 +102,8 @@ export function useFolderOperations() {
       return;
     }
 
-    // Capture the complete original state before any changes
-    const originalUserNotes = JSON.parse(JSON.stringify(useNotesStore.getState().userNotes));
-    const originalTreeStructure = JSON.parse(JSON.stringify(useNotesStore.getState().treeStructure));
-    const originalOpenNotes = JSON.parse(JSON.stringify(useNotesStore.getState().openUserNotes));
-    const originalCurrentNote = useNotesStore.getState().currentNote ?
-      JSON.parse(JSON.stringify(useNotesStore.getState().currentNote)) : null;
-
-    // Determine the new parent ID for optimistic update (use pointer_id logic)
-    const newParentId = newParentDbId ? findPointerIdFromDbId(newParentDbId) || undefined : undefined;
-
-    // Apply optimistic update immediately
-    moveNodeInTree(nodeId, newParentId);
+    // Note: Optimistic update is handled by the caller (handleDocumentDrag, handleMoveRequest)
+    // This function only handles the backend persistence
 
     try {
       console.log("Moving node:", nodeId, "to parent DB ID:", newParentDbId);
@@ -139,16 +116,7 @@ export function useFolderOperations() {
       console.log("Item moved successfully");
     } catch (error) {
       toast.error("Error moving file/folder");
-
-      // Rollback to the complete original state using atomic update
-      useNotesStore.setState({
-        userNotes: originalUserNotes,
-        treeStructure: originalTreeStructure,
-        openUserNotes: originalOpenNotes,
-        currentNote: originalCurrentNote,
-      });
-
-      console.log("Rolled back to original state due to error");
+      // Rollback is handled by the caller (handleDocumentDrag, handleMoveRequest)
       throw error;
     }
   };
@@ -171,24 +139,6 @@ export function useFolderOperations() {
     return findInTree(treeStructure);
   };
 
-  // Helper function to find pointer_id from database ID
-  const findPointerIdFromDbId = (dbId: string): string | null => {
-    const findInTree = (nodes: TreeNode[]): string | null => {
-      for (const node of nodes) {
-        const nodeWithId = node as { pointer_id: string; _id?: string };
-        if (nodeWithId._id === dbId) {
-          return nodeWithId.pointer_id || null;
-        }
-        if (node.children) {
-          const found = findInTree(node.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    return findInTree(treeStructure);
-  };
-
   const handleDragEndWithSync = async (
     active: { id: string },
     over: { id: string } | null,
@@ -200,11 +150,18 @@ export function useFolderOperations() {
     if (!over) return;
 
     // Find current state before making changes for rollback
-    const originalTree = JSON.parse(JSON.stringify(useNotesStore.getState().treeStructure));
-    const originalUserNotes = JSON.parse(JSON.stringify(useNotesStore.getState().userNotes));
-    const originalOpenNotes = JSON.parse(JSON.stringify(useNotesStore.getState().openUserNotes));
-    const originalCurrentNote = useNotesStore.getState().currentNote ?
-      JSON.parse(JSON.stringify(useNotesStore.getState().currentNote)) : null;
+    const originalTree = JSON.parse(
+      JSON.stringify(useNotesStore.getState().treeStructure),
+    );
+    const originalUserNotes = JSON.parse(
+      JSON.stringify(useNotesStore.getState().userNotes),
+    );
+    const originalOpenNotes = JSON.parse(
+      JSON.stringify(useNotesStore.getState().openUserNotes),
+    );
+    const originalCurrentNote = useNotesStore.getState().currentNote
+      ? JSON.parse(JSON.stringify(useNotesStore.getState().currentNote))
+      : null;
 
     // Find the over node to determine new parent
     const findNode = (
