@@ -6,7 +6,6 @@ import { useFolderOperations } from "@/hooks/use-folder-operations";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
-import { useNoteEditor } from "@/hooks/use-note-editor";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { useRouter } from "next/navigation";
 import TreeContextMenu from "./TreeContextMenu";
@@ -26,14 +25,11 @@ import { ensureJSONString } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const TreeViewComponent = () => {
-  const { moveNode, deleteFolder } = useFolderOperations();
-  const { moveNodeInTree, setCurrentNote, updateUserNote, currentNote } =
-    useNotesStore();
+  const { moveNode } = useFolderOperations();
+  const { moveNodeInTree, setCurrentNote, updateUserNote } = useNotesStore();
   const { setCurrentView } = usePreferencesStore();
-  const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
   const [nodeToRename, setNodeToRename] = useState<Node | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const { deleteNote } = useNoteEditor();
 
   const router = useRouter();
   const convex = useConvex();
@@ -164,69 +160,6 @@ export const TreeViewComponent = () => {
       }
     }
   };
-
-  const confirmDelete = useCallback(async () => {
-    if (!nodeToDelete) return;
-
-    console.log("=== DELETE DEBUG ===");
-    console.log("currentNote:", currentNote);
-    console.log("nodeToDelete:", nodeToDelete);
-    console.log("currentNote?.pointer_id:", currentNote?.pointer_id);
-    console.log("currentNote?._id:", currentNote?._id);
-    console.log("nodeToDelete.pointer_id:", nodeToDelete.pointer_id);
-    console.log("nodeToDelete._id:", nodeToDelete._id);
-
-    // Check if we need to redirect BEFORE deletion
-    const shouldRedirect =
-      // Case 1: Deleting the currently open note (check both pointer_id and _id)
-      (currentNote &&
-        (currentNote.pointer_id === nodeToDelete.pointer_id ||
-          currentNote._id === nodeToDelete._id ||
-          currentNote.pointer_id === nodeToDelete._id ||
-          currentNote._id === nodeToDelete.pointer_id)) ||
-      // Case 2: Deleting a folder that contains the currently open note
-      (nodeToDelete.type === "folder" &&
-        currentNote &&
-        isDescendant(
-          currentNote.pointer_id || currentNote._id || "",
-          nodeToDelete.pointer_id || nodeToDelete._id || "",
-        ));
-
-    console.log("shouldRedirect:", shouldRedirect);
-
-    try {
-      if (nodeToDelete.type === "folder") {
-        await deleteFolder(nodeToDelete.pointer_id, true); // cascade = true to delete folder and contents
-      } else {
-        await deleteNote(nodeToDelete.pointer_id || "", nodeToDelete.tenantId);
-      }
-      setNodeToDelete(null);
-
-      // Redirect to home if we deleted the current note or its parent folder
-      if (shouldRedirect) {
-        console.log("SHOULD REDIRECT");
-        router.push("/main");
-        setCurrentView("home");
-      }
-    } catch (error) {
-      console.error("Failed to delete node:", error);
-      toast("Failed to delete node");
-    } finally {
-      setNodeToDelete(null);
-    }
-  }, [
-    nodeToDelete,
-    currentNote,
-    isDescendant,
-    deleteFolder,
-    deleteNote,
-    router,
-    setCurrentView,
-  ]);
-
-  const handleDeleteCancel = useCallback(() => {
-    setNodeToDelete(null);
-  }, []);
 
   const handleRenameRequest = useCallback((node: Node) => {
     setNodeToRename(node);
@@ -476,6 +409,7 @@ export const TreeViewComponent = () => {
           )}
         />
       </div>
+
       {nodeToRename && (
         <Dialog
           open={!!nodeToRename}
