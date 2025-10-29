@@ -79,7 +79,7 @@ export interface CollaborativeEditorReturn {
     status: "connecting" | "connected" | "disconnected",
   ) => void;
   isInitialContentLoaded: boolean;
-  debouncedContentUpdate: () => void;
+  handleContentUpdate: () => void;
   getSlashCommandPosition: () => {
     top: number;
     left: number;
@@ -289,7 +289,6 @@ export function useCollaborativeEditor({
   }, [content]);
 
   const lastContentRef = useRef<string>("");
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialContentLoaded, setIsInitialContentLoaded] = useState(false);
 
   const hasInitialSyncRef = useRef(false);
@@ -467,14 +466,8 @@ export function useCollaborativeEditor({
           setSlashCommandQuery("");
         }
 
-        // Debounce the heavy content update operations
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-
-        updateTimeoutRef.current = setTimeout(() => {
-          debouncedContentUpdate();
-        }, 150); // Reduced debounce for faster updates
+        // Handle content update with single timer approach (matches simple editor)
+        handleContentUpdate();
 
         if (transaction.docChanged && currentNote) {
           await handleImageDeletion(
@@ -489,8 +482,8 @@ export function useCollaborativeEditor({
     [id, provider, userInfo],
   );
 
-  // Enhanced debounced content update function with validation
-  const debouncedContentUpdate = useCallback(() => {
+  // Handle content update with validation (matches simple editor pattern)
+  const handleContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
     // CRITICAL: Don't save until initial content has been loaded
@@ -737,7 +730,7 @@ export function useCollaborativeEditor({
     connectionStatus,
     setConnectionStatus,
     isInitialContentLoaded,
-    debouncedContentUpdate,
+    handleContentUpdate,
     getSlashCommandPosition: getSlashCommandPositionDynamic,
   };
 }
