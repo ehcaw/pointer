@@ -49,7 +49,8 @@ export function CollaborativeEditor({
   onEditorReady,
   onConnectionStatusChange,
 }: CollaborativeEditorProps) {
-  const userColorCache = new Map<string, string>();
+  const userColorCacheRef = useRef(new Map<string, string>());
+  const userColorCache = userColorCacheRef.current;
 
   // Get authenticated user information for collaboration
   const { user } = useUser();
