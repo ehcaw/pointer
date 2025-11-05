@@ -33,6 +33,7 @@ import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { isFile } from "@/types/note";
 import { isEmptyContent } from "@/lib/utils/tiptapUtils";
+import { useDeprecatedAnimatedState } from "framer-motion";
 
 export interface BaseEditorOptions {
   content: string | Record<string, unknown> | null | undefined;
@@ -828,12 +829,18 @@ export function useSimpleEditor({
       if (!currentNote.content) {
         currentNote.content = {};
       }
-      currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-      currentNote.content.text = currentEditorText;
-      currentNote.updatedAt = new Date().toISOString();
+      const updatedNote = {
+        ...currentNote,
+        updatedAt: new Date().toISOString(),
+        content: {
+          ...currentNote.content,
+          tiptap: ensureJSONString(currentEditorJson),
+          text: currentEditorText,
+        },
+      };
 
       // Mark as unsaved
-      markNoteAsUnsaved(currentNote);
+      markNoteAsUnsaved(updatedNote);
 
       // Cancel previous save timer and set new one
       if (saveTimeoutRef.current) {

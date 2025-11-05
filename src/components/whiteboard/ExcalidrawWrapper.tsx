@@ -20,6 +20,7 @@ import {
 import { FONT_FAMILY } from "@excalidraw/excalidraw";
 
 import "@excalidraw/excalidraw/index.css";
+import { queryFocusableElements } from "@excalidraw/excalidraw/utils";
 
 // Utility function for throttling
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -256,7 +257,9 @@ const ExcalidrawWrapper: React.FC = () => {
           pendingSerializedDataRef.current = serializedData;
 
           // Update store immediately for UI consistency
-          useWhiteboardStore.getState().updateSerializedData(serializedData);
+          queueMicrotask(() => {
+            useWhiteboardStore.getState().updateSerializedData(serializedData);
+          });
 
           // Schedule auto-save
           debouncedAutoSave(serializedData);
@@ -265,7 +268,13 @@ const ExcalidrawWrapper: React.FC = () => {
         console.error("Failed to process whiteboard change:", error);
       }
     },
-    [whiteboard, hashElements, setPendingChanges, debouncedAutoSave],
+    [
+      whiteboard,
+      hashElements,
+      setPendingChanges,
+      debouncedAutoSave,
+      resolvedTheme,
+    ],
   );
 
   // Throttled change handler
