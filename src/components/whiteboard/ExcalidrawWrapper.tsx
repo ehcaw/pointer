@@ -20,7 +20,6 @@ import {
 import { FONT_FAMILY } from "@excalidraw/excalidraw";
 
 import "@excalidraw/excalidraw/index.css";
-import { queryFocusableElements } from "@excalidraw/excalidraw/utils";
 
 // Utility function for throttling
 //eslint-disable-next-line @typescript-eslint/no-explicit-any

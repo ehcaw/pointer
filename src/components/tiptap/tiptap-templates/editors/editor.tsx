@@ -33,7 +33,6 @@ import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { isFile } from "@/types/note";
 import { isEmptyContent } from "@/lib/utils/tiptapUtils";
-import { useDeprecatedAnimatedState } from "framer-motion";
 
 export interface BaseEditorOptions {
   content: string | Record<string, unknown> | null | undefined;
