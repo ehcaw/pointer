@@ -31,7 +31,7 @@ import { useNoteEditor } from "@/hooks/use-note-editor";
 import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FileNode, isFile } from "@/types/note";
+import { isFile } from "@/types/note";
 import { isEmptyContent } from "@/lib/utils/tiptapUtils";
 
 export interface BaseEditorOptions {
