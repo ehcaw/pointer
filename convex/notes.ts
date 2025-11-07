@@ -1,5 +1,5 @@
 import { action, mutation, query } from "./_generated/server";
-import { Node, NoteContent } from "@/types/note";
+import { NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -628,7 +628,9 @@ export const moveNode = mutation({
     // Prevent circular reference
     if (args.new_parent_id) {
       // Check if new_parent_id is a descendant of the node being moved
-      const checkDescendants = async (nodeId: Id<"notes">): Promise<boolean> => {
+      const checkDescendants = async (
+        nodeId: Id<"notes">,
+      ): Promise<boolean> => {
         const children = await ctx.db
           .query("notes")
           .withIndex("by_parent", (q) => q.eq("parent_id", nodeId))
@@ -638,7 +640,7 @@ export const moveNode = mutation({
           if (child._id === new_parent_id) {
             return true;
           }
-          if (child.type === "folder" && await checkDescendants(child._id)) {
+          if (child.type === "folder" && (await checkDescendants(child._id))) {
             return true;
           }
         }

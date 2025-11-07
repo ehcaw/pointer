@@ -51,7 +51,11 @@ export const createNoteContent = mutation({
   },
   handler: async (ctx, args) => {
     const noteContentId = await ctx.db.insert("notesContent", {
-      noteId: ctx.db.normalizeId("notes", args.noteId) ?? (() => { throw new Error("Invalid note ID") })(),
+      noteId:
+        ctx.db.normalizeId("notes", args.noteId) ??
+        (() => {
+          throw new Error("Invalid note ID");
+        })(),
       content: args.content,
       tenantId: args.tenantId,
     });

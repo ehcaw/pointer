@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useConvex } from "convex/react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import {
   ResizablePanelGroup,
@@ -13,8 +14,6 @@ import {
 import AppSidebar from "@/components/navigation/sidebar";
 import LoadingView from "@/components/views/LoadingView";
 import { useNotesStore } from "@/lib/stores/notes-store";
-import { createDataFetchers } from "@/lib/utils/dataFetchers";
-import useSWR from "swr";
 
 export default function MainLayout({
   children,
@@ -23,10 +22,8 @@ export default function MainLayout({
 }) {
   const { isSignedIn, isLoaded, user } = useUser();
   const router = useRouter();
-  const convex = useConvex();
 
   const { setUserNotes, setDBSavedNotes, setSharedNotes } = useNotesStore();
-  const dataFetchers = createDataFetchers(convex);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -36,28 +33,41 @@ export default function MainLayout({
   }, [isSignedIn, isLoaded, router]);
 
   const shouldFetch = isLoaded && isSignedIn && user?.id;
-  const { isLoading } = useSWR(
-    shouldFetch ? `user-notes-${user.id}` : null,
-    async () => {
-      if (!user?.id) {
-        throw new Error("User ID not available");
-      }
-      const notes = await dataFetchers.fetchUserNotes(user.id);
-      const sharedNotes = await dataFetchers.fetchSharedNotes(user.id);
-      return { notes, sharedNotes };
-    },
-    {
-      onSuccess: (data) => {
-        setUserNotes(data.notes);
-        setDBSavedNotes(data.notes);
-        setSharedNotes(data.sharedNotes);
-      },
-      revalidateIfStale: false, // Only fetch once per session
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 300000, // 5 minutes - prevents unnecessary refetches
-    },
+
+  // Use Convex's reactive queries instead of SWR
+  const notes = useQuery(
+    api.notes.readNotesFromDbByUserId,
+    shouldFetch ? { userId: user.id } : "skip",
   );
+
+  const sharedNotes = useQuery(
+    api.notes.getSharedDocumentsByUserId,
+    shouldFetch ? { userId: user.id } : "skip",
+  );
+
+  const isLoading = notes === undefined || sharedNotes === undefined;
+
+  // Sync Convex queries to Zustand store - updates automatically when data changes
+  useEffect(() => {
+    if (notes) {
+      const updatedNotes = notes.map((note) => ({
+        ...note,
+        type: note.type || ("file" as const), // Default to "file" if type is undefined
+      }));
+      setUserNotes(updatedNotes);
+      setDBSavedNotes(updatedNotes);
+    }
+  }, [notes, setUserNotes, setDBSavedNotes]);
+
+  useEffect(() => {
+    if (sharedNotes) {
+      const updatedSharedNotes = sharedNotes.map((note) => ({
+        ...note,
+        type: note.type || ("file" as const), // Default to "file" if type is undefined
+      }));
+      setSharedNotes(updatedSharedNotes);
+    }
+  }, [sharedNotes, setSharedNotes]);
 
   // Show loading while authentication is being checked or data is loading
   if (!isLoaded || isLoading) {

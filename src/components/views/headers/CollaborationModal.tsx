@@ -18,12 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Users, X, AlertCircle } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { useConvex } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useNotesStore } from "@/lib/stores/notes-store";
-
-import useSWR from "swr";
-import { createDataFetchers } from "@/lib/utils/dataFetchers";
 import { customToast } from "@/components/ui/custom-toast";
 
 interface Collaborator {
@@ -56,7 +53,6 @@ export default function CollaborationModal({
 
   const convex = useConvex();
   const { user } = useUser();
-  const dataFetchers = createDataFetchers(convex);
 
   // Constants for validation
   const MAX_COLLABORATORS = 50;
@@ -83,31 +79,18 @@ export default function CollaborationModal({
     }
   }, [email]);
 
-  const {
-    data: collaborators = [],
-    isLoading,
-    mutate: revalidateCollaborators,
-  } = useSWR(
-    isOpen && currentNote?._id ? `collaborators-${currentNote._id}` : null,
-    async () => {
-      if (!currentNote?._id) return [];
-      const c = await dataFetchers.fetchSharedUsers(currentNote._id);
-      const collaborators = c.map((c) => ({
-        ...c,
-        isSaved: true,
-      }));
-      return collaborators;
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
+  // Use Convex's reactive query for real-time updates
+  const collaborators = useQuery(
+    api.shared.getCollaboratorsByDocId,
+    isOpen && currentNote?._id ? { docId: currentNote._id } : "skip",
   );
 
-  // Sync SWR data with local state for modifications
+  const isLoading = collaborators === undefined;
+
+  // Sync Convex query data with local state for modifications
   useEffect(() => {
-    // Only update if we're not loading and have valid data
-    if (!isLoading && Array.isArray(collaborators)) {
+    // Only update if we have valid data (not loading)
+    if (collaborators && Array.isArray(collaborators)) {
       const collaboratorsString = JSON.stringify(collaborators);
       const prevCollaboratorsString = JSON.stringify(prevCollaborators.current);
 
@@ -120,14 +103,14 @@ export default function CollaborationModal({
         setLocalCollaborators(savedCollaborators);
         prevCollaborators.current = collaborators;
       }
-    } else if (!isLoading && !collaborators) {
-      // Handle case where API returns null/undefined (should be empty array)
+    } else if (collaborators && !Array.isArray(collaborators)) {
+      // Handle case where query returns non-array (should be empty array)
       if (prevCollaborators.current.length !== 0) {
         setLocalCollaborators([]);
         prevCollaborators.current = [];
       }
     }
-  }, [collaborators, isLoading, currentNote?._id]);
+  }, [collaborators, currentNote?._id]);
 
   const validateCollaboratorAddition = (emailToAdd: string): string | null => {
     // Clear previous errors
@@ -306,9 +289,7 @@ export default function CollaborationModal({
             .map((c) => ({ ...c, isSaved: true })),
         );
 
-        // Step 4: Revalidate SWR cache to ensure consistency
-        await revalidateCollaborators();
-
+        // Convex will automatically update the collaborators query with real-time data
         customToast("Collaboration settings saved");
       } catch (error) {
         console.error("Error saving collaboration settings:", error);

@@ -46,6 +46,9 @@ package-lock.json
 # clerk configuration (can include secrets)
 /.clerk/
 
+# letta configuration
+.letta/
+
 bun.lock
 package-lock.json
 
