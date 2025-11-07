@@ -828,18 +828,11 @@ export function useSimpleEditor({
       if (!currentNote.content) {
         currentNote.content = {};
       }
-      const updatedNote = {
-        ...currentNote,
-        updatedAt: new Date().toISOString(),
-        content: {
-          ...currentNote.content,
-          tiptap: ensureJSONString(currentEditorJson),
-          text: currentEditorText,
-        },
-      };
 
-      // Mark as unsaved
-      markNoteAsUnsaved(updatedNote);
+      currentNote.content.tiptap = ensureJSONString(currentEditorJson);
+      currentNote.content.text = currentEditorText;
+      currentNote.updatedAt = new Date().toISOString();
+      markNoteAsUnsaved(currentNote);
 
       // Cancel previous save timer and set new one
       if (saveTimeoutRef.current) {
