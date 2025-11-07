@@ -57,7 +57,7 @@ export default function MainLayout({
       setUserNotes(updatedNotes);
       setDBSavedNotes(updatedNotes);
     }
-  }, [notes, setUserNotes, setDBSavedNotes]);
+  }, [notes]);
 
   useEffect(() => {
     if (sharedNotes) {
@@ -67,7 +67,7 @@ export default function MainLayout({
       }));
       setSharedNotes(updatedSharedNotes);
     }
-  }, [sharedNotes, setSharedNotes]);
+  }, [sharedNotes]);
 
   // Show loading while authentication is being checked or data is loading
   if (!isLoaded || isLoading) {
