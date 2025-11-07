@@ -85,8 +85,6 @@ export default function CollaborationModal({
     isOpen && currentNote?._id ? { docId: currentNote._id } : "skip",
   );
 
-  const isLoading = collaborators === undefined;
-
   // Sync Convex query data with local state for modifications
   useEffect(() => {
     // Only update if we have valid data (not loading)
@@ -101,7 +99,7 @@ export default function CollaborationModal({
           isSaved: true,
         }));
         setLocalCollaborators(savedCollaborators);
-        prevCollaborators.current = collaborators;
+        prevCollaborators.current = savedCollaborators;
       }
     } else if (collaborators && !Array.isArray(collaborators)) {
       // Handle case where query returns non-array (should be empty array)
