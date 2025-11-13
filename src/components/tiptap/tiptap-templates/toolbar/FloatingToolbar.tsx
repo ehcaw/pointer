@@ -18,7 +18,7 @@ interface FloatingToolbarProps {
 export function FloatingToolbar({
   editor,
   connectionStatus = "connected",
-  isCollaborative = false
+  isCollaborative = false,
 }: FloatingToolbarProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
@@ -71,7 +71,8 @@ export function FloatingToolbar({
             backgroundColor: "var(--background)",
             borderRadius: "8px",
             margin: "0 auto 0 auto",
-            width: "100%",
+            width: "102%",
+            marginLeft: "-1%",
           }}
         >
           {mobileView === "main" ? (
