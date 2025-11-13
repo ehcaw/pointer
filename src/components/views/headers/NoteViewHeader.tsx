@@ -8,7 +8,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import CollaborationModal from "./CollaborationModal";
@@ -19,6 +18,10 @@ import { FileText, Home, Clock, Share2 } from "lucide-react";
 
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
+import {
+  customInfoToast,
+  customSuccessToast,
+} from "@/components/ui/custom-toast";
 
 export default function NoteViewHeader() {
   const [title, setTitle] = useState("");
@@ -50,12 +53,12 @@ export default function NoteViewHeader() {
 
     try {
       await navigator.clipboard.writeText(previewUrl);
-      toast.success("Preview link copied to clipboard!");
+      customSuccessToast("Preview link copied to clipboard!");
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
       // Fallback: open the preview in a new tab
       window.open(previewUrl, "_blank");
-      toast.info("Preview opened in new tab");
+      customInfoToast("Preview opened in new tab");
     }
   };
 

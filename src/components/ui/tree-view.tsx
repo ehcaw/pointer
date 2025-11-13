@@ -22,16 +22,19 @@ const dragOverVariants = cva(
 
 interface TreeDataItem {
   id: string;
+  pointer_id: string;
   name: string;
   icon?: any;
   selectedIcon?: any;
   openIcon?: any;
   children?: TreeDataItem[];
   actions?: React.ReactNode;
+  badge?: React.ReactNode;
   onClick?: () => void;
   draggable?: boolean;
   droppable?: boolean;
   disabled?: boolean;
+  data?: any; // Store original data for custom implementations
 }
 
 type TreeProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -42,6 +45,10 @@ type TreeProps = React.HTMLAttributes<HTMLDivElement> & {
   defaultNodeIcon?: any;
   defaultLeafIcon?: any;
   onDocumentDrag?: (sourceItem: TreeDataItem, targetItem: TreeDataItem) => void;
+  contextMenuWrapper?: (
+    children: React.ReactNode,
+    item: TreeDataItem,
+  ) => React.ReactNode;
 };
 
 const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
@@ -55,6 +62,7 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
       defaultNodeIcon,
       className,
       onDocumentDrag,
+      contextMenuWrapper,
       ...props
     },
     ref,
@@ -158,9 +166,13 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
 
       // Drop onto virtual root if we have one, otherwise use old behavior
       if (hasVirtualRoot) {
-        handleDrop({ id: "virtual-root", name: "Root" });
+        handleDrop({
+          id: "virtual-root",
+          name: "Root",
+          pointer_id: "virtual-root",
+        });
       } else {
-        handleDrop({ id: "", name: "parent_div" });
+        handleDrop({ id: "", name: "parent_div", pointer_id: "" });
       }
     };
 
@@ -178,6 +190,7 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
             handleDragStart={handleDragStart}
             handleDrop={handleDrop}
             draggedItem={draggedItem}
+            contextMenuWrapper={contextMenuWrapper}
             {...props}
           />
         </div>
@@ -223,6 +236,10 @@ type TreeItemProps = TreeProps & {
   handleDragStart?: (item: TreeDataItem) => void;
   handleDrop?: (item: TreeDataItem) => void;
   draggedItem: TreeDataItem | null;
+  contextMenuWrapper?: (
+    children: React.ReactNode,
+    item: TreeDataItem,
+  ) => React.ReactNode;
 };
 
 const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
@@ -238,6 +255,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
       handleDragStart,
       handleDrop,
       draggedItem,
+      contextMenuWrapper,
       ...props
     },
     ref,
@@ -267,6 +285,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
                   handleDragStart={handleDragStart}
                   handleDrop={handleDrop}
                   draggedItem={draggedItem}
+                  contextMenuWrapper={contextMenuWrapper}
                 />
               ) : (
                 <TreeLeaf
@@ -277,6 +296,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
                   handleDragStart={handleDragStart}
                   handleDrop={handleDrop}
                   draggedItem={draggedItem}
+                  contextMenuWrapper={contextMenuWrapper}
                 />
               )}
             </li>
@@ -298,6 +318,7 @@ const TreeNode = ({
   handleDragStart,
   handleDrop,
   draggedItem,
+  contextMenuWrapper,
 }: {
   item: TreeDataItem;
   handleSelectChange: (item: TreeDataItem | undefined) => void;
@@ -308,6 +329,10 @@ const TreeNode = ({
   handleDragStart?: (item: TreeDataItem) => void;
   handleDrop?: (item: TreeDataItem) => void;
   draggedItem: TreeDataItem | null;
+  contextMenuWrapper?: (
+    children: React.ReactNode,
+    item: TreeDataItem,
+  ) => React.ReactNode;
 }) => {
   const isVirtualRoot = item.id === "virtual-root";
   const [value, setValue] = React.useState(
@@ -341,7 +366,7 @@ const TreeNode = ({
     handleDrop?.(item);
   };
 
-  return (
+  const nodeContent = (
     <AccordionPrimitive.Root
       type="multiple"
       value={value}
@@ -387,6 +412,7 @@ const TreeNode = ({
           >
             {item.name}
           </span>
+          {item.badge && <div className="ml-2 flex-shrink-0">{item.badge}</div>}
           <TreeActions isSelected={selectedItemId === item.id}>
             {item.actions}
           </TreeActions>
@@ -402,10 +428,17 @@ const TreeNode = ({
             handleDragStart={handleDragStart}
             handleDrop={handleDrop}
             draggedItem={draggedItem}
+            contextMenuWrapper={contextMenuWrapper}
           />
         </AccordionContent>
       </AccordionPrimitive.Item>
     </AccordionPrimitive.Root>
+  );
+
+  return contextMenuWrapper ? (
+    <>{contextMenuWrapper(nodeContent, item)}</>
+  ) : (
+    nodeContent
   );
 };
 
@@ -419,6 +452,10 @@ const TreeLeaf = React.forwardRef<
     handleDragStart?: (item: TreeDataItem) => void;
     handleDrop?: (item: TreeDataItem) => void;
     draggedItem: TreeDataItem | null;
+    contextMenuWrapper?: (
+      children: React.ReactNode,
+      item: TreeDataItem,
+    ) => React.ReactNode;
   }
 >(
   (
@@ -431,6 +468,7 @@ const TreeLeaf = React.forwardRef<
       handleDragStart,
       handleDrop,
       draggedItem,
+      contextMenuWrapper,
       ...props
     },
     ref,
@@ -469,7 +507,7 @@ const TreeLeaf = React.forwardRef<
       handleDrop?.(item);
     };
 
-    return (
+    const leafContent = (
       <div
         ref={ref}
         className={cn(
@@ -498,10 +536,17 @@ const TreeLeaf = React.forwardRef<
           default={defaultLeafIcon}
         />
         <span className="flex-grow text-sm truncate">{item.name}</span>
+        {item.badge && <div className="ml-2 flex-shrink-0">{item.badge}</div>}
         <TreeActions isSelected={selectedItemId === item.id && !item.disabled}>
           {item.actions}
         </TreeActions>
       </div>
+    );
+
+    return contextMenuWrapper ? (
+      <>{contextMenuWrapper(leafContent, item)}</>
+    ) : (
+      leafContent
     );
   },
 );
@@ -580,8 +625,8 @@ const TreeActions = ({
   return (
     <div
       className={cn(
-        isSelected ? "block" : "hidden",
-        "absolute right-3 group-hover:block",
+        "absolute right-3 flex items-center gap-1",
+        isSelected ? "flex" : "hidden group-hover:flex",
       )}
     >
       {children}

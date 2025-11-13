@@ -104,21 +104,21 @@ export function useNoteEditor() {
       updatedAt: new Date().toISOString(),
       lastEdited: new Date().toISOString(),
       content: {
-        tiptap: "",
+        tiptap:
+          '{"type":"doc","content":[{"type":"paragraph","attrs":{"textAlign":null}}]}',
         text: "",
       },
       collaborative: false,
       type: "file",
     };
 
-    // Add to store as unsaved
+    // Add to unsaved and open notes, but NOT to userNotes yet (tree needs _id)
     addNewUnsavedNote(newNote);
     addOpenUserNote(newNote);
-    addUserNote(newNote);
     setCurrentView("note");
     setCurrentNote(newNote);
 
-    // After creating the note optimistically, sync it to get the _id
+    // Sync to database to get the _id BEFORE adding to tree
     try {
       await saveNote(newNote);
 
@@ -128,10 +128,20 @@ export function useNoteEditor() {
       });
 
       if (createdNote) {
-        // Update the store with the note that now has the _id
-        updateNoteInCollections(createdNote as FileNode);
+        // Ensure type is set (database might return it without type)
+        const typedNote: FileNode = {
+          ...createdNote,
+          type: createdNote.type || ("file" as const),
+        } as FileNode;
+
+        // NOW add to userNotes (tree) with the _id
+        addUserNote(typedNote);
+        // Update other collections with the note that has _id
+        updateNoteInCollections(typedNote);
         clearUnsavedNote(id);
-        dbSavedNotes.set(id, createdNote as FileNode);
+        dbSavedNotes.set(id, typedNote);
+
+        return typedNote;
       }
     } catch (error) {
       console.error("Error syncing new note to database:", error);

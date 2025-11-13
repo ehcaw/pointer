@@ -50,6 +50,9 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
     const treeItem: TreeDataItem = {
       id: node._id,
       name: node.name,
+      // Store original node data for access in Treeview component
+      data: node,
+      pointer_id: node.pointer_id,
     };
 
     // Add children if this is a folder
@@ -107,6 +110,7 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
   // Create virtual root folder
   const virtualRoot: TreeDataItem = {
     id: "virtual-root",
+    pointer_id: "virtual-root",
     name: "Root",
     droppable: true,
     draggable: false, // Root folder cannot be dragged

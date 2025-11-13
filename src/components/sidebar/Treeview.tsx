@@ -1,72 +1,152 @@
 import { TreeView, TreeDataItem } from "../ui/tree-view";
-import { Node } from "@/types/note";
+import { Node, FileNode } from "@/types/note";
 import { buildTreeStructure } from "@/lib/tree-utils";
 import { useMemo, useState, useCallback } from "react";
 import { useFolderOperations } from "@/hooks/use-folder-operations";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Button } from "@/components/ui/button";
-import { Trash } from "lucide-react";
-import { useNoteEditor } from "@/hooks/use-note-editor";
+import { Users } from "lucide-react";
 import { usePreferencesStore } from "@/lib/stores/preferences-store";
 import { useRouter } from "next/navigation";
+import TreeContextMenu from "./TreeContextMenu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { useConvex } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { ensureJSONString } from "@/lib/utils";
+import { customErrorToast, customSuccessToast } from "../ui/custom-toast";
 
-export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
-  const { moveNode, deleteFolder } = useFolderOperations();
-  const { moveNodeInTree, setCurrentNote } = useNotesStore();
+export const TreeViewComponent = () => {
+  const { moveNode } = useFolderOperations();
+  const { moveNodeInTree, setCurrentNote, updateUserNote } = useNotesStore();
   const { setCurrentView } = usePreferencesStore();
-  const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
-  const { deleteNote } = useNoteEditor();
+  const [nodeToRename, setNodeToRename] = useState<Node | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const router = useRouter();
+  const convex = useConvex();
 
   // Get the latest userNotes from store (includes optimistic updates)
   const userNotes = useNotesStore((state) => state.userNotes);
 
-  const handleDeleteClick = useCallback((e: React.MouseEvent, node: Node) => {
-    e.stopPropagation();
-    setNodeToDelete(node);
-  }, []);
+  // Helper function to check if a node is a descendant of another node
+  const isDescendant = useCallback(
+    (nodeId: string, potentialAncestorId: string): boolean => {
+      const findNode = (nodes: Node[], id: string): Node | null => {
+        for (const node of nodes) {
+          if (node.pointer_id === id || node._id === id) return node;
+        }
+        return null;
+      };
+
+      let current = findNode(userNotes, nodeId);
+      while (current && current.parent_id) {
+        if (current.parent_id === potentialAncestorId) return true;
+        current = findNode(userNotes, current.parent_id);
+      }
+      return false;
+    },
+    [userNotes],
+  );
+
+  // Helper to extract folders in tree display order (depth-first traversal)
+  const extractFoldersInTreeOrder = useCallback(
+    (treeItems: TreeDataItem[]): Node[] => {
+      const folders: Node[] = [];
+
+      const traverse = (items: TreeDataItem[]) => {
+        for (const item of items) {
+          const node = item.data as Node | undefined;
+          if (node && node.type === "folder") {
+            folders.push(node);
+          }
+          if (item.children) {
+            traverse(item.children);
+          }
+        }
+      };
+
+      traverse(treeItems);
+      return folders;
+    },
+    [],
+  );
+
+  // Get valid move target folders (excluding the node itself and its descendants)
+  const getValidMoveTargets = useCallback(
+    (node: Node | null, treeItems: TreeDataItem[]): Node[] => {
+      if (!node) return [];
+
+      // Get all folders in tree display order
+      const foldersInOrder = extractFoldersInTreeOrder(treeItems);
+
+      // Filter to get only valid targets
+      return foldersInOrder.filter((n) => {
+        // Can't move into itself
+        if (n.pointer_id === node.pointer_id || n._id === node._id)
+          return false;
+
+        // Can't move a folder into its own descendants (would create a cycle)
+        if (
+          node.type === "folder" &&
+          isDescendant(
+            n.pointer_id || n._id || "",
+            node.pointer_id || node._id || "",
+          )
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+    },
+    [isDescendant, extractFoldersInTreeOrder],
+  );
 
   // Convert userNotes to TreeDataItem for TreeView component
   const treeData = useMemo(() => {
     const builtTree = buildTreeStructure(userNotes);
 
-    // Add delete actions to each tree item
-    const addDeleteActions = (items: TreeDataItem[]): TreeDataItem[] => {
+    // Add badges to each tree item
+    const addBadges = (items: TreeDataItem[]): TreeDataItem[] => {
       return items.map((item) => {
-        const node = userNotes.find((n) => n._id === item.id);
+        // Get the node data stored in the TreeDataItem
+        const node = item.data as Node | undefined;
         if (!node) return item;
 
-        const deleteButton = (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => handleDeleteClick(e, node)}
-            className="h-5 w-5 rounded-sm opacity-0 group-hover:opacity-100 group-hover/item:opacity-100 transition-all hover:bg-destructive/10 hover:scale-105"
-          >
-            <Trash className="h-3 w-3 text-muted-foreground group-hover:text-destructive group-hover/item:text-destructive transition-colors" />
-            <span className="sr-only">Delete {node.type}</span>
-          </Button>
-        );
+        const collaborativeBadge =
+          node.collaborative && node.type !== "folder" ? (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+              <Users className="h-3 w-3" />
+            </div>
+          ) : undefined;
 
-        const itemWithActions: TreeDataItem = {
+        const itemWithBadge: TreeDataItem = {
           ...item,
-          actions: deleteButton,
-          children: item.children ? addDeleteActions(item.children) : undefined,
+          badge: collaborativeBadge,
+          children: item.children ? addBadges(item.children) : undefined,
         };
 
-        return itemWithActions;
+        return itemWithBadge;
       });
     };
 
-    const treeWithActions = addDeleteActions(builtTree);
-    return treeWithActions;
-  }, [userNotes, handleDeleteClick]); // Depend on userNotes which includes optimistic updates
+    const treeWithBadges = addBadges(builtTree);
+    return treeWithBadges;
+  }, [userNotes]); // Depend on userNotes which includes optimistic updates
 
   const handleSelectChange = (item: TreeDataItem | undefined) => {
     if (!item) return;
 
-    const selectedNode = userNotes.find((note) => note._id === item.id);
+    const selectedNode = item.data as Node | undefined;
     if (selectedNode && !item.droppable) {
       // Only set current note for files (non-droppable), not folders
       // Optimistic update - set note first for immediate UI response
@@ -81,32 +161,149 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
     }
   };
 
-  const confirmDelete = useCallback(async () => {
-    if (!nodeToDelete) return;
-
-    try {
-      if (nodeToDelete.type === "folder") {
-        await deleteFolder(nodeToDelete.pointer_id, true); // cascade = true to delete folder and contents
-      } else {
-        await deleteNote(nodeToDelete.pointer_id || "", nodeToDelete.tenantId);
-      }
-      setNodeToDelete(null);
-    } catch (error) {
-      console.error("Failed to delete node:", error);
-      setNodeToDelete(null);
-    }
-  }, [nodeToDelete, deleteFolder, deleteNote]);
-
-  const handleDeleteCancel = useCallback(() => {
-    setNodeToDelete(null);
+  const handleRenameRequest = useCallback((node: Node) => {
+    setNodeToRename(node);
+    setRenameValue(node.name);
   }, []);
+
+  const handleRenameSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!nodeToRename || !renameValue.trim()) return;
+
+      try {
+        // Update the node with new name
+        const updatedNode = {
+          ...nodeToRename,
+          name: renameValue.trim(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Update in database
+        if (nodeToRename.type === "folder") {
+          // For folders, update using the updateNoteInDb mutation
+          await convex.mutation(api.notes.updateNoteInDb, {
+            pointer_id: nodeToRename.pointer_id,
+            name: updatedNode.name,
+            tenantId: nodeToRename.tenantId,
+            createdAt: String(nodeToRename.createdAt),
+            updatedAt: String(updatedNode.updatedAt),
+            lastAccessed: String(new Date()),
+            lastEdited: String(nodeToRename.lastEdited || new Date()),
+            content: { tiptap: "", text: "" },
+            collaborative: nodeToRename.collaborative,
+          });
+        } else {
+          // For files, include content
+          const fileNode = nodeToRename as FileNode;
+          const rawTiptapContent = fileNode.content?.tiptap || "";
+          const serializedTiptapContent = ensureJSONString(rawTiptapContent);
+
+          await convex.mutation(api.notes.updateNoteInDb, {
+            pointer_id: nodeToRename.pointer_id,
+            name: updatedNode.name,
+            tenantId: nodeToRename.tenantId,
+            createdAt: String(nodeToRename.createdAt),
+            updatedAt: String(updatedNode.updatedAt),
+            lastAccessed: String(new Date()),
+            lastEdited: String(nodeToRename.lastEdited || new Date()),
+            content: {
+              tiptap: serializedTiptapContent,
+              text: fileNode.content?.text || "",
+            },
+            collaborative: nodeToRename.collaborative,
+          });
+        }
+
+        // Update local state
+        updateUserNote(updatedNode);
+
+        setNodeToRename(null);
+        customSuccessToast(`Renamed to "${renameValue.trim()}"`);
+      } catch (error) {
+        console.error("Failed to rename:", error);
+        customErrorToast("Failed to rename. Please try again.");
+      }
+    },
+    [nodeToRename, renameValue, convex, updateUserNote],
+  );
+
+  const handleMoveRequest = useCallback(
+    async (sourceNode: Node, targetFolderId: string | null) => {
+      try {
+        // Use the _id for optimistic updates (not pointer_id)
+        const sourceNodeId = sourceNode._id || sourceNode.pointer_id;
+
+        // Determine the new parent ID for optimistic update
+        let newParentId: string | undefined = undefined;
+        let newParentDbId: string | undefined = undefined;
+
+        if (targetFolderId === null) {
+          // Move to root
+          newParentId = undefined;
+          newParentDbId = undefined;
+        } else {
+          // Moving into a specific folder
+          // Find the target folder to get its _id
+          const targetFolder = userNotes.find(
+            (n) => n.pointer_id === targetFolderId || n._id === targetFolderId,
+          );
+
+          if (!targetFolder) {
+            customErrorToast("Target folder not found");
+            return;
+          }
+
+          // Validate: prevent cycles
+          if (
+            sourceNode.type === "folder" &&
+            isDescendant(targetFolderId, sourceNodeId)
+          ) {
+            customErrorToast("Cannot move a folder into its own descendant");
+            return;
+          }
+
+          newParentId = targetFolder._id || targetFolder.pointer_id;
+          newParentDbId = targetFolder._id;
+        }
+
+        // Save current state for potential rollback
+        const {
+          userNotes: originalUserNotes,
+          treeStructure: originalTreeStructure,
+        } = useNotesStore.getState();
+
+        // Optimistic update - update local state immediately using _id
+        moveNodeInTree(sourceNodeId, newParentId);
+
+        // Persist to backend in background using pointer_id for database operations
+        try {
+          await moveNode(sourceNode.pointer_id, newParentDbId);
+          customSuccessToast(`Moved "${sourceNode.name}" successfully`);
+        } catch (error) {
+          console.error("Failed to sync move operation to backend:", error);
+          customErrorToast("Failed to move item");
+
+          // Rollback optimistic update on failure
+          const { setUserNotes, setTreeStructure } = useNotesStore.getState();
+          setUserNotes(originalUserNotes);
+          setTreeStructure(originalTreeStructure);
+        }
+      } catch (error) {
+        console.error("Move operation failed:", error);
+        customErrorToast("Failed to move item");
+      }
+    },
+    [userNotes, isDescendant, moveNodeInTree, moveNode],
+  );
 
   const handleDocumentDrag = async (
     sourceItem: TreeDataItem,
     targetItem: TreeDataItem,
   ) => {
-    // Find the actual source node from our original nodes array
-    const sourceNode = nodes.find((n) => n._id === sourceItem.id);
+    // Get the actual source node from the TreeDataItem data
+    const sourceNode = sourceItem.data as Node | undefined;
 
     if (!sourceNode) {
       console.error("Could not find source node");
@@ -125,8 +322,8 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
       // Move to root level (old root drop zone)
       newParentId = undefined;
     } else {
-      // Find the actual target node for normal folder drops
-      const targetNode = nodes.find((n) => n._id === targetItem.id);
+      // Get the actual target node from the TreeDataItem data
+      const targetNode = targetItem.data as Node | undefined;
 
       if (!targetNode) {
         console.error("Could not find target node");
@@ -153,8 +350,8 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
       // Move to root level (parent_id = undefined)
       newParentDbId = undefined;
     } else {
-      // Find the actual target node for normal folder drops
-      const targetNode = nodes.find((n) => n._id === targetItem.id);
+      // Get the actual target node from the TreeDataItem data
+      const targetNode = targetItem.data as Node | undefined;
 
       if (!targetNode) {
         console.error("Could not find target node");
@@ -199,30 +396,58 @@ export const TreeViewComponent = ({ nodes }: { nodes: Node[] }) => {
           onDocumentDrag={handleDocumentDrag}
           onSelectChange={handleSelectChange}
           className="h-full"
+          contextMenuWrapper={(children, item) => (
+            <TreeContextMenu
+              item={item}
+              treeData={treeData}
+              onRenameRequest={handleRenameRequest}
+              onMoveRequest={handleMoveRequest}
+              getValidMoveTargets={getValidMoveTargets}
+            >
+              {children}
+            </TreeContextMenu>
+          )}
         />
       </div>
-      {nodeToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-2">
-              Are you absolutely sure?
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              This action cannot be undone. This will permanently delete the{" "}
-              {nodeToDelete.type} titled &quot;{nodeToDelete.name}&quot;.
-              {nodeToDelete.type === "folder" &&
-                " All contents within this folder will also be deleted."}
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleDeleteCancel}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={confirmDelete}>
-                Continue
-              </Button>
-            </div>
-          </div>
-        </div>
+
+      {nodeToRename && (
+        <Dialog
+          open={!!nodeToRename}
+          onOpenChange={(isOpen) => !isOpen && setNodeToRename(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename {nodeToRename.type}</DialogTitle>
+              <DialogDescription>
+                Enter a new name for &quot;{nodeToRename.name}&quot;.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleRenameSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="rename-input">Name</Label>
+                  <Input
+                    id="rename-input"
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    placeholder="Enter new name"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setNodeToRename(null)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Rename</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
