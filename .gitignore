@@ -52,3 +52,5 @@ package-lock.json
 # partykit
 /partykit/.partykit/
 /partykit/node_modules/
+
+.letta
