@@ -22,7 +22,6 @@ import {
   customInfoToast,
   customSuccessToast,
 } from "@/components/ui/custom-toast";
-import { m } from "framer-motion";
 
 export default function NoteViewHeader() {
   const [title, setTitle] = useState("");
