@@ -22,6 +22,7 @@ import {
   customInfoToast,
   customSuccessToast,
 } from "@/components/ui/custom-toast";
+import { m } from "framer-motion";
 
 export default function NoteViewHeader() {
   const [title, setTitle] = useState("");
@@ -40,8 +41,9 @@ export default function NoteViewHeader() {
     e.stopPropagation();
     setTitle(e.target.value);
     if (currentNote) {
-      markNoteAsUnsaved({ ...currentNote, name: e.target.value });
+      // Create a proper copy that preserves all properties including content
       currentNote.name = e.target.value;
+      markNoteAsUnsaved(currentNote);
     }
   };
 
@@ -78,11 +80,11 @@ export default function NoteViewHeader() {
       clearTimeout(autoSaveTimeoutRef.current);
     }
 
-    autoSaveTimeoutRef.current = setTimeout(() => {
+    autoSaveTimeoutRef.current = setTimeout(async () => {
       const { currentNote: latestNote, unsavedNotes: latestUnsaved } =
         useNotesStore.getState();
       if (latestNote && latestUnsaved.has(latestNote.pointer_id)) {
-        saveCurrentNote();
+        await saveCurrentNote();
       }
     }, AUTO_SAVE_INTERVAL);
 
