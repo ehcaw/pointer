@@ -252,10 +252,24 @@ body {
   a {
     color: #0066cc;
     text-decoration: none;
+    transition: all 0.15s ease;
 
     &:hover {
       text-decoration: underline;
     }
+  }
+
+  // Enhanced selection for links
+  ::selection {
+    background-color: #ddd6fe !important; /* Light purple selection */
+    color: inherit;
+  }
+
+  // Link-specific selection styling
+  a::selection {
+    background-color: #c084fc !important; /* Deeper purple for links */
+    color: white !important;
+    text-decoration: underline;
   }
 
   // Image styles
