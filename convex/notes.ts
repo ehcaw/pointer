@@ -165,8 +165,9 @@ export const updateNoteInDb = mutation({
 
         const timestamp = Date.now();
         if (
-          !existingNote.last_backed_up_at ||
-          existingNote.last_backed_up_at + 900000 < timestamp // check to see if its at least 15 minutes since the last backup
+          updateFields.content &&
+          (!existingNote.last_backed_up_at ||
+            existingNote.last_backed_up_at + 900000 < timestamp) // check to see if its at least 15 minutes since the last backup
         ) {
           createNoteBackupHelper(ctx, {
             noteId: existingNote._id,
