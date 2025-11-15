@@ -14,13 +14,15 @@ import CollaborationModal from "./CollaborationModal";
 
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
-import { FileText, Home, Clock, Share2 } from "lucide-react";
+import { FileText, Home, Clock, Share2, Loader2 } from "lucide-react";
 
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
+import { useSaveCoordinator } from "@/hooks/use-save-coordinator";
 import {
   customInfoToast,
   customSuccessToast,
+  customErrorToast,
 } from "@/components/ui/custom-toast";
 
 export default function NoteViewHeader() {
@@ -29,20 +31,48 @@ export default function NoteViewHeader() {
   const [isCollaborationModalOpen, setIsCollaborationModalOpen] =
     useState(false);
 
-  const { markNoteAsUnsaved, unsavedNotes } = useNotesStore();
-  const { currentNote, saveCurrentNote } = useNoteEditor();
+  const { unsavedNotes } = useNotesStore();
+  const { currentNote } = useNoteEditor();
+  const { saveTitle, getSaveStatus } = useSaveCoordinator();
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
 
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500; // 2.5 seconds
+  const debouncedSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const DEBOUNCE_DELAY = 800; // 800ms for title changes
 
   const handleTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
-    setTitle(e.target.value);
-    if (currentNote) {
-      // Create a proper copy that preserves all properties including content
-      currentNote.name = e.target.value;
-      markNoteAsUnsaved(currentNote);
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+
+    if (!currentNote) return;
+
+    // Clear existing timeout
+    if (debouncedSaveTimeoutRef.current) {
+      clearTimeout(debouncedSaveTimeoutRef.current);
+    }
+
+    // Set new debounced save
+    debouncedSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveTitle(currentNote.pointer_id, newTitle);
+      } catch (error) {
+        console.error("Failed to save title:", error);
+        customErrorToast("Failed to save title");
+      }
+    }, DEBOUNCE_DELAY);
+  };
+
+  const handleTitleBlur = async () => {
+    setIsTitleFocused(false);
+
+    // Immediate save on blur to ensure title is saved
+    if (currentNote && title !== currentNote.name) {
+      try {
+        await saveTitle(currentNote.pointer_id, title);
+      } catch (error) {
+        console.error("Failed to save title on blur:", error);
+        customErrorToast("Failed to save title");
+      }
     }
   };
 
@@ -63,36 +93,23 @@ export default function NoteViewHeader() {
     }
   };
 
-  const isInitialMount = useRef(true);
-
+  // Update title when currentNote changes
   useEffect(() => {
     setTitle(currentNote?.name || "Untitled Note");
   }, [currentNote]);
 
+  // Cleanup timeout on unmount
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    autoSaveTimeoutRef.current = setTimeout(async () => {
-      const { currentNote: latestNote, unsavedNotes: latestUnsaved } =
-        useNotesStore.getState();
-      if (latestNote && latestUnsaved.has(latestNote.pointer_id)) {
-        await saveCurrentNote();
-      }
-    }, AUTO_SAVE_INTERVAL);
-
     return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
+      if (debouncedSaveTimeoutRef.current) {
+        clearTimeout(debouncedSaveTimeoutRef.current);
       }
     };
-  }, [title, saveCurrentNote]);
+  }, []);
+
+  // Get save status for the current note
+  const saveStatus = currentNote ? getSaveStatus(currentNote.pointer_id) : null;
+  const isCurrentlySaving = saveStatus?.isSaving || false;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 backdrop-blur-sm px-4">
@@ -120,23 +137,32 @@ export default function NoteViewHeader() {
           <BreadcrumbSeparator className="hidden md:block text-muted-foreground" />
           <BreadcrumbItem>
             <div className="relative group">
-              <Input
-                type="text"
-                value={title}
-                onChange={handleTitleChange}
-                onFocus={() => setIsTitleFocused(true)}
-                onBlur={() => setIsTitleFocused(false)}
-                placeholder="Untitled Note"
-                className={cn(
-                  "text-lg font-semibold bg-transparent border-0 shadow-none px-3 py-2 h-auto rounded-md",
-                  "text-foreground placeholder:text-muted-foreground",
-                  "focus:outline-none focus-visible:ring-0 transition-all duration-200",
-                  "min-w-[200px] max-w-[400px]",
-                  isTitleFocused
-                    ? "bg-card shadow-sm ring-2 ring-primary/20 border border-primary/30"
-                    : "hover:bg-accent border border-transparent",
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={title}
+                  onChange={handleTitleChange}
+                  onFocus={() => setIsTitleFocused(true)}
+                  onBlur={handleTitleBlur}
+                  placeholder="Untitled Note"
+                  className={cn(
+                    "text-lg font-semibold bg-transparent border-0 shadow-none px-3 py-2 h-auto rounded-md pr-10",
+                    "text-foreground placeholder:text-muted-foreground",
+                    "focus:outline-none focus-visible:ring-0 transition-all duration-200",
+                    "min-w-[200px] max-w-[400px]",
+                    isTitleFocused
+                      ? "bg-card shadow-sm ring-2 ring-primary/20 border border-primary/30"
+                      : "hover:bg-accent border border-transparent",
+                    isCurrentlySaving && "text-muted-foreground",
+                  )}
+                />
+                {/* Save indicator */}
+                {isCurrentlySaving && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
                 )}
-              />
+              </div>
               {/* Visual indicator for editable state */}
               <div
                 className={cn(
