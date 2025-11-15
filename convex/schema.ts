@@ -20,6 +20,7 @@ export default defineSchema({
     updatedAt: v.string(),
     collaborative: v.boolean(),
     parent_id: v.optional(v.id("notes")),
+    last_backed_up_at: v.optional(v.number()), // only for notes and not folders
   })
     .index("by_pointer_id", ["pointer_id"])
     .index("by_tenant", ["tenantId"])
@@ -112,4 +113,16 @@ export default defineSchema({
     createdAt: v.string(),
     dueBy: v.optional(v.string()),
   }).index("by_tenant", ["tenantId"]),
+  notesHistoryMetadata: defineTable({
+    noteId: v.id("notes"),
+    tenantId: v.string(),
+    timestamp: v.number(),
+  }),
+  notesHistoryContent: defineTable({
+    metadataId: v.id("notesHistoryMetadata"),
+    content: v.object({
+      text: v.string(),
+      tiptap: v.optional(v.string()),
+    }),
+  }),
 });

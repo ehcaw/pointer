@@ -1,5 +1,5 @@
-import { action, mutation, query } from "./_generated/server";
-import { Node, NoteContent } from "@/types/note";
+import { action, mutation, query, MutationCtx } from "./_generated/server";
+import { NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -66,6 +66,8 @@ export const createNoteInDb = mutation({
       return existingNote._id;
     }
 
+    const timestamp = Date.now();
+
     const noteId = await ctx.db.insert("notes", {
       name: args.name,
       tenantId: args.tenantId,
@@ -77,6 +79,7 @@ export const createNoteInDb = mutation({
       updatedAt: args.updatedAt,
       collaborative: args.collaborative || false,
       parent_id: args.parent_id,
+      last_backed_up_at: timestamp,
     });
 
     // Only create content entry for files, not folders
@@ -85,6 +88,13 @@ export const createNoteInDb = mutation({
         noteId: noteId,
         content: args.content,
         tenantId: args.tenantId,
+      });
+
+      createNoteBackupHelper(ctx, {
+        noteId: noteId,
+        tenantId: args.tenantId,
+        timestamp: timestamp,
+        content: args.content,
       });
     }
 
@@ -149,10 +159,25 @@ export const updateNoteInDb = mutation({
           }
         }
 
-        // Prepare update fields (exclude content as it's handled above)
-        const updateFields = { ...fields };
-        delete updateFields.content;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updateFields: Record<string, any> = { ...fields };
         updateFields.updatedAt = String(new Date());
+
+        const timestamp = Date.now();
+        if (
+          updateFields.content &&
+          (!existingNote.last_backed_up_at ||
+            existingNote.last_backed_up_at + 900000 < timestamp) // check to see if its at least 15 minutes since the last backup
+        ) {
+          createNoteBackupHelper(ctx, {
+            noteId: existingNote._id,
+            tenantId: existingNote.tenantId,
+            timestamp: timestamp,
+            content: updateFields.content as NoteContent,
+          });
+          updateFields.last_backed_up_at = timestamp;
+        }
+        delete updateFields.content; // Remove content as it's handled above
 
         // Update the note
         await ctx.db.patch(existingNote._id, updateFields);
@@ -595,6 +620,7 @@ export const createFolderInDb = mutation({
       lastAccessed: now,
       lastEdited: now,
       collaborative: false,
+      last_backed_up_at: Date.now(),
     });
 
     return folderId;
@@ -628,7 +654,9 @@ export const moveNode = mutation({
     // Prevent circular reference
     if (args.new_parent_id) {
       // Check if new_parent_id is a descendant of the node being moved
-      const checkDescendants = async (nodeId: Id<"notes">): Promise<boolean> => {
+      const checkDescendants = async (
+        nodeId: Id<"notes">,
+      ): Promise<boolean> => {
         const children = await ctx.db
           .query("notes")
           .withIndex("by_parent", (q) => q.eq("parent_id", nodeId))
@@ -638,7 +666,7 @@ export const moveNode = mutation({
           if (child._id === new_parent_id) {
             return true;
           }
-          if (child.type === "folder" && await checkDescendants(child._id)) {
+          if (child.type === "folder" && (await checkDescendants(child._id))) {
             return true;
           }
         }
@@ -766,3 +794,52 @@ export const getTreeStructure = query({
     return rootNodes;
   },
 });
+
+// const createNoteBackup = internalMutation({
+//   args: {
+//     noteId: v.id("notes"),
+//     tenantId: v.string(),
+//     timestamp: v.string(),
+//     content: v.object({
+//       text: v.string(),
+//       tiptap: v.optional(v.string()),
+//     }),
+//   },
+//   handler: async (ctx, args) => {
+//     const noteHistoryMetadata = await ctx.db.insert("notesHistoryMetadata", {
+//       noteId: args.noteId,
+//       tenantId: args.tenantId,
+//       timestamp: args.timestamp,
+//     });
+
+//     await ctx.db.insert("notesHistoryContent", {
+//       metadataId: noteHistoryMetadata,
+//       content: args.content,
+//     });
+//   },
+// });
+
+// const createNoteBackup = (noteId: v.id("notes"), ) => {
+
+// }
+//
+async function createNoteBackupHelper(
+  ctx: MutationCtx,
+  args: {
+    noteId: any;
+    tenantId: string;
+    timestamp: number;
+    content: { text: string; tiptap?: string };
+  },
+) {
+  const noteHistoryMetadata = await ctx.db.insert("notesHistoryMetadata", {
+    noteId: args.noteId,
+    tenantId: args.tenantId,
+    timestamp: args.timestamp,
+  });
+
+  await ctx.db.insert("notesHistoryContent", {
+    metadataId: noteHistoryMetadata,
+    content: args.content,
+  });
+}

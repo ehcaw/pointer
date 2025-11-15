@@ -27,7 +27,7 @@ import { TrailingNode } from "@/components/tiptap/tiptap-extension/trailing-node
 import { SlashCommand } from "@/components/tiptap/tiptap-extension/slash-command-extension";
 
 import { useNotesStore } from "@/lib/stores/notes-store";
-import { useNoteEditor } from "@/hooks/use-note-editor";
+import { useSaveCoordinator } from "@/hooks/use-save-coordinator";
 import { ensureJSONString } from "@/lib/utils";
 import { useTiptapImage, extractStorageIdFromUrl } from "@/lib/tiptap-utils";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -232,13 +232,11 @@ export function useCollaborativeEditor({
   const ignoreFirstUpdate = useRef(true);
 
   // Get currentNote and state setters from the notes store
-  const { currentNote, markNoteAsUnsaved, removeUnsavedNote } = useNotesStore();
+  const { currentNote } = useNotesStore();
   const currentNoteRef = useRef(currentNote);
 
   const { HandleImageDelete } = useTiptapImage();
-  const { saveCurrentNote } = useNoteEditor();
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_SAVE_INTERVAL = 2500;
+  const { saveContent } = useSaveCoordinator();
 
   // Parse content with validation for collaborative editor
   const initialContent = useMemo(() => {
@@ -482,7 +480,7 @@ export function useCollaborativeEditor({
     [id, provider, userInfo],
   );
 
-  // Handle content update with validation (matches simple editor pattern)
+  // Handle content update using the centralized save coordinator
   const handleContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
@@ -526,43 +524,21 @@ export function useCollaborativeEditor({
       ) {
         lastContentRef.current = currentContentHash;
 
-        // Update content immediately in memory (fast) - only for FileNode
-        if (isFile(currentNote)) {
-          if (!currentNote.content) {
-            currentNote.content = {};
-          }
-          currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-          currentNote.content.text = currentEditorText;
-          currentNote.updatedAt = new Date().toISOString();
-
-          // Mark as unsaved only if the change is not remote and not during initial loading
-          if (!isRemoteChange.current) {
-            markNoteAsUnsaved(currentNote);
-          }
+        // Save content using the centralized save coordinator
+        if (isFile(currentNote) && !isRemoteChange.current) {
+          saveContent(currentNote.pointer_id, {
+            tiptap: ensureJSONString(currentEditorJson),
+            text: currentEditorText,
+          }).catch(error => {
+            console.error("Content save failed:", error);
+          });
         }
-
-        // Setup auto-save timer
-        if (autoSaveTimeoutRef.current) {
-          clearTimeout(autoSaveTimeoutRef.current);
-        }
-
-        autoSaveTimeoutRef.current = setTimeout(async () => {
-          try {
-            await saveCurrentNote();
-            autoSaveTimeoutRef.current = null;
-            removeUnsavedNote(currentNote.pointer_id);
-          } catch (error) {
-            console.error("Auto-save failed:", error);
-          }
-        }, AUTO_SAVE_INTERVAL);
       }
     }
   }, [
     currentNote,
     editor,
-    markNoteAsUnsaved,
-    saveCurrentNote,
-    removeUnsavedNote,
+    saveContent,
     isInitialContentLoaded,
     id, // Reset when note ID changes
   ]);
@@ -747,13 +723,11 @@ export function useSimpleEditor({
   );
 
   // Get currentNote and state setters from the notes store
-  const { currentNote, markNoteAsUnsaved, removeUnsavedNote } = useNotesStore();
+  const { currentNote } = useNotesStore();
   const currentNoteRef = useRef(currentNote);
 
   const { HandleImageDelete } = useTiptapImage();
-  const { saveCurrentNote } = useNoteEditor();
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const SAVE_DELAY = 3000;
+  const { saveContent } = useSaveCoordinator();
 
   // Parse content appropriately based on input type
   const initialContent = useMemo(() => {
@@ -812,7 +786,7 @@ export function useSimpleEditor({
     },
   });
 
-  // Optimized content update with single timer debouncing
+  // Optimized content update using the centralized save coordinator
   const handleContentUpdate = useCallback(() => {
     if (!currentNote || !editor) return;
 
@@ -824,37 +798,18 @@ export function useSimpleEditor({
     if (currentContentHash !== lastContentRef.current && isFile(currentNote)) {
       lastContentRef.current = currentContentHash;
 
-      // Update content immediately in memory (fast)
-      if (!currentNote.content) {
-        currentNote.content = {};
-      }
-
-      currentNote.content.tiptap = ensureJSONString(currentEditorJson);
-      currentNote.content.text = currentEditorText;
-      currentNote.updatedAt = new Date().toISOString();
-      markNoteAsUnsaved(currentNote);
-
-      // Cancel previous save timer and set new one
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-
-      saveTimeoutRef.current = setTimeout(async () => {
-        try {
-          await saveCurrentNote();
-          saveTimeoutRef.current = null;
-          removeUnsavedNote(currentNote.pointer_id);
-        } catch (error) {
-          console.error("Auto-save failed:", error);
-        }
-      }, SAVE_DELAY);
+      // Save content using the centralized save coordinator
+      saveContent(currentNote.pointer_id, {
+        tiptap: ensureJSONString(currentEditorJson),
+        text: currentEditorText,
+      }).catch(error => {
+        console.error("Content save failed:", error);
+      });
     }
   }, [
     currentNote,
     editor,
-    markNoteAsUnsaved,
-    saveCurrentNote,
-    removeUnsavedNote,
+    saveContent,
   ]);
 
   // Calculate position for slash command popup - position relative to viewport with awareness
