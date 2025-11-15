@@ -31,7 +31,25 @@ export const Link = TiptapLink.extend({
             return false;
           },
           handleClick(view, pos) {
-            const { schema, doc, tr } = view.state;
+            const { schema, doc, tr, selection } = view.state;
+
+            // Check if we're already selecting this link
+            if (selection.empty === false && schema.marks.link) {
+              const { from, to } = selection;
+              const $from = doc.resolve(from);
+              const $to = doc.resolve(to);
+
+              // Check if current selection already contains a link at this position
+              const linkMarkAtPos = getMarkRange(doc.resolve(pos), schema.marks.link);
+              if (linkMarkAtPos) {
+                const { from: linkFrom, to: linkTo } = linkMarkAtPos;
+                if (from <= linkFrom && to >= linkTo) {
+                  // Already selecting this link, don't interfere
+                  return;
+                }
+              }
+            }
+
             let range: ReturnType<typeof getMarkRange> | undefined;
 
             if (schema.marks.link) {
@@ -39,24 +57,20 @@ export const Link = TiptapLink.extend({
             }
 
             if (!range) {
-              return;
+              return false; // Return false to let default handling continue
             }
 
             const { from, to } = range;
-            const start = Math.min(from, to);
-            const end = Math.max(from, to);
 
-            if (pos < start || pos > end) {
-              return;
-            }
-
-            const $start = doc.resolve(start);
-            const $end = doc.resolve(end);
+            // Create a more precise selection
+            const $start = doc.resolve(from);
+            const $end = doc.resolve(to);
             const transaction = tr.setSelection(
               new TextSelection($start, $end),
             );
 
             view.dispatch(transaction);
+            return true; // Return true to indicate we handled the click
           },
         },
       }),

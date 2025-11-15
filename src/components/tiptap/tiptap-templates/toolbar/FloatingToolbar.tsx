@@ -78,7 +78,6 @@ export function FloatingToolbar({
           {mobileView === "main" ? (
             <MainToolbarContent
               onHighlighterClick={() => setMobileView("highlighter")}
-              onLinkClick={() => setMobileView("link")}
               isMobile={isMobile}
               editor={editor}
               isDisabled={isDisabled}
