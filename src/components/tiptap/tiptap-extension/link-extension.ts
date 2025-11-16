@@ -46,7 +46,7 @@ export const Link = TiptapLink.extend({
                 const { from: linkFrom, to: linkTo } = linkMarkAtPos;
                 if (from <= linkFrom && to >= linkTo) {
                   // Already selecting this link, don't interfere
-                  return;
+                  return true;
                 }
               }
             }
