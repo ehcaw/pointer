@@ -1,7 +1,7 @@
 import TiptapLink from "@tiptap/extension-link";
 import type { EditorView } from "@tiptap/pm/view";
 import { getMarkRange } from "@tiptap/react";
-import { Plugin, TextSelection } from "@tiptap/pm/state";
+import { Plugin } from "@tiptap/pm/state";
 
 export const Link = TiptapLink.extend({
   inclusive: false,
@@ -12,6 +12,25 @@ export const Link = TiptapLink.extend({
         tag: 'a[href]:not([data-type="button"]):not([href *= "javascript:" i])',
       },
     ];
+  },
+
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      title: {
+        default: "Double-click to open link",
+        parseHTML: (element) => element.getAttribute("title"),
+        renderHTML: (attributes) => {
+          if (!attributes.href) {
+            return {};
+          }
+          return {
+            title: "Double-click to open link",
+            "aria-label": `Link to ${attributes.href}. Double-click to open in new tab.`,
+          };
+        },
+      },
+    };
   },
 
   addProseMirrorPlugins() {
@@ -30,48 +49,35 @@ export const Link = TiptapLink.extend({
 
             return false;
           },
-          handleClick(view, pos) {
-            const { schema, doc, tr, selection } = view.state;
-
-            // Check if we're already selecting this link
-            if (selection.empty === false && schema.marks.link) {
-              const { from, to } = selection;
-
-              // Check if current selection already contains a link at this position
-              const linkMarkAtPos = getMarkRange(
-                doc.resolve(pos),
-                schema.marks.link,
-              );
-              if (linkMarkAtPos) {
-                const { from: linkFrom, to: linkTo } = linkMarkAtPos;
-                if (from <= linkFrom && to >= linkTo) {
-                  // Already selecting this link, don't interfere
-                  return true;
-                }
-              }
-            }
+          handleClick() {
+            // Don't handle single clicks - let the default behavior work
+            // This allows normal text selection instead of auto-selecting the link
+            return false;
+          },
+          handleDoubleClick(view, pos) {
+            const { schema, doc } = view.state;
 
             let range: ReturnType<typeof getMarkRange> | undefined;
-
             if (schema.marks.link) {
               range = getMarkRange(doc.resolve(pos), schema.marks.link);
             }
-
             if (!range) {
-              return false; // Return false to let default handling continue
+              return false;
             }
 
-            const { from, to } = range;
-
-            // Create a more precise selection
-            const $start = doc.resolve(from);
-            const $end = doc.resolve(to);
-            const transaction = tr.setSelection(
-              new TextSelection($start, $end),
+            // Get the link attributes from the mark
+            const node = doc.slice(range.from, range.to).content.firstChild;
+            const linkMark = node?.marks.find(
+              (mark) => mark.type === schema.marks.link,
             );
 
-            view.dispatch(transaction);
-            return true; // Return true to indicate we handled the click
+            if (linkMark?.attrs.href) {
+              const href = linkMark.attrs.href;
+              // Open the link in a new tab
+              window.open(href, "_blank");
+            }
+
+            return true; // Return true to indicate we handled the double-click
           },
         },
       }),
