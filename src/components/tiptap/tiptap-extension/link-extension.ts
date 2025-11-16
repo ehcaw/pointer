@@ -36,11 +36,12 @@ export const Link = TiptapLink.extend({
             // Check if we're already selecting this link
             if (selection.empty === false && schema.marks.link) {
               const { from, to } = selection;
-              const $from = doc.resolve(from);
-              const $to = doc.resolve(to);
 
               // Check if current selection already contains a link at this position
-              const linkMarkAtPos = getMarkRange(doc.resolve(pos), schema.marks.link);
+              const linkMarkAtPos = getMarkRange(
+                doc.resolve(pos),
+                schema.marks.link,
+              );
               if (linkMarkAtPos) {
                 const { from: linkFrom, to: linkTo } = linkMarkAtPos;
                 if (from <= linkFrom && to >= linkTo) {
