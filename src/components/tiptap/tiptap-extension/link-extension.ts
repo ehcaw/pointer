@@ -66,19 +66,15 @@ export const Link = TiptapLink.extend({
             }
 
             // Get the link attributes from the mark
-            // const node = doc.slice(range.from, range.to).content.firstChild;
-            // const linkMark = node?.marks.find(
-            //   (mark) => mark.type === schema.marks.link,
-            // );
-            const $pos = doc.resolve(range.from);
-            const linkMark = $pos
-              .marks()
-              .find((mark) => mark.type === schema.marks.link);
+            const node = doc.slice(range.from, range.to).content.firstChild;
+            const linkMark = node?.marks.find(
+              (mark) => mark.type === schema.marks.link,
+            );
 
             if (linkMark?.attrs.href) {
               const href = linkMark.attrs.href;
               // Open the link in a new tab
-              window.open(href, "_blank", "noopener,noreferrer");
+              window.open(href, "_blank");
             }
 
             return true; // Return true to indicate we handled the double-click
