@@ -252,10 +252,41 @@ body {
   a {
     color: #0066cc;
     text-decoration: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    position: relative;
 
     &:hover {
       text-decoration: underline;
     }
+
+    // External link icon for double-click functionality
+    &[data-link-action="double-click"]::after {
+      content: "↗";
+      font-size: 0.7em;
+      margin-left: 0.2em;
+      opacity: 0.6;
+      display: inline-block;
+      transition: opacity 0.15s ease;
+    }
+
+    // Show icon more prominently on hover
+    &[title*="Double-click"]:hover::after {
+      opacity: 1;
+    }
+  }
+
+  // Enhanced selection for links
+  ::selection {
+    background-color: #ddd6fe !important; /* Light purple selection */
+    color: inherit;
+  }
+
+  // Link-specific selection styling
+  a::selection {
+    background-color: #c084fc !important; /* Deeper purple for links */
+    color: white !important;
+    text-decoration: underline;
   }
 
   // Image styles
@@ -540,6 +571,18 @@ html.dark .slash-command-item-icon,
   color: #9ca3af;
 }
 
+/* External link indicator dark mode support */
+html.dark .simple-editor-content a[title*="Double-click"]::after,
+.dark .simple-editor-content a[title*="Double-click"]::after {
+  color: #60a5fa; /* Blue color for the arrow in dark mode */
+  opacity: 0.8;
+}
+
+html.dark .simple-editor-content a[title*="Double-click"]:hover::after,
+.dark .simple-editor-content a[title*="Double-click"]:hover::after {
+  opacity: 1;
+}
+
 .simple-editor-content.dragging-files {
   background-color: rgba(59, 130, 246, 0.1);
   border: 2px dashed #3b82f6;
@@ -555,7 +598,7 @@ html.dark .slash-command-item-icon,
   position: relative;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;

@@ -46,6 +46,14 @@ html.dark .tiptap.ProseMirror ::selection,
   color: #ffffff !important;
 }
 
+/* Link selection in dark mode */
+html.dark .tiptap.ProseMirror a::selection,
+.dark .tiptap.ProseMirror a::selection {
+  background-color: #818cf8 !important; /* Lighter indigo for selected links */
+  color: #ffffff !important;
+  text-decoration: underline;
+}
+
 /* Alternative highlight colors for variety - these are now handled by TipTap's inline styles */
 
 /* Ensure highlighting works with existing text styles - fallbacks only */

@@ -1,7 +1,7 @@
 import TiptapLink from "@tiptap/extension-link";
 import type { EditorView } from "@tiptap/pm/view";
 import { getMarkRange } from "@tiptap/react";
-import { Plugin, TextSelection } from "@tiptap/pm/state";
+import { Plugin } from "@tiptap/pm/state";
 
 export const Link = TiptapLink.extend({
   inclusive: false,
@@ -12,6 +12,25 @@ export const Link = TiptapLink.extend({
         tag: 'a[href]:not([data-type="button"]):not([href *= "javascript:" i])',
       },
     ];
+  },
+
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      title: {
+        default: "Double-click to open link",
+        parseHTML: (element) => element.getAttribute("title"),
+        renderHTML: (attributes) => {
+          if (!attributes.href) {
+            return {};
+          }
+          return {
+            title: "Double-click to open link",
+            "aria-label": `Link to ${attributes.href}. Double-click to open in new tab.`,
+          };
+        },
+      },
+    };
   },
 
   addProseMirrorPlugins() {
@@ -30,33 +49,35 @@ export const Link = TiptapLink.extend({
 
             return false;
           },
-          handleClick(view, pos) {
-            const { schema, doc, tr } = view.state;
-            let range: ReturnType<typeof getMarkRange> | undefined;
+          handleClick() {
+            // Don't handle single clicks - let the default behavior work
+            // This allows normal text selection instead of auto-selecting the link
+            return false;
+          },
+          handleDoubleClick(view, pos) {
+            const { schema, doc } = view.state;
 
+            let range: ReturnType<typeof getMarkRange> | undefined;
             if (schema.marks.link) {
               range = getMarkRange(doc.resolve(pos), schema.marks.link);
             }
-
             if (!range) {
-              return;
+              return false;
             }
 
-            const { from, to } = range;
-            const start = Math.min(from, to);
-            const end = Math.max(from, to);
-
-            if (pos < start || pos > end) {
-              return;
-            }
-
-            const $start = doc.resolve(start);
-            const $end = doc.resolve(end);
-            const transaction = tr.setSelection(
-              new TextSelection($start, $end),
+            // Get the link attributes from the mark
+            const node = doc.slice(range.from, range.to).content.firstChild;
+            const linkMark = node?.marks.find(
+              (mark) => mark.type === schema.marks.link,
             );
 
-            view.dispatch(transaction);
+            if (linkMark?.attrs.href) {
+              const href = linkMark.attrs.href;
+              // Open the link in a new tab
+              window.open(href, "_blank");
+            }
+
+            return true; // Return true to indicate we handled the double-click
           },
         },
       }),

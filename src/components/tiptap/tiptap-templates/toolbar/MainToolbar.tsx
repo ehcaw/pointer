@@ -17,10 +17,6 @@ import {
   ColorHighlightPopover,
   ColorHighlightPopoverButton,
 } from "@/components/tiptap/tiptap-ui/color-highlight-popover";
-import {
-  LinkPopover,
-  LinkButton,
-} from "@/components/tiptap/tiptap-ui/link-popover";
 import { MarkButton } from "@/components/tiptap/tiptap-ui/mark-button";
 import TextAlignDropdownMenu from "../../tiptap-ui/text-align-dropdown-menu/text-align-dropdown-menu";
 import { UndoRedoButton } from "@/components/tiptap/tiptap-ui/undo-redo-button";
@@ -30,13 +26,11 @@ import { Editor } from "@tiptap/react";
 
 export const MainToolbarContent = ({
   onHighlighterClick,
-  onLinkClick,
   isMobile,
   editor,
   isDisabled = false,
 }: {
   onHighlighterClick: () => void;
-  onLinkClick: () => void;
   isMobile: boolean;
   editor?: Editor;
   isDisabled?: boolean;
@@ -109,11 +103,6 @@ export const MainToolbarContent = ({
             onClick={onHighlighterClick}
             disabled={isDisabled}
           />
-        )}
-        {!isMobile ? (
-          <LinkPopover disabled={isDisabled} />
-        ) : (
-          <LinkButton onClick={onLinkClick} disabled={isDisabled} />
         )}
       </ToolbarGroup>
 

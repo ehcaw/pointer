@@ -64,18 +64,30 @@ export const useLinkHandler = (props: LinkHandlerProps) => {
 
     const updateLinkState = () => {
       const { href } = editor.getAttributes("link");
+      const wasActive = url !== "";
+      const isActive = editor.isActive("link");
+
       setUrl(href || "");
 
-      if (editor.isActive("link") && !url) {
+      // Only trigger onLinkActive if link wasn't active before but is now
+      if (isActive && !wasActive) {
         onLinkActive?.();
       }
     };
 
-    editor.on("selectionUpdate", updateLinkState);
-    return () => {
-      editor.off("selectionUpdate", updateLinkState);
+    // Debounce the selection update to avoid rapid firing
+    let timeoutId: NodeJS.Timeout;
+    const debouncedUpdate = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateLinkState, 50);
     };
-  }, [editor, onLinkActive, url]);
+
+    editor.on("selectionUpdate", debouncedUpdate);
+    return () => {
+      clearTimeout(timeoutId);
+      editor.off("selectionUpdate", debouncedUpdate);
+    };
+  }, [editor, onLinkActive]);
 
   const setLink = React.useCallback(() => {
     if (!url || !editor) return;
