@@ -795,34 +795,6 @@ export const getTreeStructure = query({
   },
 });
 
-// const createNoteBackup = internalMutation({
-//   args: {
-//     noteId: v.id("notes"),
-//     tenantId: v.string(),
-//     timestamp: v.string(),
-//     content: v.object({
-//       text: v.string(),
-//       tiptap: v.optional(v.string()),
-//     }),
-//   },
-//   handler: async (ctx, args) => {
-//     const noteHistoryMetadata = await ctx.db.insert("notesHistoryMetadata", {
-//       noteId: args.noteId,
-//       tenantId: args.tenantId,
-//       timestamp: args.timestamp,
-//     });
-
-//     await ctx.db.insert("notesHistoryContent", {
-//       metadataId: noteHistoryMetadata,
-//       content: args.content,
-//     });
-//   },
-// });
-
-// const createNoteBackup = (noteId: v.id("notes"), ) => {
-
-// }
-//
 async function createNoteBackupHelper(
   ctx: MutationCtx,
   args: {
