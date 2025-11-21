@@ -1,5 +1,7 @@
 // types/nodes.ts
 
+import { Id } from "../../convex/_generated/dataModel";
+
 /**
  * Base fields shared by both folders and files.
  */
@@ -132,6 +134,18 @@ export function isFolder(node: Node): node is FolderNode {
  */
 export function isFile(node: Node): node is FileNode {
   return node.type === "file";
+}
+
+export interface DocumentVersion {
+  _id: Id<"notesHistoryMetadata">;
+  _creationTime: number;
+  tenantId: string;
+  noteId: Id<"notes">;
+  timestamp: number;
+  content?: {
+    tiptap?: string;
+    text?: string;
+  };
 }
 
 // Graph Stuff
