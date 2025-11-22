@@ -44,6 +44,7 @@ export function DocumentHistoryModal({
   const { currentNote } = useNotesStore();
   const [selectedVersion, setSelectedVersion] =
     useState<Id<"notesHistoryMetadata"> | null>(null);
+  const [contentCache, setContentCache] = useState<Map<string, any>>(new Map());
 
   const versions: DocumentVersion[] = (
     useQuery(api.noteVersions.getNoteVersions, {
@@ -51,16 +52,52 @@ export function DocumentHistoryModal({
     }) || []
   ).sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1));
 
-  // Fetch content for the selected version
-  const selectedVersionContent =
-    useQuery(
-      api.noteVersions.getNoteContentVersion,
-      selectedVersion ? { metadata_id: selectedVersion } : "skip",
-    ) || currentNote?.content?.tiptap;
+  // Get current version content (initial content)
+  const currentVersionContent = currentNote?.content?.tiptap;
+
+  // Get cached content or return undefined to trigger query
+  const getCachedContent = (versionId: string) => {
+    return contentCache.get(versionId);
+  };
+
+  // Fetch content for the selected version only if not cached
+  const shouldFetchContent =
+    selectedVersion && !contentCache.has(selectedVersion);
+  const fetchedContent = useQuery(
+    api.noteVersions.getNoteContentVersion,
+    shouldFetchContent ? { metadata_id: selectedVersion } : "skip",
+  );
+
+  // Update cache when content is fetched
+  useEffect(() => {
+    if (fetchedContent && selectedVersion) {
+      setContentCache((prev) => {
+        const newCache = new Map(prev);
+        newCache.set(selectedVersion, fetchedContent);
+        return newCache;
+      });
+    }
+  }, [fetchedContent, selectedVersion]);
+
+  // Get the current content to display
+  const getDisplayContent = () => {
+    if (!selectedVersion) return null;
+    if (selectedVersion === versions[0]?._id) {
+      // This is the current version - use current content
+      return currentVersionContent;
+    }
+    // Use cached content if available
+    return getCachedContent(selectedVersion)?.content?.tiptap;
+  };
 
   // Close on escape - only add listener when open
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Clear cache when modal closes to free up memory
+      setContentCache(new Map());
+      setSelectedVersion(null);
+      return;
+    }
 
     const down = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -207,19 +244,27 @@ export function DocumentHistoryModal({
                             Content Preview
                           </h4>
                           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden">
-                            {selectedVersionContent ? (
-                              <PreviewEditor
-                                content={JSON.parse(
-                                  selectedVersionContent.content?.tiptap || "",
-                                )}
-                                className="border-none"
-                              />
-                            ) : (
-                              <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                Loading content...
-                              </div>
-                            )}
+                            {(() => {
+                              const displayContent = getDisplayContent();
+                              const isLoading =
+                                shouldFetchContent && !fetchedContent;
+
+                              if (isLoading) {
+                                return (
+                                  <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Loading content...
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <PreviewEditor
+                                  content={JSON.parse(displayContent)}
+                                  className="border-none"
+                                />
+                              );
+                            })()}
                           </div>
                         </div>
 
