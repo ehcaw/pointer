@@ -9,11 +9,9 @@ import {
   RotateCcw,
   X,
   Calendar,
-  User,
   FileText,
   Loader2,
   FileJson,
-  File,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -30,6 +28,9 @@ import {
   TimelineContent,
   TimelineIcon,
 } from "@/components/ui/timeline";
+import { Id } from "../../../convex/_generated/dataModel";
+import { PreviewEditor } from "@/components/preview/PreviewEditor";
+import { FileNode } from "@/types/note";
 
 interface DocumentHistoryModalProps {
   isOpen: boolean;
@@ -41,13 +42,21 @@ export function DocumentHistoryModal({
   onClose,
 }: DocumentHistoryModalProps) {
   const { currentNote } = useNotesStore();
-  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [selectedVersion, setSelectedVersion] =
+    useState<Id<"notesHistoryMetadata"> | null>(null);
 
   const versions: DocumentVersion[] = (
     useQuery(api.noteVersions.getNoteVersions, {
       note_id: currentNote && currentNote._id ? currentNote._id : "",
     }) || []
   ).sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1));
+
+  // Fetch content for the selected version
+  const selectedVersionContent =
+    useQuery(
+      api.noteVersions.getNoteContentVersion,
+      selectedVersion ? { metadata_id: selectedVersion } : "skip",
+    ) || currentNote?.content?.tiptap;
 
   // Close on escape - only add listener when open
   useEffect(() => {
@@ -67,7 +76,7 @@ export function DocumentHistoryModal({
     return () => document.removeEventListener("keydown", down);
   }, [isOpen, onClose]);
 
-  const handleSelectVersion = (versionId: string) => {
+  const handleSelectVersion = (versionId: Id<"notesHistoryMetadata">) => {
     setSelectedVersion(versionId);
   };
 
@@ -84,75 +93,79 @@ export function DocumentHistoryModal({
   return (
     <div className="fixed inset-0 z-50 animate-in fade-in-0" onClick={onClose}>
       <div
-        className="fixed left-1/2 top-1/2 w-[90vw] h-[85vh] max-w-7xl -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-lg border shadow-md"
+        className="fixed left-1/2 top-1/3 w-full max-w-6xl -translate-x-1/2 -translate-y-1/3"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex h-full">
+        <div className="flex h-[80vh] rounded-lg border shadow-md bg-white dark:bg-gray-900 overflow-hidden">
           {/* Timeline - Version List */}
-          <div className="w-96 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+          <div className="w-96 border-r border-slate-200 dark:border-slate-700 flex flex-col">
             {/* Timeline Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <h2 className="text-lg font-semibold">Document History</h2>
-              </div>
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 p-4">
+              <h2 className="text-lg font-semibold">
+                {currentNote?.name}&apos;s history
+              </h2>
             </div>
 
             {/* Version Timeline */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-4">
-                {versions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No version history available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6 max-w-[320px]">
-                    {versions.map((version, index) => (
-                      <TimelineItem
-                        key={version._id}
-                        onClick={() => handleSelectVersion(version._id)}
-                        className={cn(
-                          "cursor-pointer transition-colors",
-                          selectedVersion === version._id && "bg-accent/50 rounded-lg p-2 -m-2"
+            <div className="flex-1 overflow-y-auto p-3">
+              {versions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No version history available</p>
+                </div>
+              ) : (
+                <div className="space-y-1 max-w-[320px] mx-auto">
+                  {versions.map((version, index) => (
+                    <div
+                      key={version._id}
+                      onClick={() => handleSelectVersion(version._id)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 text-sm rounded-sm cursor-pointer",
+                        "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground",
+                        "hover:bg-accent/50",
+                        selectedVersion === version._id &&
+                          "bg-accent text-accent-foreground rounded-lg",
+                      )}
+                      data-selected={selectedVersion === version._id}
+                    >
+                      <div className="flex-shrink-0">
+                        {index === 0 ? (
+                          <FileText className="h-4 w-4" />
+                        ) : (
+                          <FileJson className="h-4 w-4" />
                         )}
-                        date={new Date(version.timestamp).toISOString()}
-                        title={
-                          index === 0
-                            ? "Current version"
-                            : `Version ${versions.length - index}`
-                        }
-                        description={formatDistanceToNow(new Date(version.timestamp), {
-                          addSuffix: true,
-                        })}
-                        icon={
-                          index === 0 ? (
-                            <FileText className="h-4 w-4" />
-                          ) : (
-                            <FileJson className="h-4 w-4" />
-                          )
-                        }
-                        iconColor={index === 0 ? "primary" : "muted"}
-                        status={index === 0 ? "completed" : "pending"}
-                        showConnector={index !== versions.length - 1}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">
+                          {index === 0
+                            ? "Latest Version"
+                            : `Version ${versions.length - index}`}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(version.timestamp), {
+                            addSuffix: true,
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Timeline Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800">
-              <div className="flex gap-2 text-xs text-muted-foreground">
-                <div>
-                  <Kbd>↑↓</Kbd> Navigate
-                </div>
-                <div>
-                  <Kbd>↲</Kbd> Select
-                </div>
-                <div>
-                  <Kbd>Esc</Kbd> Close
+            <div className="border-t border-slate-200 dark:border-slate-700 p-2 bg-white dark:bg-gray-900">
+              <div className="px-1 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                <div className="flex gap-2">
+                  <div>
+                    <Kbd>↑↓</Kbd> Navigate
+                  </div>
+                  <div>
+                    <Kbd>↲</Kbd> Select
+                  </div>
+                  <div>
+                    <Kbd>Esc</Kbd> Close
+                  </div>
                 </div>
               </div>
             </div>
@@ -161,11 +174,11 @@ export function DocumentHistoryModal({
           {/* Main Content - Preview */}
           <div className="flex-1 flex flex-col">
             {/* Preview Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 p-4">
               <h3 className="text-lg font-semibold">Preview</h3>
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -178,7 +191,7 @@ export function DocumentHistoryModal({
                   <div className="p-6">
                     <div className="max-w-none">
                       {/* Version Info */}
-                      <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -189,22 +202,30 @@ export function DocumentHistoryModal({
                         </div>
 
                         {/* Content Preview */}
-                        <div className="prose dark:prose-invert max-w-none">
+                        <div className="max-w-none">
                           <h4 className="text-lg font-medium mb-4">
                             Content Preview
                           </h4>
-                          {/* TODO: Add actual content preview rendering */}
-                          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded text-sm">
-                            <pre className="whitespace-pre-wrap">
-                              {selectedVersionData.content?.tiptap ||
-                                "No content available"}
-                            </pre>
+                          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden">
+                            {selectedVersionContent ? (
+                              <PreviewEditor
+                                content={JSON.parse(
+                                  selectedVersionContent.content?.tiptap || "",
+                                )}
+                                className="border-none"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Loading content...
+                              </div>
+                            )}
                           </div>
                         </div>
 
                         {/* Restore Button */}
                         {versions.indexOf(selectedVersionData) !== 0 && (
-                          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
                             <button
                               onClick={() =>
                                 handleRestoreVersion(selectedVersionData._id)

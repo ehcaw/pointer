@@ -20,7 +20,7 @@ export const getNoteVersions = query({
 });
 
 export const getNoteContentVersion = query({
-  args: { metadata_id: v.id("notesHistoryContent") },
+  args: { metadata_id: v.id("notesHistoryMetadata") },
   handler: async (ctx, { metadata_id }) => {
     const metadataId = ctx.db.normalizeId("notesHistoryMetadata", metadata_id);
     if (!metadataId) {

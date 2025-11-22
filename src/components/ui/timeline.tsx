@@ -104,6 +104,10 @@ interface TimelineItemProps extends Omit<HTMLMotionProps<"li">, "ref"> {
   loading?: boolean;
   /** Error message */
   error?: string;
+  /** Whether the item is selected */
+  selected?: boolean;
+  /** Whether the item is clickable */
+  clickable?: boolean;
 }
 
 const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
@@ -121,6 +125,8 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
       iconsize,
       loading,
       error,
+      selected = false,
+      clickable = false,
       // Omit unused Framer Motion props
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       initial,
@@ -132,7 +138,10 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
     },
     ref,
   ) => {
-    const commonClassName = cn("relative w-full mb-8 last:mb-0", className);
+    const commonClassName = cn(
+      "relative w-full mb-8 last:mb-0 transition-all duration-200",
+      className
+    );
 
     // Loading State
     if (loading) {
@@ -215,34 +224,80 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
 
     const content = (
       <div
-        className="grid grid-cols-[1fr_auto_1fr] gap-4 items-start"
-        {...(status === "in-progress" ? { "aria-current": "step" } : {})}
+        className={cn(
+          "relative transition-all duration-200 rounded-lg p-3 -m-3",
+          clickable && "cursor-pointer",
+          clickable && !selected && "hover:bg-accent/30"
+        )}
+        style={
+          clickable && selected
+            ? {
+                background: `
+                  radial-gradient(
+                    circle at 120px center,
+                    transparent 25px,
+                    hsl(var(--accent)) 25px,
+                    hsl(var(--accent))
+                  )`,
+                }
+            : {}
+        }
       >
-        {/* Date */}
-        <div className="flex flex-col justify-start pt-1">
-          <TimelineTime className="text-right pr-4">{date}</TimelineTime>
-        </div>
+        <div
+          className={cn(
+            "absolute inset-0 rounded-lg transition-all duration-200",
+            clickable && selected && "border border-accent"
+          )}
+          style={
+            clickable && selected
+              ? {
+                  background: `
+                    radial-gradient(
+                      circle at 120px center,
+                      transparent 25px,
+                      hsl(var(--accent) / 0.5) 25px,
+                      hsl(var(--accent) / 0.5)
+                    )`,
+                }
+              : {}
+          }
+        />
 
-        {/* Timeline dot and connector */}
-        <div className="flex flex-col items-center">
-          <div className="relative z-10">
-            <TimelineIcon
-              icon={icon}
-              color={iconColor}
-              status={status}
-              iconSize={iconsize}
-            />
+        <div
+          className="relative grid grid-cols-[120px_auto_1fr] gap-4 items-start"
+          {...(status === "in-progress" ? { "aria-current": "step" } : {})}
+        >
+          {/* Date */}
+          <div className="flex flex-col justify-start pt-1">
+            <TimelineTime className="text-right pr-4 min-w-[100px]">{date}</TimelineTime>
           </div>
-          {showConnector && <div className="h-16 w-0.5 bg-border mt-2" />}
-        </div>
 
-        {/* Content */}
-        <TimelineContent>
-          <TimelineHeader>
-            <TimelineTitle>{title}</TimelineTitle>
-          </TimelineHeader>
-          <TimelineDescription>{description}</TimelineDescription>
-        </TimelineContent>
+          {/* Timeline dot and connector */}
+          <div className="flex flex-col items-center">
+            <div className="relative z-20">
+              <TimelineIcon
+                icon={icon}
+                color={selected && clickable ? "accent" : iconColor}
+                status={status}
+                iconSize={iconsize}
+              />
+            </div>
+            {showConnector && (
+              <TimelineConnector
+                status={selected && clickable ? "completed" : status}
+                className="h-16 mt-2"
+              />
+            )}
+          </div>
+
+          {/* Content */}
+          <TimelineContent>
+            <TimelineHeader>
+              <TimelineTitle>{title}</TimelineTitle>
+            </TimelineHeader>
+            <TimelineDescription>{description}</TimelineDescription>
+          </TimelineContent>
+        </div>
       </div>
     );
 
@@ -292,7 +347,6 @@ interface TimelineTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
 }
 
 const defaultDateFormat: Intl.DateTimeFormatOptions = {
-  year: "numeric",
   month: "short",
   day: "2-digit",
 };
