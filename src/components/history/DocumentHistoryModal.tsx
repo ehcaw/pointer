@@ -13,24 +13,17 @@ import {
   Loader2,
   FileJson,
 } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { Kbd } from "@/components/ui/kbd";
 import { DocumentVersion } from "@/types/note";
-import {
-  Timeline,
-  TimelineItem,
-  TimelineTime,
-  TimelineTitle,
-  TimelineDescription,
-  TimelineContent,
-  TimelineIcon,
-} from "@/components/ui/timeline";
 import { Id } from "../../../convex/_generated/dataModel";
 import { PreviewEditor } from "@/components/preview/PreviewEditor";
-import { FileNode } from "@/types/note";
+import { FileNode, isFile } from "@/types/note";
+import { useEditorStore } from "@/lib/stores/editor-store";
+import { useSaveCoordinator } from "@/hooks/use-save-coordinator";
+import { ensureJSONString } from "@/lib/utils";
 
 interface DocumentHistoryModalProps {
   isOpen: boolean;
@@ -42,9 +35,12 @@ export function DocumentHistoryModal({
   onClose,
 }: DocumentHistoryModalProps) {
   const { currentNote } = useNotesStore();
+  const { updateEditorContent } = useEditorStore();
+  const { saveContent } = useSaveCoordinator();
   const [selectedVersion, setSelectedVersion] =
     useState<Id<"notesHistoryMetadata"> | null>(null);
   const [contentCache, setContentCache] = useState<Map<string, any>>(new Map());
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const versions: DocumentVersion[] = (
     useQuery(api.noteVersions.getNoteVersions, {
@@ -53,7 +49,9 @@ export function DocumentHistoryModal({
   ).sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1));
 
   // Get current version content (initial content)
-  const currentVersionContent = currentNote?.content?.tiptap;
+  const currentVersionContent = (currentNote as FileNode)
+    ? (currentNote as FileNode).content?.tiptap
+    : null;
 
   // Get cached content or return undefined to trigger query
   const getCachedContent = (versionId: string) => {
@@ -87,7 +85,8 @@ export function DocumentHistoryModal({
       return currentVersionContent;
     }
     // Use cached content if available
-    return getCachedContent(selectedVersion)?.content?.tiptap;
+    const cachedContent = getCachedContent(selectedVersion)?.content?.tiptap;
+    return cachedContent || null;
   };
 
   // Close on escape - only add listener when open
@@ -117,9 +116,63 @@ export function DocumentHistoryModal({
     setSelectedVersion(versionId);
   };
 
-  const handleRestoreVersion = (versionId: string) => {
-    // TODO: Implement restore functionality
-    console.log("Restore version:", versionId);
+  const handleRestoreVersion = async (
+    versionId: Id<"notesHistoryMetadata">,
+  ) => {
+    const versionToRestore = versions.find((v) => v._id === versionId);
+    if (!versionToRestore) return;
+
+    setIsRestoring(true);
+
+    try {
+      const cachedContent = getCachedContent(versionId);
+      let contentToRestore: Record<string, unknown> | null = null;
+
+      if (cachedContent?.content?.tiptap) {
+        // Parse the content if it's a string, otherwise use as-is
+        if (typeof cachedContent.content.tiptap === "string") {
+          try {
+            contentToRestore = JSON.parse(cachedContent.content.tiptap);
+          } catch (error) {
+            console.error("Error parsing restore content:", error);
+            return;
+          }
+        } else {
+          contentToRestore = cachedContent.content.tiptap;
+        }
+      }
+
+      if (!contentToRestore) {
+        console.error("No valid content to restore");
+        return;
+      }
+
+      // Update the editor content through the global editor store
+      console.log("Restoring content to editor:", contentToRestore);
+      updateEditorContent(contentToRestore);
+      console.log("Successfully restored content to editor");
+
+      // Save the restored content to database
+      if (currentNote && isFile(currentNote)) {
+        const restoredContent = {
+          tiptap: ensureJSONString(contentToRestore),
+          text: cachedContent.content?.text || "",
+        };
+
+        // Update currentNote's content in the store immediately
+        currentNote.content = restoredContent;
+
+        // Save to database using the save coordinator (non-debounced)
+        console.log("Saving restored content to database...");
+        await saveContent(currentNote.pointer_id, restoredContent);
+        console.log("Successfully saved restored content");
+      }
+
+      // Close the modal after successful restore
+      onClose();
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   // Only render when open to prevent unnecessary renders
@@ -260,7 +313,24 @@ export function DocumentHistoryModal({
 
                               return (
                                 <PreviewEditor
-                                  content={JSON.parse(displayContent)}
+                                  content={
+                                    displayContent
+                                      ? (() => {
+                                          try {
+                                            return typeof displayContent ===
+                                              "string"
+                                              ? JSON.parse(displayContent)
+                                              : displayContent;
+                                          } catch (error) {
+                                            console.error(
+                                              "Error parsing content:",
+                                              error,
+                                            );
+                                            return null;
+                                          }
+                                        })()
+                                      : null
+                                  }
                                   className="border-none"
                                 />
                               );
@@ -275,10 +345,17 @@ export function DocumentHistoryModal({
                               onClick={() =>
                                 handleRestoreVersion(selectedVersionData._id)
                               }
-                              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                              disabled={isRestoring}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                             >
-                              <RotateCcw className="h-4 w-4" />
-                              Restore this version
+                              {isRestoring ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RotateCcw className="h-4 w-4" />
+                              )}
+                              {isRestoring
+                                ? "Restoring..."
+                                : "Restore this version"}
                             </button>
                           </div>
                         )}

@@ -17,6 +17,9 @@ import { useMobile } from "@/hooks/use-tiptap-mobile";
 // --- Components ---
 import { SlashCommandPopup } from "@/components/tiptap/tiptap-ui/slash-command-popup";
 
+// --- Stores ---
+import { useEditorStore } from "@/lib/stores/editor-store";
+
 // --- Styles ---
 import "@/components/tiptap/tiptap-templates/editor.scss";
 import "@/components/tiptap/tiptap-templates/active-button.scss";
@@ -40,6 +43,7 @@ export function SimpleEditor({
   onEditorReady,
 }: SimpleEditorProps) {
   const isMobile = useMobile();
+  const { setActiveEditor } = useEditorStore();
 
   // Use the custom simple editor hook
   const {
@@ -106,7 +110,10 @@ export function SimpleEditor({
     if (editor && onEditorReady) {
       onEditorReady(editor);
     }
-  }, [isMobile, mobileView, editor, editorRef, onEditorReady, setMobileView]);
+
+    // Set the active editor in the global store
+    setActiveEditor(editor);
+  }, [isMobile, mobileView, editor, editorRef, onEditorReady, setMobileView, setActiveEditor]);
 
   return (
     <EditorContext.Provider value={{ editor }}>

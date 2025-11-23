@@ -2,6 +2,7 @@ import { action, mutation, query, MutationCtx } from "./_generated/server";
 import { NoteContent } from "@/types/note";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 export const readNoteFromDb = query({
   args: { pointer_id: v.string() },
@@ -164,18 +165,25 @@ export const updateNoteInDb = mutation({
         updateFields.updatedAt = String(new Date());
 
         const timestamp = Date.now();
-        if (
-          updateFields.content &&
-          (!existingNote.last_backed_up_at ||
-            existingNote.last_backed_up_at + 900000 < timestamp) // check to see if its at least 15 minutes since the last backup
-        ) {
-          createNoteBackupHelper(ctx, {
-            noteId: existingNote._id,
-            tenantId: existingNote.tenantId,
-            timestamp: timestamp,
-            content: updateFields.content as NoteContent,
-          });
-          updateFields.last_backed_up_at = timestamp;
+        if (updateFields.content) {
+          // Check if we should create a backup using smart criteria
+          const shouldBackup = await ctx.runQuery(
+            internal.noteVersions.shouldCreateBackup,
+            {
+              note_id: existingNote._id,
+              current_content: updateFields.content as NoteContent,
+            }
+          );
+
+          if (shouldBackup.shouldBackup) {
+            createNoteBackupHelper(ctx, {
+              noteId: existingNote._id,
+              tenantId: existingNote.tenantId,
+              timestamp: timestamp,
+              content: updateFields.content as NoteContent,
+            });
+            updateFields.last_backed_up_at = timestamp;
+          }
         }
         delete updateFields.content; // Remove content as it's handled above
 

@@ -10,6 +10,13 @@ crons.daily(
   {},
 );
 
+crons.daily(
+  "cleanup old backups",
+  { hourUTC: 8, minuteUTC: 0 },
+  internal.noteVersions.cleanupOldBackups,
+  {},
+);
+
 // crons.interval(
 //   "resolve image cleanup table",
 //   { minutes: 1 },
