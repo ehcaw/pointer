@@ -10,9 +10,17 @@ import { UserSettingsView } from "@/components/views/UserSettingsView";
 import DefaultHeader from "@/components/views/headers/DefaultHeader";
 import NoteViewHeader from "@/components/views/headers/NoteViewHeader";
 import WhiteboardViewHeader from "@/components/views/headers/WhiteboardViewHeader";
+import { useNoteEditor } from "@/hooks/use-note-editor";
+import { useRouter } from "next/navigation";
 
 export default function MainPage() {
   const { currentView } = usePreferencesStore();
+  const { currentNote } = useNoteEditor();
+  const router = useRouter();
+
+  if (currentNote?.collaborative) {
+    router.push(`/main/collab/${currentNote.pointer_id}`);
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">

@@ -7,7 +7,9 @@ interface PreferencesStore {
   currentNoteId: string | null;
 
   // Preference setters
-  setCurrentView: (view: "home" | "note" | "graph" | "whiteboard" | "settings") => void;
+  setCurrentView: (
+    view: "home" | "note" | "graph" | "whiteboard" | "settings",
+  ) => void;
   setCurrentNoteId: (noteId: string | null) => void;
 }
 
@@ -19,7 +21,9 @@ export const usePreferencesStore = create<PreferencesStore>()(
       currentNoteId: null,
 
       // Preference setters
-      setCurrentView: (view: "home" | "note" | "graph" | "whiteboard" | "settings") => {
+      setCurrentView: (
+        view: "home" | "note" | "graph" | "whiteboard" | "settings",
+      ) => {
         set({ currentView: view });
       },
       setCurrentNoteId: (noteId: string | null) => {
