@@ -39,13 +39,15 @@ export function DocumentHistoryModal({
   const { saveContent } = useSaveCoordinator();
   const [selectedVersion, setSelectedVersion] =
     useState<Id<"notesHistoryMetadata"> | null>(null);
-  const [contentCache, setContentCache] = useState<Map<string, any>>(new Map());
+  const [loadingVersions, setLoadingVersions] = useState<Set<string>>(new Set());
   const [isRestoring, setIsRestoring] = useState(false);
 
+  const versionsQuery = useQuery(api.noteVersions.getNoteVersions, {
+    note_id: currentNote && currentNote._id ? currentNote._id : "",
+  });
+
   const versions: DocumentVersion[] = (
-    useQuery(api.noteVersions.getNoteVersions, {
-      note_id: currentNote && currentNote._id ? currentNote._id : "",
-    }) || []
+    versionsQuery || []
   ).sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1));
 
   // Get current version content (initial content)
@@ -53,26 +55,26 @@ export function DocumentHistoryModal({
     ? (currentNote as FileNode).content?.tiptap
     : null;
 
-  // Get cached content or return undefined to trigger query
-  const getCachedContent = (versionId: string) => {
-    return contentCache.get(versionId);
-  };
+  // Track loading state for versions
+  useEffect(() => {
+    if (selectedVersion) {
+      setLoadingVersions(prev => new Set(prev).add(selectedVersion));
+    }
+  }, [selectedVersion]);
 
-  // Fetch content for the selected version only if not cached
-  const shouldFetchContent =
-    selectedVersion && !contentCache.has(selectedVersion);
+  // Fetch content for the selected version - let React Query handle caching
   const fetchedContent = useQuery(
     api.noteVersions.getNoteContentVersion,
-    shouldFetchContent ? { metadata_id: selectedVersion } : "skip",
+    selectedVersion ? { metadata_id: selectedVersion } : "skip",
   );
 
-  // Update cache when content is fetched
+  // Update loading state when content is fetched or errors
   useEffect(() => {
-    if (fetchedContent && selectedVersion) {
-      setContentCache((prev) => {
-        const newCache = new Map(prev);
-        newCache.set(selectedVersion, fetchedContent);
-        return newCache;
+    if (selectedVersion) {
+      setLoadingVersions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(selectedVersion);
+        return newSet;
       });
     }
   }, [fetchedContent, selectedVersion]);
@@ -84,16 +86,15 @@ export function DocumentHistoryModal({
       // This is the current version - use current content
       return currentVersionContent;
     }
-    // Use cached content if available
-    const cachedContent = getCachedContent(selectedVersion)?.content?.tiptap;
-    return cachedContent || null;
+    // Use fetched content if available
+    return fetchedContent?.content?.tiptap || null;
   };
 
   // Close on escape - only add listener when open
   useEffect(() => {
     if (!isOpen) {
-      // Clear cache when modal closes to free up memory
-      setContentCache(new Map());
+      // Reset state when modal closes
+      setLoadingVersions(new Set());
       setSelectedVersion(null);
       return;
     }
@@ -125,20 +126,31 @@ export function DocumentHistoryModal({
     setIsRestoring(true);
 
     try {
-      const cachedContent = getCachedContent(versionId);
       let contentToRestore: Record<string, unknown> | null = null;
 
-      if (cachedContent?.content?.tiptap) {
+      if (versionId === versions[0]?._id) {
+        // This is the current version - use current content
+        contentToRestore = currentVersionContent && typeof currentVersionContent === 'string'
+          ? JSON.parse(currentVersionContent)
+          : currentVersionContent;
+      } else {
+        // For historical versions, we need to fetch the content if not already loaded
+        const versionContent = fetchedContent?.content?.tiptap;
+        if (!versionContent) {
+          console.error("Version content not loaded");
+          return;
+        }
+
         // Parse the content if it's a string, otherwise use as-is
-        if (typeof cachedContent.content.tiptap === "string") {
+        if (typeof versionContent === "string") {
           try {
-            contentToRestore = JSON.parse(cachedContent.content.tiptap);
+            contentToRestore = JSON.parse(versionContent);
           } catch (error) {
             console.error("Error parsing restore content:", error);
             return;
           }
         } else {
-          contentToRestore = cachedContent.content.tiptap;
+          contentToRestore = versionContent;
         }
       }
 
@@ -156,7 +168,7 @@ export function DocumentHistoryModal({
       if (currentNote && isFile(currentNote)) {
         const restoredContent = {
           tiptap: ensureJSONString(contentToRestore),
-          text: cachedContent.content?.text || "",
+          text: fetchedContent?.content?.text || "",
         };
 
         // Update currentNote's content in the store immediately
@@ -198,7 +210,18 @@ export function DocumentHistoryModal({
 
             {/* Version Timeline */}
             <div className="flex-1 overflow-y-auto p-3">
-              {versions.length === 0 ? (
+              {versionsQuery === undefined ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 mx-auto mb-2 opacity-50 animate-spin" />
+                  <p className="text-sm">Loading version history...</p>
+                </div>
+              ) : versionsQuery === null ? (
+                <div className="text-center py-8 text-red-500">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm font-medium">Failed to load version history</p>
+                  <p className="text-xs mt-1">Please try again</p>
+                </div>
+              ) : versions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No version history available</p>
@@ -299,14 +322,25 @@ export function DocumentHistoryModal({
                           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden">
                             {(() => {
                               const displayContent = getDisplayContent();
-                              const isLoading =
-                                shouldFetchContent && !fetchedContent;
+                              const isLoading = selectedVersion && loadingVersions.has(selectedVersion) && !fetchedContent;
+                              const hasError = selectedVersion && fetchedContent === null;
 
                               if (isLoading) {
                                 return (
                                   <div className="flex items-center justify-center py-8">
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                     Loading content...
+                                  </div>
+                                );
+                              }
+
+                              if (hasError) {
+                                return (
+                                  <div className="flex items-center justify-center py-8 text-red-500">
+                                    <div className="text-center">
+                                      <p className="text-sm font-medium">Failed to load version content</p>
+                                      <p className="text-xs mt-1">Please try selecting this version again</p>
+                                    </div>
                                   </div>
                                 );
                               }

@@ -5,7 +5,13 @@ import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion, HTMLMotionProps } from "framer-motion";
 import { AlertCircle, Loader2 } from "lucide-react";
-import type { TimelineColor } from "@/types";
+
+export type TimelineColor =
+  | "primary"
+  | "secondary"
+  | "muted"
+  | "accent"
+  | "destructive";
 
 const timelineVariants = cva("flex flex-col relative", {
   variants: {
@@ -120,7 +126,6 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
       icon,
       iconColor,
       status = "completed",
-      connectorColor,
       showConnector = true,
       iconsize,
       loading,
@@ -140,7 +145,7 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
   ) => {
     const commonClassName = cn(
       "relative w-full mb-8 last:mb-0 transition-all duration-200",
-      className
+      className,
     );
 
     // Loading State
@@ -227,7 +232,7 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
         className={cn(
           "relative transition-all duration-200 rounded-lg p-3 -m-3",
           clickable && "cursor-pointer",
-          clickable && !selected && "hover:bg-accent/30"
+          clickable && !selected && "hover:bg-accent/30",
         )}
         style={
           clickable && selected
@@ -239,14 +244,14 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
                     hsl(var(--accent)) 25px,
                     hsl(var(--accent))
                   )`,
-                }
+              }
             : {}
         }
       >
         <div
           className={cn(
             "absolute inset-0 rounded-lg transition-all duration-200",
-            clickable && selected && "border border-accent"
+            clickable && selected && "border border-accent",
           )}
           style={
             clickable && selected
@@ -269,7 +274,9 @@ const TimelineItem = React.forwardRef<HTMLLIElement, TimelineItemProps>(
         >
           {/* Date */}
           <div className="flex flex-col justify-start pt-1">
-            <TimelineTime className="text-right pr-4 min-w-[100px]">{date}</TimelineTime>
+            <TimelineTime className="text-right pr-4 min-w-[100px]">
+              {date}
+            </TimelineTime>
           </div>
 
           {/* Timeline dot and connector */}
@@ -445,7 +452,6 @@ TimelineTitle.displayName = "TimelineTitle";
 const TimelineIcon = ({
   icon,
   color = "primary",
-  status = "completed",
   iconSize = "md",
 }: {
   icon?: React.ReactNode;

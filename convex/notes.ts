@@ -1,7 +1,7 @@
 import { action, mutation, query, MutationCtx } from "./_generated/server";
 import { NoteContent } from "@/types/note";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 
 export const readNoteFromDb = query({
@@ -90,13 +90,6 @@ export const createNoteInDb = mutation({
         content: args.content,
         tenantId: args.tenantId,
       });
-
-      createNoteBackupHelper(ctx, {
-        noteId: noteId,
-        tenantId: args.tenantId,
-        timestamp: timestamp,
-        content: args.content,
-      });
     }
 
     return noteId;
@@ -172,7 +165,7 @@ export const updateNoteInDb = mutation({
             {
               note_id: existingNote._id,
               current_content: updateFields.content as NoteContent,
-            }
+            },
           );
 
           if (shouldBackup.shouldBackup) {
@@ -784,9 +777,12 @@ export const getTreeStructure = query({
 
     // Build tree structure
     const notesById = new Map(
-      allNotes.map((note) => [note._id, { ...note, children: [] as any[] }]),
+      allNotes.map((note) => [
+        note._id,
+        { ...note, children: [] as Doc<"notes">[] },
+      ]),
     );
-    const rootNodes: any[] = [];
+    const rootNodes: Doc<"notes">[] = [];
 
     for (const note of allNotes) {
       if (note.parent_id) {
@@ -806,7 +802,7 @@ export const getTreeStructure = query({
 async function createNoteBackupHelper(
   ctx: MutationCtx,
   args: {
-    noteId: any;
+    noteId: Id<"notes">;
     tenantId: string;
     timestamp: number;
     content: { text: string; tiptap?: string };

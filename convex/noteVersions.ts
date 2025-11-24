@@ -1,7 +1,6 @@
-import { action, mutation, query, MutationCtx } from "./_generated/server";
-import { NoteContent } from "@/types/note";
+import { query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 
 export const getNoteVersions = query({
   args: { note_id: v.string() },
@@ -44,10 +43,13 @@ function calculateTextDifference(text1: string, text2: string): number {
 }
 
 // Check if backup should be created based on smart criteria
-export const shouldCreateBackup = query({
+export const shouldCreateBackup = internalQuery({
   args: {
     note_id: v.id("notes"),
-    current_content: v.object({ text: v.string(), tiptap: v.optional(v.string()) })
+    current_content: v.object({
+      text: v.string(),
+      tiptap: v.optional(v.string()),
+    }),
   },
   handler: async (ctx, { note_id, current_content }) => {
     const now = Date.now();
@@ -82,12 +84,16 @@ export const shouldCreateBackup = query({
       // Calculate character difference
       const textDifference = calculateTextDifference(
         current_content.text,
-        recentBackupContent.content.text
+        recentBackupContent.content.text,
       );
 
       // If content changed by more than 200 characters, create backup
-      if (textDifference >= 200) {
-        return { shouldBackup: true, reason: "content_threshold", difference: textDifference };
+      if (textDifference >= 200 && current_content.text.length > 0) {
+        return {
+          shouldBackup: true,
+          reason: "content_threshold",
+          difference: textDifference,
+        };
       }
     }
 
@@ -96,7 +102,7 @@ export const shouldCreateBackup = query({
 });
 
 // Clean up old backups based on tiered retention policy
-export const cleanupOldBackups = mutation({
+export const cleanupOldBackups = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
@@ -120,9 +126,12 @@ export const cleanupOldBackups = mutation({
     let totalDeleted = 0;
 
     // Process each note's backups
-    for (const [noteId, backups] of backupsByNote) {
+    for (const [_noteId, backups] of backupsByNote) {
       // Sort backups by timestamp (newest first)
-      backups.sort((a, b) => b.timestamp - a.timestamp);
+      backups.sort(
+        (a: Doc<"notesHistoryMetadata">, b: Doc<"notesHistoryMetadata">) =>
+          b.timestamp - a.timestamp,
+      );
 
       const toDelete = [];
       const timeSlots = new Set();
@@ -135,7 +144,7 @@ export const cleanupOldBackups = mutation({
         if (i === 0) continue;
 
         let shouldKeep = false;
-        let timeSlot = '';
+        let timeSlot = "";
 
         if (age <= oneDay) {
           // Last 24 hours: Keep all backups
