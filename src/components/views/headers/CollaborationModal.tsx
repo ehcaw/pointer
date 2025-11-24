@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, X, AlertCircle } from "lucide-react";
+import { Users, X, AlertCircle, RotateCw } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useConvex } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -25,6 +25,7 @@ import { useNotesStore } from "@/lib/stores/notes-store";
 import useSWR from "swr";
 import { createDataFetchers } from "@/lib/utils/dataFetchers";
 import { customToast } from "@/components/ui/custom-toast";
+import { useRouter } from "next/navigation";
 
 interface Collaborator {
   email: string;
@@ -43,6 +44,7 @@ export default function CollaborationModal({
   onOpenChange,
 }: CollaborationModalProps) {
   const { currentNote } = useNotesStore();
+  const router = useRouter();
   const [isCollaborationEnabled, setIsCollaborationEnabled] = useState(false);
   const [email, setEmail] = useState("");
   const [localCollaborators, setLocalCollaborators] = useState<Collaborator[]>(
@@ -61,7 +63,7 @@ export default function CollaborationModal({
   // Constants for validation
   const MAX_COLLABORATORS = 50;
   const RATE_LIMIT_MS = 2000; // 2 seconds between additions
-  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const EMAIL_REGEX = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
 
   // Reset state when current note changes
   useEffect(() => {
@@ -72,6 +74,10 @@ export default function CollaborationModal({
     setIsAddingCollaborator(false);
     // Reset the previous collaborators ref when note changes
     prevCollaborators.current = [];
+    // Reset local collaborators if switching to a different note
+    if (!currentNote?._id) {
+      setLocalCollaborators([]);
+    }
   }, [currentNote?._id, currentNote?.collaborative]);
 
   // Validate email in real-time
@@ -81,7 +87,7 @@ export default function CollaborationModal({
     } else {
       setEmailError("");
     }
-  }, [email]);
+  }, [email, EMAIL_REGEX]);
 
   const {
     data: collaborators = [],
@@ -210,6 +216,12 @@ export default function CollaborationModal({
       };
 
       setLocalCollaborators([...localCollaborators, newCollaborator]);
+
+      // Automatically enable collaboration when adding collaborators
+      if (!isCollaborationEnabled) {
+        setIsCollaborationEnabled(true);
+      }
+
       setEmail("");
       setError(""); // Clear any previous errors
     } catch (err) {
@@ -248,8 +260,12 @@ export default function CollaborationModal({
       user.emailAddresses.length > 0
     ) {
       try {
+        // Track if collaboration setting changed
+        const collaborationChanged = isCollaborationEnabled !== currentNote.collaborative;
+        const willBeCollaborative = isCollaborationEnabled;
+
         // Step 1: Toggle collaboration first if changed
-        if (isCollaborationEnabled !== currentNote.collaborative) {
+        if (collaborationChanged) {
           await convex.mutation(api.notes.toggleCollaboration, {
             docId: currentNote._id,
             collaborative: isCollaborationEnabled,
@@ -310,6 +326,23 @@ export default function CollaborationModal({
         await revalidateCollaborators();
 
         customToast("Collaboration settings saved");
+
+        // Step 5: Handle navigation if collaboration setting changed
+        if (collaborationChanged) {
+          onOpenChange(false); // Close the modal first
+
+          // Navigate to the appropriate route based on the new collaboration setting
+          if (willBeCollaborative) {
+            // Navigate to collaborative route
+            router.push(`/main/collab/${currentNote.pointer_id}`);
+          } else {
+            // Navigate to regular note route
+            router.push("/main");
+          }
+        } else {
+          // No collaboration change, just close modal
+          onOpenChange(false);
+        }
       } catch (error) {
         console.error("Error saving collaboration settings:", error);
         setError("Failed to save collaboration settings. Please try again.");
@@ -346,12 +379,34 @@ export default function CollaborationModal({
             />
             <Label htmlFor="collaboration-enabled">Enable collaboration</Label>
           </div>
-          {isCollaborationEnabled && (
+          {(isCollaborationEnabled || localCollaborators.length > 0) && (
             <>
               {(error || emailError) && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error || emailError}</AlertDescription>
+                </Alert>
+              )}
+              {localCollaborators.length > 0 && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {isCollaborationEnabled
+                      ? "Collaboration is enabled. Collaborators will be able to access this note."
+                      : "Collaboration is currently disabled. Enable it to allow collaborators to access this note."}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Navigation notice when collaboration setting changes */}
+              {isCollaborationEnabled !== currentNote?.collaborative && (
+                <Alert>
+                  <RotateCw className="h-4 w-4" />
+                  <AlertDescription>
+                    {isCollaborationEnabled
+                      ? "Enabling collaboration will navigate you to the collaborative editor interface."
+                      : "Disabling collaboration will navigate you to the regular editor interface."}
+                  </AlertDescription>
                 </Alert>
               )}
               <div className="grid grid-cols-4 items-center gap-4">
