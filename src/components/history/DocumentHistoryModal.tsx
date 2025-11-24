@@ -43,18 +43,44 @@ export function DocumentHistoryModal({
     new Set(),
   );
   const [isRestoring, setIsRestoring] = useState(false);
+  // Capture the note ID when modal opens to prevent query from skipping when currentNote changes
+  const [stableNoteId, setStableNoteId] = useState<string | null>(null);
 
-  const hasNote = isOpen && currentNote && isFile(currentNote);
+  // Update stable note ID when modal opens with a valid note - never clear it to prevent query from skipping
+  // Only depends on isOpen to prevent re-setting when currentNote updates during save
+  useEffect(() => {
+    if (isOpen && currentNote && isFile(currentNote)) {
+      let noteId = currentNote._id;
+
+      // If _id is undefined, try to find the note in userNotes by pointer_id
+      if (!noteId) {
+        const { userNotes } = useNotesStore.getState();
+        const foundNote = userNotes.find(
+          (n) => n.pointer_id === currentNote.pointer_id,
+        );
+        noteId = foundNote?._id;
+      }
+
+      if (noteId) {
+        setStableNoteId(noteId);
+      } else {
+        console.error(
+          "❌ Could not find note _id! Cannot set stableNoteId",
+          currentNote,
+        );
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const versionsQuery = useQuery(
     api.noteVersions.getNoteVersions,
-    hasNote ? { note_id: currentNote?._id || "" } : "skip",
+    stableNoteId ? { note_id: stableNoteId } : "skip",
   );
 
   const versions: DocumentVersion[] = (versionsQuery || []).sort((a, b) =>
     a.timestamp > b.timestamp ? -1 : 1,
   );
-
   // Get current version content (initial content)
   const currentVersionContent = (currentNote as FileNode)
     ? (currentNote as FileNode).content?.tiptap
@@ -126,7 +152,10 @@ export function DocumentHistoryModal({
     versionId: Id<"notesHistoryMetadata">,
   ) => {
     const versionToRestore = versions.find((v) => v._id === versionId);
-    if (!versionToRestore) return;
+    if (!versionToRestore) {
+      console.error("❌ Version not found:", versionId);
+      return;
+    }
 
     setIsRestoring(true);
 
@@ -166,9 +195,7 @@ export function DocumentHistoryModal({
       }
 
       // Update the editor content through the global editor store
-      console.log("Restoring content to editor:", contentToRestore);
       updateEditorContent(contentToRestore);
-      console.log("Successfully restored content to editor");
 
       // Save the restored content to database
       if (currentNote && isFile(currentNote)) {
@@ -177,17 +204,15 @@ export function DocumentHistoryModal({
           text: fetchedContent?.content?.text || "",
         };
 
-        // Update currentNote's content in the store immediately
-        currentNote.content = restoredContent;
-
-        // Save to database using the save coordinator (non-debounced)
-        console.log("Saving restored content to database...");
+        // Save to database using the save coordinator
+        // Note: saveContent will handle marking the note as unsaved and updating the store
         await saveContent(currentNote.pointer_id, restoredContent);
-        console.log("Successfully saved restored content");
       }
 
       // Close the modal after successful restore
-      onClose();
+      setTimeout(() => {
+        onClose();
+      }, 200);
     } finally {
       setIsRestoring(false);
     }

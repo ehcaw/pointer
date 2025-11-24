@@ -1,41 +1,5 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 
-/**
- * PERFORMANCE OPTIMIZATIONS:
- *
- * This editor has been optimized to handle large documents and frequent updates efficiently.
- * Target: Smooth 60fps typing even in documents with 10,000+ words.
- *
- * 1. Ultra-fast document node count check (O(1)):
- *    - Uses editor.state.doc.nodeSize instead of traversing content
- *    - Catches 95%+ of "no change" cases instantly
- *    - Avoids expensive editor.getText() calls on every keystroke
- *
- * 2. Hash-based content comparison instead of JSON.stringify():
- *    - Only computes JSON hash when node count changes
- *    - Avoids expensive JSON serialization on every keystroke
- *    - Uses fast numeric hashing via toHash()
- *
- * 3. Memoized JSON hash cache (WeakMap):
- *    - Caches hash results for JSON objects to avoid redundant stringification
- *    - Automatically garbage collected when objects are no longer referenced
- *
- * 4. Debounced content updates (300ms):
- *    - handleContentUpdate is debounced to avoid blocking on every keystroke
- *    - Typing remains smooth at 60fps
- *    - Saves still happen quickly after user stops typing
- *
- * 5. React useTransition for slash commands:
- *    - Slash command state updates marked as non-urgent
- *    - Doesn't block typing input (React 18 concurrent feature)
- *
- * 6. Ref-based tracking instead of state:
- *    - Uses refs for hash values to avoid unnecessary re-renders
- *    - Prevents cascade of updates through component tree
- *
- * Result: ~95-99% reduction in CPU usage, <1ms onUpdate time, smooth 60fps typing.
- */
-
 import {
   useEffect,
   useRef,
@@ -585,83 +549,86 @@ export function useCollaborativeEditor({
   );
 
   // Handle content update using the centralized save coordinator
-  const handleContentUpdate = useCallback((docChanged?: boolean) => {
-    if (!currentNote || !editor) return;
+  const handleContentUpdate = useCallback(
+    (docChanged?: boolean) => {
+      if (!currentNote || !editor) return;
 
-    // CRITICAL: Don't save until initial content has been loaded
-    if (!isInitialContentLoaded) {
-      // Still update the last content hash to track the initial state
-      lastTextHashRef.current = getContentHash(editor);
-      lastJsonHashRef.current = getContentJsonHash(editor.getJSON());
-      return;
-    }
-
-    // CRITICAL: Don't save if this is a remote change during initial loading
-    if (isRemoteChange.current && lastTextHashRef.current === 0) {
-      return;
-    }
-
-    // ULTRA-FAST: Check document size first (doesn't traverse content)
-    const nodeCount = getDocumentNodeCount(editor);
-    const lastNodeCount = lastTextHashRef.current;
-
-    // If node count hasn't changed and doc didn't change, content likely hasn't changed
-    // This is a very cheap check that catches most no-change cases
-    // Only skip when doc didn't change AND node count is unchanged AND not initial state
-    if (!docChanged && nodeCount === lastNodeCount && lastNodeCount !== 0) {
-      return;
-    }
-
-    // Document structure changed, get JSON and hash it
-    const currentEditorJson = editor.getJSON();
-    const currentJsonHash = getContentJsonHash(currentEditorJson);
-
-    // Only update if JSON structure actually changed
-    if (currentJsonHash !== lastJsonHashRef.current) {
-      const currentEditorText = editor.getText();
-
-      // CRITICAL: Additional validation to prevent data overwriting
-      const hasSignificantContent =
-        currentEditorText.trim().length > 0 ||
-        (currentEditorJson.content && currentEditorJson.content.length > 0);
-
-      // CRITICAL: Prevent overwriting if this is a different note than expected
-      const isMatchingNote = currentNote && currentNote.pointer_id === id;
-      if (!isMatchingNote) {
-        console.warn("Warning: Update attempted for wrong note ID", {
-          expected: id,
-          actual: currentNote?.pointer_id,
-          noteName: currentNote?.name,
-        });
+      // CRITICAL: Don't save until initial content has been loaded
+      if (!isInitialContentLoaded) {
+        // Still update the last content hash to track the initial state
+        lastTextHashRef.current = getContentHash(editor);
+        lastJsonHashRef.current = getContentJsonHash(editor.getJSON());
         return;
       }
 
-      if (
-        hasSignificantContent ||
-        (currentEditorText.trim() === "" && isFile(currentNote))
-      ) {
-        // Update hash refs (use nodeCount as text hash proxy)
-        lastTextHashRef.current = nodeCount;
-        lastJsonHashRef.current = currentJsonHash;
+      // CRITICAL: Don't save if this is a remote change during initial loading
+      if (isRemoteChange.current && lastTextHashRef.current === 0) {
+        return;
+      }
 
-        // Save content using the centralized save coordinator
-        if (isFile(currentNote) && !isRemoteChange.current) {
-          saveContent(currentNote.pointer_id, {
-            tiptap: ensureJSONString(currentEditorJson),
-            text: currentEditorText,
-          }).catch((error) => {
-            console.error("Content save failed:", error);
+      // ULTRA-FAST: Check document size first (doesn't traverse content)
+      const nodeCount = getDocumentNodeCount(editor);
+      const lastNodeCount = lastTextHashRef.current;
+
+      // If node count hasn't changed and doc didn't change, content likely hasn't changed
+      // This is a very cheap check that catches most no-change cases
+      // Only skip when doc didn't change AND node count is unchanged AND not initial state
+      if (!docChanged && nodeCount === lastNodeCount && lastNodeCount !== 0) {
+        return;
+      }
+
+      // Document structure changed, get JSON and hash it
+      const currentEditorJson = editor.getJSON();
+      const currentJsonHash = getContentJsonHash(currentEditorJson);
+
+      // Only update if JSON structure actually changed
+      if (currentJsonHash !== lastJsonHashRef.current) {
+        const currentEditorText = editor.getText();
+
+        // CRITICAL: Additional validation to prevent data overwriting
+        const hasSignificantContent =
+          currentEditorText.trim().length > 0 ||
+          (currentEditorJson.content && currentEditorJson.content.length > 0);
+
+        // CRITICAL: Prevent overwriting if this is a different note than expected
+        const isMatchingNote = currentNote && currentNote.pointer_id === id;
+        if (!isMatchingNote) {
+          console.warn("Warning: Update attempted for wrong note ID", {
+            expected: id,
+            actual: currentNote?.pointer_id,
+            noteName: currentNote?.name,
           });
+          return;
+        }
+
+        if (
+          hasSignificantContent ||
+          (currentEditorText.trim() === "" && isFile(currentNote))
+        ) {
+          // Update hash refs (use nodeCount as text hash proxy)
+          lastTextHashRef.current = nodeCount;
+          lastJsonHashRef.current = currentJsonHash;
+
+          // Save content using the centralized save coordinator
+          if (isFile(currentNote) && !isRemoteChange.current) {
+            saveContent(currentNote.pointer_id, {
+              tiptap: ensureJSONString(currentEditorJson),
+              text: currentEditorText,
+            }).catch((error) => {
+              console.error("Content save failed:", error);
+            });
+          }
         }
       }
-    }
-  }, [
-    currentNote,
-    editor,
-    saveContent,
-    isInitialContentLoaded,
-    id, // Reset when note ID changes
-  ]);
+    },
+    [
+      currentNote,
+      editor,
+      saveContent,
+      isInitialContentLoaded,
+      id, // Reset when note ID changes
+    ],
+  );
 
   // Monitor connection status from provider
   useEffect(() => {
@@ -952,40 +919,43 @@ export function useSimpleEditor({
   );
 
   // Optimized content update using the centralized save coordinator
-  const handleContentUpdate = useCallback((docChanged?: boolean) => {
-    if (!currentNote || !editor) return;
+  const handleContentUpdate = useCallback(
+    (docChanged?: boolean) => {
+      if (!currentNote || !editor) return;
 
-    // ULTRA-FAST: Check document size first (doesn't traverse content)
-    const nodeCount = getDocumentNodeCount(editor);
-    const lastNodeCount = lastTextHashRef.current;
+      // ULTRA-FAST: Check document size first (doesn't traverse content)
+      const nodeCount = getDocumentNodeCount(editor);
+      const lastNodeCount = lastTextHashRef.current;
 
-    // If node count hasn't changed and doc didn't change, content likely hasn't changed
-    // Only skip when doc didn't change AND node count is unchanged AND not initial state
-    if (!docChanged && nodeCount === lastNodeCount && lastNodeCount !== 0) {
-      return;
-    }
+      // If node count hasn't changed and doc didn't change, content likely hasn't changed
+      // Only skip when doc didn't change AND node count is unchanged AND not initial state
+      if (!docChanged && nodeCount === lastNodeCount && lastNodeCount !== 0) {
+        return;
+      }
 
-    // Document structure changed, get JSON and hash it
-    const currentEditorJson = editor.getJSON();
-    const currentJsonHash = getContentJsonHash(currentEditorJson);
+      // Document structure changed, get JSON and hash it
+      const currentEditorJson = editor.getJSON();
+      const currentJsonHash = getContentJsonHash(currentEditorJson);
 
-    // Only update if JSON structure actually changed
-    if (currentJsonHash !== lastJsonHashRef.current && isFile(currentNote)) {
-      // Update hash refs (use nodeCount as text hash proxy)
-      lastTextHashRef.current = nodeCount;
-      lastJsonHashRef.current = currentJsonHash;
+      // Only update if JSON structure actually changed
+      if (currentJsonHash !== lastJsonHashRef.current && isFile(currentNote)) {
+        // Update hash refs (use nodeCount as text hash proxy)
+        lastTextHashRef.current = nodeCount;
+        lastJsonHashRef.current = currentJsonHash;
 
-      const currentEditorText = editor.getText();
+        const currentEditorText = editor.getText();
 
-      // Save content using the centralized save coordinator
-      saveContent(currentNote.pointer_id, {
-        tiptap: ensureJSONString(currentEditorJson),
-        text: currentEditorText,
-      }).catch((error) => {
-        console.error("Content save failed:", error);
-      });
-    }
-  }, [currentNote, editor, saveContent]);
+        // Save content using the centralized save coordinator
+        saveContent(currentNote.pointer_id, {
+          tiptap: ensureJSONString(currentEditorJson),
+          text: currentEditorText,
+        }).catch((error) => {
+          console.error("Content save failed:", error);
+        });
+      }
+    },
+    [currentNote, editor, saveContent],
+  );
 
   // Calculate position for slash command popup - position relative to viewport with awareness
   const getSlashCommandPosition = () => {

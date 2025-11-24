@@ -193,10 +193,10 @@ export function useNoteEditor() {
         collaborative: noteData.collaborative,
       };
       await convex.mutation(api.notes.updateNoteInDb, mutationData);
-      const savedNote = { ...note, _id: note.pointer_id };
-      updateNoteInCollections(savedNote);
+      // Keep the existing _id - don't override it with pointer_id
+      updateNoteInCollections(note);
       clearUnsavedNote(note.pointer_id.toString());
-      dbSavedNotes.set(note.pointer_id, savedNote);
+      dbSavedNotes.set(note.pointer_id, note);
 
       return true;
     } catch (error) {

@@ -57,6 +57,7 @@ interface NotesStore {
   updateNoteInCollections: (note: Node) => void;
   removeNoteFromCollections: (noteId: string) => void;
   updateUserNote: (note: Node) => void;
+  updateNote: (noteId: string, updates: Partial<Node>) => void;
 
   // Content cache management
   getCachedContent: (noteId: string) => string | undefined;
@@ -225,10 +226,21 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       (n) => n.pointer_id.toString() === note.pointer_id.toString(),
     );
 
+    let currentNote = state.currentNote;
+
     if (index !== -1) {
       openUserNotes[index] = note;
-      set({ openUserNotes });
     }
+
+    // Also update currentNote if it's the same note
+    if (
+      currentNote &&
+      currentNote.pointer_id.toString() === note.pointer_id.toString()
+    ) {
+      currentNote = note;
+    }
+
+    set({ unsavedNotes, openUserNotes, currentNote });
   },
 
   hasUnsavedChanges: () => {
@@ -418,6 +430,65 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     );
 
     set({ userNotes });
+  },
+
+  updateNote: (noteId: string, updates: Partial<Node>) => {
+    const state = get();
+
+    // Helper function to update a note object with partial updates
+    const updateNoteObject = (note: Node | null): Node | null => {
+      if (!note) return null;
+
+      // Check if this is the note we want to update (by pointer_id or _id)
+      const isTargetNote =
+        note.pointer_id.toString() === noteId || note._id === noteId;
+
+      if (!isTargetNote) return note;
+
+      // Apply partial updates, preserving existing properties
+      return { ...note, ...updates };
+    };
+
+    // Update in userNotes
+    const userNotes = state.userNotes
+      .map(updateNoteObject)
+      .filter((n): n is Node => n !== null);
+
+    // Update in openUserNotes
+    const openUserNotes = state.openUserNotes
+      .map(updateNoteObject)
+      .filter((n): n is Node => n !== null);
+
+    // Update currentNote if it matches
+    const currentNote = updateNoteObject(state.currentNote);
+
+    // Update in treeStructure
+    const treeStructure = state.treeStructure
+      .map(updateNoteObject)
+      .filter((n): n is Node => n !== null);
+
+    // Update in unsavedNotes if present
+    const unsavedNotes = new Map<string, Node>();
+    state.unsavedNotes.forEach((note, key) => {
+      const updatedNote = updateNoteObject(note);
+      if (updatedNote) {
+        unsavedNotes.set(key, updatedNote);
+      }
+    });
+
+    // Update in newUnsavedNotes
+    const newUnsavedNotes = state.newUnsavedNotes
+      .map(updateNoteObject)
+      .filter(Boolean) as Node[];
+
+    set({
+      userNotes,
+      openUserNotes,
+      currentNote,
+      treeStructure,
+      unsavedNotes,
+      newUnsavedNotes,
+    });
   },
 
   removeNoteFromCollections: (noteId: string) => {
@@ -835,7 +906,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update userNotes array - check both _id and pointer_id
     const updatedUserNotes = state.userNotes.map((n) =>
-      (n._id === nodeId || n.pointer_id === nodeId) ? updatedNode : n,
+      n._id === nodeId || n.pointer_id === nodeId ? updatedNode : n,
     );
 
     // Update tree structure - check both _id and pointer_id
@@ -848,12 +919,16 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
     // Update open notes if the node is open - check both _id and pointer_id
     const updatedOpenNotes = state.openUserNotes.map((n) =>
-      (n._id === nodeId || n.pointer_id === nodeId) ? updatedNode : n,
+      n._id === nodeId || n.pointer_id === nodeId ? updatedNode : n,
     );
 
     // Update current note if it's the one being moved - check both _id and pointer_id
     let updatedCurrentNote = state.currentNote;
-    if (state.currentNote && (state.currentNote._id === nodeId || state.currentNote.pointer_id === nodeId)) {
+    if (
+      state.currentNote &&
+      (state.currentNote._id === nodeId ||
+        state.currentNote.pointer_id === nodeId)
+    ) {
       updatedCurrentNote = updatedNode;
     }
 
@@ -863,8 +938,6 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       openUserNotes: updatedOpenNotes,
       currentNote: updatedCurrentNote,
     });
-
-    console.log(`Moved node ${nodeId} to parent ${newParentId}`);
   },
 }));
 

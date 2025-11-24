@@ -6,15 +6,21 @@ export const getNoteVersions = query({
   args: { note_id: v.string() },
   handler: async (ctx, { note_id }) => {
     const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
     const noteId = ctx.db.normalizeId("notes", note_id);
+
     if (!noteId) {
+      console.log("❌ noteId is null, returning empty array");
       return [];
     }
     const versions = await ctx.db
       .query("notesHistoryMetadata")
       .withIndex("by_note_id", (q) => q.eq("noteId", noteId))
       .collect();
-    if (versions[0].tenantId !== identity?.subject) {
+
+    if (versions.length > 0 && versions[0].tenantId !== identity?.subject) {
       throw new Error("Not authenticated");
     }
     return versions;
@@ -25,6 +31,9 @@ export const getNoteContentVersion = query({
   args: { metadata_id: v.id("notesHistoryMetadata") },
   handler: async (ctx, { metadata_id }) => {
     const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
     const metadataId = ctx.db.normalizeId("notesHistoryMetadata", metadata_id);
     if (!metadataId) {
       throw new Error("Invalid version ID");
@@ -33,10 +42,10 @@ export const getNoteContentVersion = query({
     const content = await ctx.db
       .query("notesHistoryContent")
       .withIndex("by_metadata_id", (q) => q.eq("metadataId", metadataId))
-      .unique();
+      .first();
 
-    if (content?.tenantId !== identity?.subject) {
-      throw new Error("Not authenticated");
+    if (!content || content?.tenantId !== identity?.subject) {
+      throw new Error("Version content not found or not authenticated");
     }
     return content;
   },

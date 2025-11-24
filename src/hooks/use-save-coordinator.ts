@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { useNotesStore } from "@/lib/stores/notes-store";
 import { useNoteEditor } from "@/hooks/use-note-editor";
-import { Node, isFile } from "@/types/note";
+import { Node, isFile, FileNode } from "@/types/note";
 import { ensureJSONString, toHash } from "@/lib/utils";
 import {
   customErrorToast,
@@ -473,11 +473,34 @@ export function useSaveCoordinator() {
       noteId: string,
       content: { tiptap: string; text: string },
     ): Promise<boolean> => {
+      console.log("💾 saveContent called:", { noteId, hasContent: !!content });
+
       // Mark as unsaved using the latest snapshot and apply content change
       const snapshot = captureNoteSnapshot(noteId);
+      console.log(
+        "💾 saveContent - snapshot:",
+        snapshot
+          ? {
+              _id: snapshot._id,
+              pointer_id: snapshot.pointer_id,
+              name: snapshot.name,
+              hasContent: !!(snapshot as FileNode)?.content,
+            }
+          : null,
+      );
+
       if (snapshot && isFile(snapshot)) {
         const currentText = snapshot.content?.text || "";
         const currentTiptap = snapshot.content?.tiptap || "";
+
+        console.log("💾 saveContent - content comparison:", {
+          currentText,
+          newText: content.text,
+          currentTiptap,
+          newTiptap: content.tiptap,
+          contentDiffers:
+            currentText !== content.text || currentTiptap !== content.tiptap,
+        });
 
         // Only mark as unsaved if content actually differs
         if (currentText !== content.text || currentTiptap !== content.tiptap) {
@@ -494,10 +517,22 @@ export function useSaveCoordinator() {
               : {}),
           };
 
+          console.log("💾 saveContent - calling markNoteAsUnsaved:", {
+            noteId: updatedNote.pointer_id,
+            hasContent: !!updatedNote.content,
+          });
+
           markNoteAsUnsaved(updatedNote);
+        } else {
+          console.log(
+            "💾 saveContent - content unchanged, skipping markNoteAsUnsaved",
+          );
         }
+      } else {
+        console.log("💾 saveContent - no snapshot or not a file");
       }
 
+      console.log("💾 saveContent - calling queueSave");
       return queueSave(noteId, { content });
     },
     [queueSave, captureNoteSnapshot, markNoteAsUnsaved],
