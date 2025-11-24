@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/providers/auth/ConvexClientProvider";
 import { CommandMenuProvider } from "@/providers/CommandMenuProvider";
+import { DocumentHistoryProvider } from "@/providers/DocumentHistoryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { PostHogContextProvider } from "@/providers/PostHogProvider";
 import { SWRConfig } from "swr";
@@ -68,7 +69,11 @@ export default function RootLayout({
             <PostHogContextProvider>
               <ThemeProvider defaultTheme="system" storageKey="theme">
                 <ConvexClientProvider>
-                  <CommandMenuProvider>{children}</CommandMenuProvider>
+                  <CommandMenuProvider>
+                    <DocumentHistoryProvider>
+                      {children}
+                    </DocumentHistoryProvider>
+                  </CommandMenuProvider>
                   <Toaster position="top-right" duration={2000} />
                 </ConvexClientProvider>
               </ThemeProvider>

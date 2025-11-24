@@ -25,6 +25,9 @@ import { useUser } from "@clerk/nextjs";
 import StatusBadge from "../toolbar/WebsocketStatusBadge";
 import { generateUserColor } from "@/lib/utils/tiptapUtils";
 
+// --- Stores ---
+import { useEditorStore } from "@/lib/stores/editor-store";
+
 interface CollaborativeEditorProps {
   id: string;
   content: string | Record<string, unknown> | null | undefined;
@@ -54,6 +57,7 @@ export function CollaborativeEditor({
 
   // Get authenticated user information for collaboration
   const { user } = useUser();
+  const { setActiveEditor } = useEditorStore();
 
   // Create user info object for Hocuspocus
   const userInfo = useMemo(() => {
@@ -209,6 +213,9 @@ export function CollaborativeEditor({
     if (editor && onEditorReady) {
       onEditorReady(editor);
     }
+
+    // Set the active editor in the global store
+    setActiveEditor(editor);
   }, [
     editor,
     editorRef,
@@ -216,6 +223,7 @@ export function CollaborativeEditor({
     forceCleanupProvider,
     disconnectProvider,
     reconnectProvider,
+    setActiveEditor,
   ]);
 
   // Handle editor editability based on connection status

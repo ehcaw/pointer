@@ -117,12 +117,15 @@ export default defineSchema({
     noteId: v.id("notes"),
     tenantId: v.string(),
     timestamp: v.number(),
-  }),
+  })
+    .index("by_note_id", ["noteId"])
+    .index("by_creation", ["timestamp"]),
   notesHistoryContent: defineTable({
     metadataId: v.id("notesHistoryMetadata"),
     content: v.object({
       text: v.string(),
       tiptap: v.optional(v.string()),
     }),
-  }),
+    tenantId: v.string(),
+  }).index("by_metadata_id", ["metadataId"]),
 });

@@ -24,6 +24,7 @@ import {
   customSuccessToast,
   customErrorToast,
 } from "@/components/ui/custom-toast";
+import { useDocumentHistory } from "@/providers/DocumentHistoryProvider";
 
 export default function NoteViewHeader() {
   const [title, setTitle] = useState("");
@@ -34,6 +35,7 @@ export default function NoteViewHeader() {
   const { unsavedNotes } = useNotesStore();
   const { currentNote } = useNoteEditor();
   const { saveTitle, getSaveStatus } = useSaveCoordinator();
+  const { openHistory } = useDocumentHistory();
   const hasUnsavedChanges = Array.from(unsavedNotes.values()).length > 0;
 
   const debouncedSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -190,7 +192,16 @@ export default function NoteViewHeader() {
         )}
 
         {currentNote && (
-          <div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={openHistory}
+              title="View document history"
+            >
+              <Clock className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
