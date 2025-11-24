@@ -308,7 +308,7 @@ export default function CollaborationModal({
                 convex.mutation(api.notes.unshareNote, {
                   userEmail: collaborator.email,
                   ownerEmail: user.emailAddresses[0]?.emailAddress || "",
-                  dId: currentNote._id || "",
+                  dId: currentNote._id ? String(currentNote._id) : "",
                 }),
               ),
             );
