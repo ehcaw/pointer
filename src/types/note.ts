@@ -80,7 +80,7 @@ export interface FolderNode extends BaseNode {
 
 export interface NoteContent {
   text: string;
-  tiptap: string;
+  tiptap?: string;
 }
 
 /**

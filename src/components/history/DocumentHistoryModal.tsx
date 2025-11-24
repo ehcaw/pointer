@@ -201,7 +201,8 @@ export function DocumentHistoryModal({
       if (currentNote && isFile(currentNote)) {
         const restoredContent = {
           tiptap: ensureJSONString(contentToRestore),
-          text: fetchedContent?.content?.text || "",
+          text:
+            (isFile(currentNote) ? currentNote.content?.text : undefined) || "",
         };
 
         // Save to database using the save coordinator
