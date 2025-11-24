@@ -451,7 +451,11 @@ export const shareNote = mutation({
 export const unshareNote = mutation({
   args: { dId: v.string(), userEmail: v.string(), ownerEmail: v.string() },
   handler: async (ctx, args) => {
-    const documentId = args.dId as Id<"notes">;
+    const documentId = ctx.db.normalizeId("notes", args.dId);
+
+    if (!documentId) {
+      throw new Error("Invalid document ID");
+    }
 
     // Find the document that matches all three conditions
     const noteToDelete = await ctx.db
