@@ -377,10 +377,20 @@ const TimelineTime = React.forwardRef<HTMLTimeElement, TimelineTimeProps>(
       }
     }, [date, format]);
 
+    const dateTimeValue = React.useMemo(() => {
+      if (!date) return undefined;
+      try {
+        const dateObj = new Date(date);
+        return isNaN(dateObj.getTime()) ? undefined : dateObj.toISOString();
+      } catch {
+        return undefined;
+      }
+    }, [date]);
+
     return (
       <time
         ref={ref}
-        dateTime={date ? new Date(date).toISOString() : undefined}
+        dateTime={dateTimeValue}
         className={cn(
           "text-sm font-medium tracking-tight text-muted-foreground",
           className,

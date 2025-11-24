@@ -126,5 +126,6 @@ export default defineSchema({
       text: v.string(),
       tiptap: v.optional(v.string()),
     }),
+    tenantId: v.string(),
   }).index("by_metadata_id", ["metadataId"]),
 });

@@ -124,7 +124,7 @@ export interface CollaborativeEditorReturn {
     status: "connecting" | "connected" | "disconnected",
   ) => void;
   isInitialContentLoaded: boolean;
-  handleContentUpdate: () => void;
+  handleContentUpdate: (docChanged?: boolean) => void;
   getSlashCommandPosition: () => {
     top: number;
     left: number;
@@ -558,7 +558,7 @@ export function useCollaborativeEditor({
           clearTimeout(contentUpdateTimerRef.current);
         }
         contentUpdateTimerRef.current = setTimeout(() => {
-          handleContentUpdate();
+          handleContentUpdate(transaction.docChanged);
         }, 300); // 300ms debounce
 
         // Debounce image deletion check - expensive operation
@@ -585,7 +585,7 @@ export function useCollaborativeEditor({
   );
 
   // Handle content update using the centralized save coordinator
-  const handleContentUpdate = useCallback(() => {
+  const handleContentUpdate = useCallback((docChanged?: boolean) => {
     if (!currentNote || !editor) return;
 
     // CRITICAL: Don't save until initial content has been loaded
@@ -605,9 +605,10 @@ export function useCollaborativeEditor({
     const nodeCount = getDocumentNodeCount(editor);
     const lastNodeCount = lastTextHashRef.current;
 
-    // If node count hasn't changed, content likely hasn't changed
+    // If node count hasn't changed and doc didn't change, content likely hasn't changed
     // This is a very cheap check that catches most no-change cases
-    if (nodeCount === lastNodeCount && lastNodeCount !== 0) {
+    // Only skip when doc didn't change AND node count is unchanged AND not initial state
+    if (!docChanged && nodeCount === lastNodeCount && lastNodeCount !== 0) {
       return;
     }
 
@@ -924,7 +925,7 @@ export function useSimpleEditor({
           clearTimeout(contentUpdateTimerRef.current);
         }
         contentUpdateTimerRef.current = setTimeout(() => {
-          handleContentUpdate();
+          handleContentUpdate(transaction.docChanged);
         }, 300); // 300ms debounce
 
         // Debounce image deletion check - expensive operation
@@ -951,15 +952,16 @@ export function useSimpleEditor({
   );
 
   // Optimized content update using the centralized save coordinator
-  const handleContentUpdate = useCallback(() => {
+  const handleContentUpdate = useCallback((docChanged?: boolean) => {
     if (!currentNote || !editor) return;
 
     // ULTRA-FAST: Check document size first (doesn't traverse content)
     const nodeCount = getDocumentNodeCount(editor);
     const lastNodeCount = lastTextHashRef.current;
 
-    // If node count hasn't changed, content likely hasn't changed
-    if (nodeCount === lastNodeCount && lastNodeCount !== 0) {
+    // If node count hasn't changed and doc didn't change, content likely hasn't changed
+    // Only skip when doc didn't change AND node count is unchanged AND not initial state
+    if (!docChanged && nodeCount === lastNodeCount && lastNodeCount !== 0) {
       return;
     }
 

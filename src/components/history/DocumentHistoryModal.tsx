@@ -39,16 +39,21 @@ export function DocumentHistoryModal({
   const { saveContent } = useSaveCoordinator();
   const [selectedVersion, setSelectedVersion] =
     useState<Id<"notesHistoryMetadata"> | null>(null);
-  const [loadingVersions, setLoadingVersions] = useState<Set<string>>(new Set());
+  const [loadingVersions, setLoadingVersions] = useState<Set<string>>(
+    new Set(),
+  );
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const versionsQuery = useQuery(api.noteVersions.getNoteVersions, {
-    note_id: currentNote && currentNote._id ? currentNote._id : "",
-  });
+  const hasNote = isOpen && currentNote && isFile(currentNote);
 
-  const versions: DocumentVersion[] = (
-    versionsQuery || []
-  ).sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1));
+  const versionsQuery = useQuery(
+    api.noteVersions.getNoteVersions,
+    hasNote ? { note_id: currentNote?._id || "" } : "skip",
+  );
+
+  const versions: DocumentVersion[] = (versionsQuery || []).sort((a, b) =>
+    a.timestamp > b.timestamp ? -1 : 1,
+  );
 
   // Get current version content (initial content)
   const currentVersionContent = (currentNote as FileNode)
@@ -58,7 +63,7 @@ export function DocumentHistoryModal({
   // Track loading state for versions
   useEffect(() => {
     if (selectedVersion) {
-      setLoadingVersions(prev => new Set(prev).add(selectedVersion));
+      setLoadingVersions((prev) => new Set(prev).add(selectedVersion));
     }
   }, [selectedVersion]);
 
@@ -71,7 +76,7 @@ export function DocumentHistoryModal({
   // Update loading state when content is fetched or errors
   useEffect(() => {
     if (selectedVersion) {
-      setLoadingVersions(prev => {
+      setLoadingVersions((prev) => {
         const newSet = new Set(prev);
         newSet.delete(selectedVersion);
         return newSet;
@@ -130,9 +135,10 @@ export function DocumentHistoryModal({
 
       if (versionId === versions[0]?._id) {
         // This is the current version - use current content
-        contentToRestore = currentVersionContent && typeof currentVersionContent === 'string'
-          ? JSON.parse(currentVersionContent)
-          : currentVersionContent;
+        contentToRestore =
+          currentVersionContent && typeof currentVersionContent === "string"
+            ? JSON.parse(currentVersionContent)
+            : currentVersionContent;
       } else {
         // For historical versions, we need to fetch the content if not already loaded
         const versionContent = fetchedContent?.content?.tiptap;
@@ -218,7 +224,9 @@ export function DocumentHistoryModal({
               ) : versionsQuery === null ? (
                 <div className="text-center py-8 text-red-500">
                   <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-medium">Failed to load version history</p>
+                  <p className="text-sm font-medium">
+                    Failed to load version history
+                  </p>
                   <p className="text-xs mt-1">Please try again</p>
                 </div>
               ) : versions.length === 0 ? (
@@ -322,8 +330,12 @@ export function DocumentHistoryModal({
                           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden">
                             {(() => {
                               const displayContent = getDisplayContent();
-                              const isLoading = selectedVersion && loadingVersions.has(selectedVersion) && !fetchedContent;
-                              const hasError = selectedVersion && fetchedContent === null;
+                              const isLoading =
+                                selectedVersion &&
+                                loadingVersions.has(selectedVersion) &&
+                                !fetchedContent;
+                              const hasError =
+                                selectedVersion && fetchedContent === null;
 
                               if (isLoading) {
                                 return (
@@ -338,8 +350,12 @@ export function DocumentHistoryModal({
                                 return (
                                   <div className="flex items-center justify-center py-8 text-red-500">
                                     <div className="text-center">
-                                      <p className="text-sm font-medium">Failed to load version content</p>
-                                      <p className="text-xs mt-1">Please try selecting this version again</p>
+                                      <p className="text-sm font-medium">
+                                        Failed to load version content
+                                      </p>
+                                      <p className="text-xs mt-1">
+                                        Please try selecting this version again
+                                      </p>
                                     </div>
                                   </div>
                                 );

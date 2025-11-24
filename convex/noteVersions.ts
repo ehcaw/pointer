@@ -5,6 +5,7 @@ import type { Doc } from "./_generated/dataModel";
 export const getNoteVersions = query({
   args: { note_id: v.string() },
   handler: async (ctx, { note_id }) => {
+    const identity = await ctx.auth.getUserIdentity();
     const noteId = ctx.db.normalizeId("notes", note_id);
     if (!noteId) {
       return [];
@@ -13,7 +14,9 @@ export const getNoteVersions = query({
       .query("notesHistoryMetadata")
       .withIndex("by_note_id", (q) => q.eq("noteId", noteId))
       .collect();
-
+    if (versions[0].tenantId !== identity?.subject) {
+      throw new Error("Not authenticated");
+    }
     return versions;
   },
 });
@@ -21,6 +24,7 @@ export const getNoteVersions = query({
 export const getNoteContentVersion = query({
   args: { metadata_id: v.id("notesHistoryMetadata") },
   handler: async (ctx, { metadata_id }) => {
+    const identity = await ctx.auth.getUserIdentity();
     const metadataId = ctx.db.normalizeId("notesHistoryMetadata", metadata_id);
     if (!metadataId) {
       throw new Error("Invalid version ID");
@@ -30,6 +34,10 @@ export const getNoteContentVersion = query({
       .query("notesHistoryContent")
       .withIndex("by_metadata_id", (q) => q.eq("metadataId", metadataId))
       .unique();
+
+    if (content?.tenantId !== identity?.subject) {
+      throw new Error("Not authenticated");
+    }
     return content;
   },
 });

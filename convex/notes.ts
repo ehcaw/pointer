@@ -107,7 +107,9 @@ export const updateNoteInDb = mutation({
     type: v.optional(v.union(v.literal("file"), v.literal("folder"))),
 
     // Optional fields for both operations
-    content: v.optional(v.object({ tiptap: v.any(), text: v.string() })),
+    content: v.optional(
+      v.object({ tiptap: v.optional(v.string()), text: v.string() }),
+    ),
     lastAccessed: v.optional(v.string()),
     lastEdited: v.optional(v.string()),
     createdAt: v.optional(v.string()),
@@ -169,7 +171,7 @@ export const updateNoteInDb = mutation({
           );
 
           if (shouldBackup.shouldBackup) {
-            createNoteBackupHelper(ctx, {
+            await createNoteBackupHelper(ctx, {
               noteId: existingNote._id,
               tenantId: existingNote.tenantId,
               timestamp: timestamp,
@@ -230,91 +232,6 @@ export const updateNoteInDb = mutation({
           `Failed to create note: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       }
-    }
-  },
-});
-
-// Add a mutation to update a note by pointer_id
-export const updateNoteByPointerId = mutation({
-  args: {
-    pointer_id: v.string(),
-    name: v.optional(v.string()),
-    content: v.optional(
-      v.object({ tiptap: v.optional(v.any()), text: v.optional(v.string()) }),
-    ),
-    lastAccessed: v.optional(v.string()),
-    lastEdited: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { pointer_id, ...fields } = args;
-
-    // Validate pointer_id
-    if (!pointer_id || pointer_id.trim() === "") {
-      throw new Error("Invalid pointer_id: cannot be empty");
-    }
-
-    // Find the note by pointer_id
-    const note = await ctx.db
-      .query("notes")
-      .withIndex("by_pointer_id", (q) => q.eq("pointer_id", pointer_id))
-      .first();
-
-    if (!note) {
-      throw new Error(`Note with pointer_id '${pointer_id}' not found`);
-    }
-
-    try {
-      // Handle content updates
-      if (fields.content) {
-        const noteContentEntry = await ctx.db
-          .query("notesContent")
-          .withIndex("by_noteid", (q) => q.eq("noteId", note._id))
-          .first();
-
-        const content = {
-          text: fields.content.text || "",
-          tiptap: fields.content.tiptap || JSON.stringify({}),
-        };
-
-        if (noteContentEntry) {
-          // Update existing content
-          await ctx.db.patch(noteContentEntry._id, {
-            content,
-          });
-        } else {
-          // Create new content entry
-          await ctx.db.insert("notesContent", {
-            noteId: note._id,
-            content,
-            tenantId: note.tenantId,
-          });
-        }
-      }
-
-      // Prepare update fields (exclude content as it's handled above)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const update: Record<string, any> = {};
-      Object.entries(fields).forEach(([key, value]) => {
-        if (value !== undefined && key !== "content") {
-          update[key] = value;
-        }
-      });
-      update.updatedAt = String(new Date());
-
-      // Update the note if there are fields to update
-      if (Object.keys(update).length > 1) {
-        // More than just updatedAt
-        await ctx.db.patch(note._id, update);
-      } else if (Object.keys(update).length === 1) {
-        // Only updatedAt, still update to reflect the access
-        await ctx.db.patch(note._id, update);
-      }
-
-      return { success: true, noteId: note._id };
-    } catch (error) {
-      throw new Error(
-        `Failed to update note: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
     }
   },
 });
@@ -775,23 +692,21 @@ export const getTreeStructure = query({
       .withIndex("by_tenant", (q) => q.eq("tenantId", args.userId))
       .collect();
 
-    // Build tree structure
-    const notesById = new Map(
-      allNotes.map((note) => [
-        note._id,
-        { ...note, children: [] as Doc<"notes">[] },
-      ]),
+    type NoteTreeNode = Doc<"notes"> & { children: NoteTreeNode[] };
+    const notesById = new Map<Id<"notes">, NoteTreeNode>(
+      allNotes.map((note) => [note._id, { ...note, children: [] }]),
     );
-    const rootNodes: Doc<"notes">[] = [];
+    const rootNodes: NoteTreeNode[] = [];
 
     for (const note of allNotes) {
+      const node = notesById.get(note._id);
       if (note.parent_id) {
         const parent = notesById.get(note.parent_id);
         if (parent) {
-          parent.children.push(note);
+          parent.children.push(node!);
         }
       } else {
-        rootNodes.push(note);
+        rootNodes.push(node!);
       }
     }
 
@@ -817,5 +732,6 @@ async function createNoteBackupHelper(
   await ctx.db.insert("notesHistoryContent", {
     metadataId: noteHistoryMetadata,
     content: args.content,
+    tenantId: args.tenantId,
   });
 }
