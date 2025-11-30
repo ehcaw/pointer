@@ -18,6 +18,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useFolderOperations } from "@/hooks/use-folder-operations";
 import { customErrorToast } from "../ui/custom-toast";
+import { useRouter } from "next/navigation";
+import { useNotesStore } from "@/lib/stores/notes-store";
+import { usePreferencesStore } from "@/lib/stores/preferences-store";
 
 interface CreatePopoverProps {
   onCreateNote: () => void;
@@ -36,9 +39,19 @@ export function CreatePopover({
   const [isCreating, setIsCreating] = useState(false);
 
   const { createFolder: createFolderWithMutation } = useFolderOperations();
+  const router = useRouter();
+  const { currentNote } = useNotesStore();
+  const { setCurrentView } = usePreferencesStore();
 
   const handleCreateNote = () => {
     onCreateNote();
+
+    // Route to /main if creating a new note from a collaborative note
+    if (currentNote?.collaborative) {
+      setCurrentView("note");
+      router.push("/main");
+    }
+
     setOpen(false);
   };
 
