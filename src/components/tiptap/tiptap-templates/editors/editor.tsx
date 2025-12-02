@@ -122,7 +122,11 @@ const getBaseExtensions = () => [
   Subscript,
   Selection,
   TrailingNode,
-  Link.configure({ openOnClick: false }),
+  Link.configure({
+    openOnClick: false,
+    autolink: true,
+    defaultProtocol: "https",
+  }),
   SlashCommand.configure({
     suggestion: {
       char: "/",
