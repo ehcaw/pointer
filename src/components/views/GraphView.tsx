@@ -11,9 +11,8 @@ import { SidePanel } from "../graph/SidePanel";
 import { TimelineView } from "../graph/TimelineView";
 import { SearchOverlay } from "../graph/SearchOverlay";
 import { TagExplorer } from "../graph/TagExplorer";
-import { mockNodes, mockEdges } from "@/lib/mock-data";
 import { ThemeToggle } from "../navigation/ThemeToggle";
-import type { NodeType } from "@/lib/types";
+import type { NodeType, Edge } from "@/lib/types";
 
 export default function GraphView() {
   const [view, setView] = useState<"graph" | "timeline">("graph");
@@ -21,8 +20,8 @@ export default function GraphView() {
   const [showCapture, setShowCapture] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [nodes, setNodes] = useState(mockNodes);
-  const [edges, setEdges] = useState(mockEdges);
+  const [nodes, setNodes] = useState([] as NodeType[]);
+  const [edges, setEdges] = useState([] as Edge[]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Filter nodes based on selected tags
