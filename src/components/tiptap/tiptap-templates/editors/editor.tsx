@@ -13,8 +13,7 @@ import { toHash } from "@/lib/utils";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { TaskList } from "@tiptap/extension-task-list";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -136,7 +135,7 @@ const getBaseExtensions = () => [
   Emoji.configure({
     emojis: emojis,
     enableEmoticons: true,
-  }),
+  }) as any,
   TableKit.configure({
     table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
   }),
@@ -350,6 +349,7 @@ export function useCollaborativeEditor({
   const editor = useEditor(
     {
       enableContentCheck: true,
+      shouldRerenderOnTransaction: true,
       onContentError: ({ disableCollaboration }) => {
         disableCollaboration();
       },
@@ -434,8 +434,8 @@ export function useCollaborativeEditor({
         const baseExtensions = getBaseExtensions().map((ext) => {
           if (ext.name === "starterKit") {
             return StarterKit.configure({
-              // Disable history for collaborative editing - Y.js handles this
-              history: false,
+              // Disable undoRedo for collaborative editing - Y.js handles this
+              undoRedo: false,
             });
           }
           return ext;

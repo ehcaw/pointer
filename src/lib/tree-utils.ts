@@ -2,6 +2,55 @@ import { TreeDataItem } from "@/components/ui/tree-view";
 import { Node, isFolder } from "@/types/note";
 import { isFile } from "@/types/note";
 
+export function nodeToTreeItem(
+  folderChildrenMap: Map<string, Node[]>,
+  node: Node,
+): TreeDataItem {
+  // Only use _id for TreeView ID - nodes without _id won't be included in tree
+  if (!node._id) {
+    throw new Error(
+      `Node ${node.name} does not have _id, cannot include in tree structure`,
+    );
+  }
+
+  const treeItem: TreeDataItem = {
+    id: node._id,
+    name: node.name,
+    // Store original node data for access in Treeview component
+    data: node,
+    pointer_id: node.pointer_id,
+  };
+
+  // Add children if this is a folder
+  if (isFolder(node)) {
+    // Use _id for finding children
+    const children = folderChildrenMap.get(node._id) || [];
+    treeItem.children = children
+      .sort((a, b) => {
+        // Sort folders first, then files
+        if (isFolder(a) && !isFolder(b)) return -1;
+        if (!isFolder(a) && isFolder(b)) return 1;
+        // Then sort by name
+        return a.name.localeCompare(b.name);
+      })
+      .map((child) => nodeToTreeItem(folderChildrenMap, child));
+  }
+
+  // Add optional properties based on node type
+  if (isFile(node)) {
+    // Files are draggable
+    treeItem.draggable = true;
+  }
+
+  if (isFolder(node)) {
+    // Folders are both draggable and droppable
+    treeItem.draggable = true;
+    treeItem.droppable = true;
+  }
+
+  return treeItem;
+}
+
 /**
  * Converts a flat list of notes and folders into a hierarchical tree structure
  * compatible with TreeView component.
@@ -38,53 +87,6 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
     }
   });
 
-  // Recursive function to convert Node to TreeDataItem
-  function nodeToTreeItem(node: Node): TreeDataItem {
-    // Only use _id for TreeView ID - nodes without _id won't be included in tree
-    if (!node._id) {
-      throw new Error(
-        `Node ${node.name} does not have _id, cannot include in tree structure`,
-      );
-    }
-
-    const treeItem: TreeDataItem = {
-      id: node._id,
-      name: node.name,
-      // Store original node data for access in Treeview component
-      data: node,
-      pointer_id: node.pointer_id,
-    };
-
-    // Add children if this is a folder
-    if (isFolder(node)) {
-      // Use _id for finding children
-      const children = folderChildrenMap.get(node._id) || [];
-      treeItem.children = children
-        .sort((a, b) => {
-          // Sort folders first, then files
-          if (isFolder(a) && !isFolder(b)) return -1;
-          if (!isFolder(a) && isFolder(b)) return 1;
-          // Then sort by name
-          return a.name.localeCompare(b.name);
-        })
-        .map((child) => nodeToTreeItem(child));
-    }
-
-    // Add optional properties based on node type
-    if (isFile(node)) {
-      // Files are draggable
-      treeItem.draggable = true;
-    }
-
-    if (isFolder(node)) {
-      // Folders are both draggable and droppable
-      treeItem.draggable = true;
-      treeItem.droppable = true;
-    }
-
-    return treeItem;
-  }
-
   // Find root nodes (nodes without parent_id) that have _id
   const rootNodes = notes.filter((note) => !note.parent_id && note._id);
 
@@ -99,7 +101,7 @@ export function buildTreeStructure(notes: Node[]): TreeDataItem[] {
     })
     .map((rootNode) => {
       try {
-        return nodeToTreeItem(rootNode);
+        return nodeToTreeItem(folderChildrenMap, rootNode);
       } catch (error) {
         console.warn(error instanceof Error ? error.message : String(error));
         return null;

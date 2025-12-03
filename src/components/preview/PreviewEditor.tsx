@@ -4,8 +4,7 @@ import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Image } from "@/components/tiptap/tiptap-extension/image-extension";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { TaskList } from "@tiptap/extension-task-list";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -37,7 +36,7 @@ export const PreviewEditor = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        history: {
+        undoRedo: {
           depth: 15,
         },
       }),
@@ -58,7 +57,7 @@ export const PreviewEditor = ({
       Emoji.configure({
         emojis: emojis,
         enableEmoticons: true,
-      }),
+      }) as any,
       TableKit.configure({
         table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
       }),
