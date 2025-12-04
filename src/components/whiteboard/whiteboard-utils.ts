@@ -5,6 +5,7 @@ import type {
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { Whiteboard } from "@/types/whiteboard";
+import { serialize } from "swr/_internal";
 
 // Your persisted app state shape
 export type PersistedAppState = {
@@ -64,6 +65,20 @@ export async function deserializeWhiteboardData(
   }
 
   try {
+    const parsed = JSON.parse(serializedData);
+
+    if (
+      !serializedData ||
+      !parsed ||
+      !parsed.type ||
+      !parsed.version ||
+      !parsed.source ||
+      !parsed.elements ||
+      !parsed.appState
+    ) {
+      return null;
+    }
+
     // Dynamic import to avoid SSR issues
     const { loadFromBlob } = await import("@excalidraw/excalidraw");
 
@@ -106,7 +121,7 @@ export const isWhiteboard = (obj: any): obj is Whiteboard => {
     typeof obj.title === "string" &&
     typeof obj.tenantId === "string" &&
     typeof obj.serializedData === "string" &&
-    obj.lastModified
+    typeof obj.lastModified === "string"
   );
 };
 

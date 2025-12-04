@@ -12,7 +12,9 @@
     "test:once": "vitest run",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:coverage": "vitest --coverage --coverage.reporter=text",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:convex": "vitest --config vitest.convex.config.ts",
+    "test:all": "vitest run && vitest run --config vitest.convex.config.ts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^1.2.9",
