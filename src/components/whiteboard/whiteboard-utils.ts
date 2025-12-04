@@ -64,10 +64,13 @@ export async function deserializeWhiteboardData(
   }
 
   try {
+    if (!serializedData) {
+      return null;
+    }
+
     const parsed = JSON.parse(serializedData);
 
     if (
-      !serializedData ||
       !parsed ||
       !parsed.type ||
       !parsed.version ||
