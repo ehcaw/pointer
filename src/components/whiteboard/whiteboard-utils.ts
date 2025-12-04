@@ -5,7 +5,6 @@ import type {
 } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { Whiteboard } from "@/types/whiteboard";
-import { serialize } from "swr/_internal";
 
 // Your persisted app state shape
 export type PersistedAppState = {
