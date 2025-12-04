@@ -64,6 +64,23 @@ export async function deserializeWhiteboardData(
   }
 
   try {
+    if (!serializedData) {
+      return null;
+    }
+
+    const parsed = JSON.parse(serializedData);
+
+    if (
+      !parsed ||
+      !parsed.type ||
+      !parsed.version ||
+      !parsed.source ||
+      !parsed.elements ||
+      !parsed.appState
+    ) {
+      return null;
+    }
+
     // Dynamic import to avoid SSR issues
     const { loadFromBlob } = await import("@excalidraw/excalidraw");
 
@@ -106,7 +123,7 @@ export const isWhiteboard = (obj: any): obj is Whiteboard => {
     typeof obj.title === "string" &&
     typeof obj.tenantId === "string" &&
     typeof obj.serializedData === "string" &&
-    obj.lastModified
+    typeof obj.lastModified === "string"
   );
 };
 
