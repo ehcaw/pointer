@@ -1,8 +1,4 @@
-import { Mic, MicOff } from "lucide-react";
-import { useVoiceRecorderStore } from "@/hooks/use-voice-recorder";
-import { useHotkeys } from "react-hotkeys-hook";
 import { Spacer } from "@/components/tiptap/tiptap-ui-primitive/spacer";
-import { Button } from "@/components/tiptap/tiptap-ui-primitive/button";
 import {
   ToolbarGroup,
   ToolbarSeparator,
@@ -35,38 +31,6 @@ export const MainToolbarContent = ({
   editor?: Editor;
   isDisabled?: boolean;
 }) => {
-  const { isRecording, stopAndTranscribe, startRecording } =
-    useVoiceRecorderStore();
-
-  useHotkeys(
-    "meta+shift+v",
-    async (e) => {
-      console.log("Mic hotkey triggered");
-      e.preventDefault();
-      e.stopPropagation();
-      await handleMicToggle();
-    },
-    {
-      enableOnContentEditable: true,
-      preventDefault: true,
-      scopes: ["all"],
-    },
-  );
-
-  const handleMicToggle = async () => {
-    if (isRecording) {
-      const transcription = await stopAndTranscribe();
-      if (transcription) {
-        console.log("Transcription:", transcription);
-        if (editor) {
-          editor.commands.insertContent(transcription + " ");
-        }
-      }
-    } else {
-      await startRecording();
-    }
-  };
-
   return (
     <>
       <Spacer />
@@ -128,16 +92,6 @@ export const MainToolbarContent = ({
       <Spacer />
 
       {isMobile && <ToolbarSeparator />}
-
-      <ToolbarGroup>
-        <Button onClick={handleMicToggle} disabled={isDisabled}>
-          {isRecording ? (
-            <Mic className="h-4 w-4" />
-          ) : (
-            <MicOff className="h-4 w-4" />
-          )}
-        </Button>
-      </ToolbarGroup>
     </>
   );
 };

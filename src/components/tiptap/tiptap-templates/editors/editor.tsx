@@ -13,8 +13,7 @@ import { toHash } from "@/lib/utils";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { TaskList } from "@tiptap/extension-task-list";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -104,7 +103,7 @@ export interface SimpleEditorOptions extends BaseEditorOptions {
 // Base extensions used by both editors
 const getBaseExtensions = () => [
   StarterKit.configure({
-    history: {
+    undoRedo: {
       depth: 15,
     },
   }),
@@ -122,7 +121,11 @@ const getBaseExtensions = () => [
   Subscript,
   Selection,
   TrailingNode,
-  Link.configure({ openOnClick: false }),
+  Link.configure({
+    openOnClick: false,
+    autolink: true,
+    defaultProtocol: "https",
+  }),
   SlashCommand.configure({
     suggestion: {
       char: "/",
@@ -132,7 +135,7 @@ const getBaseExtensions = () => [
   Emoji.configure({
     emojis: emojis,
     enableEmoticons: true,
-  }),
+  }) as any,
   TableKit.configure({
     table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
   }),
@@ -346,6 +349,7 @@ export function useCollaborativeEditor({
   const editor = useEditor(
     {
       enableContentCheck: true,
+      shouldRerenderOnTransaction: true,
       onContentError: ({ disableCollaboration }) => {
         disableCollaboration();
       },
@@ -430,8 +434,8 @@ export function useCollaborativeEditor({
         const baseExtensions = getBaseExtensions().map((ext) => {
           if (ext.name === "starterKit") {
             return StarterKit.configure({
-              // Disable history for collaborative editing - Y.js handles this
-              history: false,
+              // Disable undoRedo for collaborative editing - Y.js handles this
+              undoRedo: false,
             });
           }
           return ext;
@@ -1022,7 +1026,7 @@ export function useSimpleEditor({
 
     // Only update content if it's actually different to avoid unnecessary re-renders
     if (currentContentHash !== newContentHash && editor) {
-      editor.commands.setContent(initialContent, false); // false = don't trigger update events
+      editor.commands.setContent(initialContent); // false = don't trigger update events
       lastTextHashRef.current = getDocumentNodeCount(editor);
       lastJsonHashRef.current = newContentHash;
     }
