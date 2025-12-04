@@ -103,7 +103,7 @@ export interface SimpleEditorOptions extends BaseEditorOptions {
 // Base extensions used by both editors
 const getBaseExtensions = () => [
   StarterKit.configure({
-    history: {
+    undoRedo: {
       depth: 15,
     },
   }),
@@ -1026,7 +1026,7 @@ export function useSimpleEditor({
 
     // Only update content if it's actually different to avoid unnecessary re-renders
     if (currentContentHash !== newContentHash && editor) {
-      editor.commands.setContent(initialContent, false); // false = don't trigger update events
+      editor.commands.setContent(initialContent); // false = don't trigger update events
       lastTextHashRef.current = getDocumentNodeCount(editor);
       lastJsonHashRef.current = newContentHash;
     }

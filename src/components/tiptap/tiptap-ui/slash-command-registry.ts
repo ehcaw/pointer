@@ -1,4 +1,5 @@
 import { Editor } from "@tiptap/react";
+import "@tiptap/extension-table";
 
 export interface SlashCommandItem {
   title: string;

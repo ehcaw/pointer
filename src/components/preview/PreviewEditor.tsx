@@ -57,6 +57,7 @@ export const PreviewEditor = ({
       Emoji.configure({
         emojis: emojis,
         enableEmoticons: true,
+        //eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any,
       TableKit.configure({
         table: { resizable: true, HTMLAttributes: { class: "tiptap-table" } },
