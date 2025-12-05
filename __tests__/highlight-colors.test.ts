@@ -1,5 +1,7 @@
 // Test highlight color functionality
 
+import { vi } from 'vitest';
+
 // Define the color arrays directly to avoid import issues
 const LIGHT_HIGHLIGHT_COLORS = [
   {
@@ -119,7 +121,7 @@ describe('Highlight Colors', () => {
     // Reset document.documentElement.classList before each test
     Object.defineProperty(document.documentElement, 'classList', {
       value: {
-        contains: jest.fn(),
+        contains: vi.fn(),
       },
       writable: true,
     });
@@ -128,7 +130,7 @@ describe('Highlight Colors', () => {
   describe('getHighlightColors', () => {
     it('should return light mode colors by default', () => {
       // Mock document.documentElement.classList to not contain 'dark'
-      document.documentElement.classList.contains = jest.fn().mockReturnValue(false);
+      document.documentElement.classList.contains = vi.fn().mockReturnValue(false);
 
       const colors = getHighlightColors();
       
@@ -147,7 +149,7 @@ describe('Highlight Colors', () => {
 
     it('should return dark mode colors when dark class is present', () => {
       // Mock document.documentElement.classList to contain 'dark'
-      document.documentElement.classList.contains = jest.fn().mockReturnValue(true);
+      document.documentElement.classList.contains = vi.fn().mockReturnValue(true);
 
       const colors = getHighlightColors();
       

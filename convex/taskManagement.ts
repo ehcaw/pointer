@@ -10,7 +10,7 @@ export const getUserTasks = query({
     }
     return await ctx.db
       .query("userTasks")
-      .filter((q) => q.eq(q.field("tenantId"), identity.subject))
+      .withIndex("by_tenant", (q) => q.eq("tenantId", identity.subject))
       .order("desc")
       .collect();
   },
@@ -24,22 +24,26 @@ export const createTask = mutation({
     dueBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        throw new Error("Not authenticated");
+      }
+
+      const taskId = await ctx.db.insert("userTasks", {
+        tenantId: identity.subject,
+        taskName: args.taskName,
+        taskDescription: args.taskDescription,
+        category: args.category,
+        dueBy: args.dueBy,
+        completed: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      return taskId;
+    } catch (error) {
+      throw error;
     }
-
-    const taskId = await ctx.db.insert("userTasks", {
-      tenantId: identity.subject,
-      taskName: args.taskName,
-      taskDescription: args.taskDescription,
-      category: args.category,
-      dueBy: args.dueBy,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    });
-
-    return taskId;
   },
 });
 
@@ -91,7 +95,8 @@ export const updateTask = mutation({
       taskName: args.taskName,
     };
 
-    if (args.taskDescription !== undefined) updateData.taskDescription = args.taskDescription;
+    if (args.taskDescription !== undefined)
+      updateData.taskDescription = args.taskDescription;
     if (args.category !== undefined) updateData.category = args.category;
     if (args.dueBy !== undefined) updateData.dueBy = args.dueBy;
     if (args.tags !== undefined) updateData.tags = args.tags;

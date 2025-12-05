@@ -56,7 +56,17 @@ export const updateWhiteboard = mutation({
     serializedData: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { success: false };
+    }
     const { id, title, serializedData } = args;
+
+    // Check if user owns this whiteboard
+    const whiteboard = await ctx.db.get(id);
+    if (!whiteboard || whiteboard.tenantId !== identity.subject) {
+      return { success: false };
+    }
 
     const updateData: any = {
       serializedData,
