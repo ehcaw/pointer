@@ -27,7 +27,7 @@ export const getNoteVersions = query({
   },
 });
 
-export const getNoteContentVersion = query({
+export const getNoteVersionContent = query({
   args: { metadata_id: v.id("notesHistoryMetadata") },
   handler: async (ctx, { metadata_id }) => {
     const identity = await ctx.auth.getUserIdentity();

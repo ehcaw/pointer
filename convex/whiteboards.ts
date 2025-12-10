@@ -7,31 +7,36 @@ export const create = mutation({
     serializedData: v.optional(v.string()), // Accept serialized data from client
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return null;
-    }
-    const defaultSerializedData =
-      args.serializedData ||
-      JSON.stringify({
-        type: "excalidraw",
-        version: 2,
-        source: "https://excalidraw.com",
-        elements: [],
-        appState: {
-          viewBackgroundColor: "#ffffff",
-          theme: "light",
-        },
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        throw new Error("Unauthorized");
+      }
+      const defaultSerializedData =
+        args.serializedData ||
+        JSON.stringify({
+          type: "excalidraw",
+          version: 2,
+          source: "https://excalidraw.com",
+          elements: [],
+          appState: {
+            viewBackgroundColor: "#ffffff",
+            theme: "light",
+          },
+        });
+
+      const whiteboardId = await ctx.db.insert("whiteboards", {
+        title: args.title,
+        tenantId: identity.subject,
+        serializedData: defaultSerializedData,
+        lastModified: new Date().toISOString(),
       });
 
-    const whiteboardId = await ctx.db.insert("whiteboards", {
-      title: args.title,
-      tenantId: identity.subject,
-      serializedData: defaultSerializedData,
-      lastModified: new Date().toISOString(),
-    });
-
-    return await ctx.db.get(whiteboardId);
+      return await ctx.db.get(whiteboardId);
+    } catch (error) {
+      console.log("Error creating whiteboard:", error);
+      throw error;
+    }
   },
 });
 
@@ -56,7 +61,17 @@ export const updateWhiteboard = mutation({
     serializedData: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { success: false };
+    }
     const { id, title, serializedData } = args;
+
+    // Check if user owns this whiteboard
+    const whiteboard = await ctx.db.get(id);
+    if (!whiteboard || whiteboard.tenantId !== identity.subject) {
+      return { success: false };
+    }
 
     const updateData: any = {
       serializedData,

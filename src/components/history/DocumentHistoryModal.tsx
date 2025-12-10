@@ -95,7 +95,7 @@ export function DocumentHistoryModal({
 
   // Fetch content for the selected version - let React Query handle caching
   const fetchedContent = useQuery(
-    api.noteVersions.getNoteContentVersion,
+    api.noteVersions.getNoteVersionContent,
     selectedVersion ? { metadata_id: selectedVersion } : "skip",
   );
 
