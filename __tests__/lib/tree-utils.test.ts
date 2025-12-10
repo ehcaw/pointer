@@ -83,7 +83,7 @@ describe("tree utils tests", () => {
       };
       const children = [];
       const children2 = [];
-      for (let i = 2; i >= -0; i--) {
+      for (let i = 2; i >= 0; i--) {
         const childNode: FileNode = {
           _id: `child-node-${i}`,
           type: "file",

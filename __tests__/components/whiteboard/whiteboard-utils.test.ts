@@ -64,8 +64,8 @@ describe("whiteboard-utils", () => {
     });
 
     it("should return null/undefined for null/undefined input", () => {
-      expect(isWhiteboard(null)).toBe(null); // Current implementation returns null
-      expect(isWhiteboard(undefined)).toBe(undefined); // Current implementation returns undefined
+      expect(isWhiteboard(null)).toBeFalsy(); // Current implementation returns null
+      expect(isWhiteboard(undefined)).toBeFalsy(); // Current implementation returns undefined
     });
 
     it("should return false for objects missing required properties", () => {

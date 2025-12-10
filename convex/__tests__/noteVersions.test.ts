@@ -63,7 +63,7 @@ describe("noteVersions", () => {
       expect(
         noteVersions.every((v) => v.noteId.toString() === noteOneId.toString()),
       ).toBe(true);
-      expect(noteVersions.every((v) => v.tenantId === "user-1"));
+      expect(noteVersions.every((v) => v.tenantId === "user-1")).toBe(true);
     });
   });
   describe("getNoteContentVersion", () => {

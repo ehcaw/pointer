@@ -5,7 +5,7 @@ import schema from "../schema";
 import { convexTest } from "convex-test";
 
 describe("taskManagement", () => {
-  describe("getUserTasks", async () => {
+  describe("getUserTasks", () => {
     it("returns empty array for unauthorized user", async () => {
       const t = convexTest(schema, modules);
       const result = await t.query(api.taskManagement.getUserTasks, {});
