@@ -13,7 +13,7 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:coverage": "vitest --coverage --coverage.reporter=text",
     "test:ui": "vitest --ui",
-    "test:convex": "vitest --config vitest.convex.config.ts",
+    "test:convex": "vitest --config vitest.convex.config.ts --coverage --coverage.reporter=text",
     "test:all": "vitest run && vitest run --config vitest.convex.config.ts"
   },
   "dependencies": {

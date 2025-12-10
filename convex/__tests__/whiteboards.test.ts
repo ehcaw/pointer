@@ -5,6 +5,18 @@ import schema from "../schema";
 import { modules } from "../../__tests__/components/whiteboard/test.setup";
 
 describe("whiteboards", () => {
+  describe("create", () => {
+    it("returns null when there is no authenticated user", async () => {
+      const t = convexTest(schema, modules);
+
+      await expect(
+        t.mutation(api.whiteboards.create, {
+          title: "whiteboard",
+          serializedData: '{"content": "hello"',
+        }),
+      ).rejects.toThrowError();
+    });
+  });
   describe("getWhiteboard", () => {
     it("returns null when there is no authenticated user", async () => {
       const t = convexTest(schema, modules);

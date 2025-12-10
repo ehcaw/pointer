@@ -2,7 +2,7 @@
  * Test data for URL metadata fetcher functions
  */
 
-import { URLMetadata } from "./urlMetadataFetcher";
+import { URLMetadata } from "@/lib/utils/urlMetadataFetcher";
 
 // =============================================================================
 // HTML Test Cases for extractMetadataFromHTML
@@ -193,7 +193,7 @@ export const htmlTestCases: HTMLTestCase[] = [
       <html>
         <head>
           <title>Title with &amp; Special &lt;Characters&gt;</title>
-          <meta property="og:description" content="Description with "quotes" and 'apostrophes'" />
+          <meta property="og:description" content="Description with &quot;quotes&quot; and 'apostrophes'" />
         </head>
         <body>Content</body>
       </html>

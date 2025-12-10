@@ -1,18 +1,125 @@
-import { vi } from "vitest";
-import { Node } from "@/types/note";
-import { buildTreeStructure } from "@/lib/tree-utils";
+import { describe, it, expect } from "vitest";
+import { buildTreeStructure, nodeToTreeItem } from "@/lib/tree-utils";
 import {
   collaborativeNodes,
   deeplyNestedNodes,
   hierarchicalNodes,
   simpleFlatNodes,
 } from "../helpers/tree-constants";
+import { Node, FileNode, FolderNode } from "@/types/note";
 
 describe("tree utils tests", () => {
-  describe("properly converts a node to a tree item", () => {
-    it("should ");
+  describe("nodeToTreeItem", () => {
+    it("throws an error if the node doesn't have an _id", () => {
+      const folderChildrenMap: Map<string, Node[]> = new Map();
+      const node: FileNode = {
+        type: "file",
+        name: "test node",
+        pointer_id: "test-node",
+        tenantId: "tenant-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        collaborative: false,
+      };
+      expect(() => nodeToTreeItem(folderChildrenMap, node)).toThrowError(
+        "Node test node does not have _id, cannot include in tree structure",
+      );
+    });
+    it("should return a tree item for a note with no children by default", () => {
+      const folderChildrenMap: Map<string, Node[]> = new Map();
+      const node: FileNode = {
+        _id: "node-1",
+        type: "file",
+        name: "test node",
+        pointer_id: "test-node",
+        tenantId: "tenant-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        collaborative: false,
+      };
+      const treeItem = nodeToTreeItem(folderChildrenMap, node);
+      expect(treeItem.children).toBeUndefined();
+      expect(treeItem.draggable).toBeTruthy();
+      expect(treeItem.droppable).toBeFalsy();
+    });
+    it("should return a tree item for a note with no children by default", () => {
+      const folderChildrenMap: Map<string, Node[]> = new Map();
+      const node: FolderNode = {
+        _id: "node-1",
+        type: "folder",
+        name: "test node",
+        pointer_id: "test-node",
+        tenantId: "tenant-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        collaborative: false,
+      };
+      const treeItem = nodeToTreeItem(folderChildrenMap, node);
+      expect(treeItem.children).toBeDefined();
+      expect(treeItem.draggable).toBeTruthy();
+      expect(treeItem.droppable).toBeTruthy();
+    });
+    it("should return a tree data item with children", () => {
+      const folderChildrenMap: Map<string, Node[]> = new Map();
+      const parentNode: FolderNode = {
+        _id: "parent-node",
+        type: "folder",
+        name: "Parent Node",
+        pointer_id: "parent-node-ptr",
+        tenantId: "tenant-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        collaborative: false,
+      };
+      const secondParentNode: FolderNode = {
+        _id: "parent-node-2",
+        type: "folder",
+        name: "Parent Node 2",
+        pointer_id: "parent-node-ptr-2",
+        tenantId: "tenant-1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        collaborative: false,
+      };
+      const children = [];
+      const children2 = [];
+      for (let i = 2; i >= -0; i--) {
+        const childNode: FileNode = {
+          _id: `child-node-${i}`,
+          type: "file",
+          name: `Child Node ${i}`,
+          pointer_id: `child-node-ptr-${i}`,
+          tenantId: "tenant-1",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          collaborative: false,
+        };
+        children.push(childNode);
+        children2.push(childNode);
+      }
+      folderChildrenMap.set(parentNode._id!, children);
+      folderChildrenMap.set(secondParentNode._id!, children);
+
+      const parentOneTreeItem = nodeToTreeItem(folderChildrenMap, parentNode);
+      const parentTwoTreeItem = nodeToTreeItem(
+        folderChildrenMap,
+        secondParentNode,
+      );
+
+      expect(parentOneTreeItem.children).toHaveLength(3);
+      expect(parentOneTreeItem.droppable).toBeTruthy();
+      expect(parentOneTreeItem.draggable).toBeTruthy();
+      expect(parentOneTreeItem.children![0].name).toBe("Child Node 0");
+      expect(parentOneTreeItem.children![2].name).toBe("Child Node 2");
+
+      expect(parentTwoTreeItem.children).toHaveLength(3);
+      expect(parentTwoTreeItem.droppable).toBeTruthy();
+      expect(parentTwoTreeItem.draggable).toBeTruthy();
+      expect(parentTwoTreeItem.children![0].name).toBe("Child Node 0");
+      expect(parentTwoTreeItem.children![2].name).toBe("Child Node 2");
+    });
   });
-  describe("building correct tree structure", () => {
+  describe("buildTreeStructure", () => {
     it("should build a proper flat tree structure", () => {
       const simpleTreeStructureRootNodes = [
         {

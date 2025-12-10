@@ -10,7 +10,7 @@ import {
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { convexTest } from "convex-test";
 import schema from "../../../convex/schema";
-import { api, internal } from "../../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { modules } from "./test.setup";
 import { serializedWhiteboardData } from "./whiteboard-utils.test-data";
 
@@ -63,7 +63,7 @@ describe("whiteboard-utils", () => {
       expect(result).toBeTruthy();
     });
 
-    it("should return false for null/undefined", () => {
+    it("should return null/undefined for null/undefined input", () => {
       expect(isWhiteboard(null)).toBe(null); // Current implementation returns null
       expect(isWhiteboard(undefined)).toBe(undefined); // Current implementation returns undefined
     });
@@ -311,7 +311,10 @@ describe("whiteboard-utils", () => {
             y: 100,
             width: 150,
             height: 50,
-            points: [[0, 0], [150, 50]],
+            points: [
+              [0, 0],
+              [150, 50],
+            ],
             strokeColor: "#0000ff",
           },
         ],
@@ -404,7 +407,7 @@ describe("whiteboard-utils", () => {
       await deserializeWhiteboardData(serializedWhiteboardData);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        "deserializeWhiteboardData called on server side"
+        "deserializeWhiteboardData called on server side",
       );
 
       consoleSpy.mockRestore();
@@ -412,7 +415,9 @@ describe("whiteboard-utils", () => {
     });
 
     it("should console.error on parsing failures", async () => {
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       const { loadFromBlob } = await import("@excalidraw/excalidraw");
       vi.mocked(loadFromBlob).mockRejectedValueOnce(new Error("Parse error"));
 
@@ -420,7 +425,7 @@ describe("whiteboard-utils", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith(
         "Failed to deserialize whiteboard data:",
-        expect.any(Error)
+        expect.any(Error),
       );
 
       consoleSpy.mockRestore();
